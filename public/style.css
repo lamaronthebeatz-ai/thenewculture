@@ -179,10 +179,14 @@ a:hover .media__zoom{transform:scale(1.04);}
 
 .masthead__main .container{display:flex;align-items:center;justify-content:space-between;height:68px;}
 .wordmark{font-family:var(--f-display);font-weight:900;font-size:1.5rem;letter-spacing:-0.03em;display:flex;align-items:center;gap:2px;}
-.wordmark .tnc-badge{
-  display:inline-grid;place-items:center;width:34px;height:34px;margin-right:8px;
-  background:var(--c-red);color:#fff;font-size:1.05rem;font-weight:900;border-radius:3px;
+.wordmark__title{font-family:var(--f-display);font-weight:900;letter-spacing:-0.03em;line-height:1;}
+/* biến thể logo có tên chủ sở hữu phía trên (chỉ ở masthead chính) */
+.wordmark--lead{flex-direction:column;align-items:flex-start;gap:1px;}
+.wordmark--lead .wordmark__owner{
+  font-family:var(--f-mono);font-weight:500;font-size:0.6rem;letter-spacing:0.14em;
+  text-transform:uppercase;color:var(--c-red);line-height:1;margin-bottom:2px;
 }
+.wordmark--lead .wordmark__title{font-size:1.5rem;}
 .icon-btn{width:38px;height:38px;display:grid;place-items:center;border-radius:3px;color:var(--c-ink);transition:background var(--dur);}
 .icon-btn:hover{background:var(--c-bg-subtle);}
 .masthead__actions{display:flex;align-items:center;gap:var(--s-3);}
