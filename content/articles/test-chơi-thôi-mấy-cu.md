@@ -5,7 +5,7 @@ dek: Đéo có gì hết anh em, test thoi
 author: Lamar
 date: 1 Tháng 7, 2026
 read_time: 5 phút đọc
-featured: true
+featured: false
 order: 1
 tags:
   - '#Lamar'
