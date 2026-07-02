@@ -3,8 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Series phỏng vấn dài kỳ của The New Culture">
 <title>TNC Sessions — The New Culture</title>
+<meta name="description" content="Series phỏng vấn dài kỳ của The New Culture">
+<link rel="canonical" href="https://thenewculture.pages.dev/">
+<meta name="theme-color" content="#E11D0F">
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The New Culture">
+<meta property="og:title" content="TNC Sessions">
+<meta property="og:description" content="Series phỏng vấn dài kỳ của The New Culture">
+<meta property="og:url" content="https://thenewculture.pages.dev/">
+<meta property="og:image" content="https://thenewculture.pages.dev/og-default.png">
+<meta property="og:locale" content="vi_VN">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="TNC Sessions">
+<meta name="twitter:description" content="Series phỏng vấn dài kỳ của The New Culture">
+<meta name="twitter:image" content="https://thenewculture.pages.dev/og-default.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -28,6 +43,9 @@
         <span class="wordmark__title">THE NEW CULTURE</span>
       </a>
       <div class="masthead__actions">
+        <a href="search.html" class="icon-btn" aria-label="Tìm kiếm">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+        </a>
         <a href="theo-doi.html" class="btn btn--solid">Theo dõi</a>
         <button class="icon-btn" id="menuToggle" aria-label="Mở menu" aria-expanded="false" aria-controls="siteMenu">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
@@ -168,6 +186,17 @@
   if(close)close.addEventListener('click',hide);
   menu.addEventListener('click',function(e){if(e.target===menu)hide();});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!menu.hidden)hide();});
+})();
+// Nút sao chép link bài viết
+(function(){
+  document.addEventListener('click',function(e){
+    var btn=e.target.closest('.share-copy');
+    if(!btn)return;
+    var url=btn.getAttribute('data-url')||location.href;
+    function done(){var t=btn.textContent;btn.textContent='Đã sao chép';btn.classList.add('copied');setTimeout(function(){btn.textContent=t;btn.classList.remove('copied');},1800);}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(done).catch(done);}
+    else{var i=document.createElement('input');i.value=url;document.body.appendChild(i);i.select();try{document.execCommand('copy');}catch(_){}document.body.removeChild(i);done();}
+  });
 })();
 </script>
 </body>
