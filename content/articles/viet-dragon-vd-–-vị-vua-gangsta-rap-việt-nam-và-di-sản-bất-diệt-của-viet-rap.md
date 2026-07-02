@@ -2,6 +2,7 @@
 title: Viet Dragon (VD) – Vị vua Gangsta Rap Việt Nam và di sản bất diệt của Viet Rap
 series: tnc-origins
 dek: Viet Dragon không chỉ là rapper; anh là biểu tượng của tinh thần bất khuất, sáng tạo không ngừng và lòng yêu rap chân thành.
+cover: /uploads/bf5a0a83-998d-4eff-9cdf-c0cd028f9fb8.jpeg
 author: Lamar
 date: 1 Tháng 7, 2026
 read_time: 5 phút đọc
@@ -11,7 +12,7 @@ tags:
   - '#Vietdragon #TNCOrigins #Lamar'
 ---
 
-**TÊN** THẬT VÀ NGUỒN GỐC
+TÊN THẬT VÀ NGUỒN GỐC
 
 Trương Hoàng Minh Huy, thường được biết đến với nghệ danh Viet Dragon (hay VD, Rồng Việt, SSK – Southside King, King of VietRap, Vua cả ba miền), sinh ngày 17 tháng 10 năm 1979 tại Sài Gòn, Việt Nam (một số nguồn ghi 23/08/1979, nhưng đa số tài liệu đáng tin cậy xác nhận ngày 17/10). Anh là con của một gia đình có bố người miền Trung và mẹ người miền Bắc, lớn lên trong khu người Hoa quận 5 (gần Chợ Hòa Bình, đường Nghĩa Thục).
 
