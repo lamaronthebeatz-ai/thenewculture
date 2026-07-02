@@ -8,7 +8,7 @@
 
 backend:
   name: github
-  repo: lamaronthebeatz-ai/thenewculture      # <-- ĐỔI DÒNG NÀY
+  repo: TEN-GITHUB/TEN-REPO      # <-- ĐỔI DÒNG NÀY
   branch: main                    # nếu nhánh chính tên khác (master), đổi lại
 
 # Nơi lưu ảnh tải lên qua CMS
@@ -65,21 +65,30 @@ collections:
         widget: text
         hint: "Đoạn tóm tắt ngắn hiển thị dưới tiêu đề và trong danh sách bài."
 
+      - label: "Ảnh bìa"
+        name: cover
+        widget: image
+        required: false
+        hint: "Ảnh đại diện bài viết, hiển thị ở trang chủ, trang series và đầu bài. Để trống sẽ dùng nền mặc định."
+
       - label: "Tác giả"
         name: author
         widget: string
         default: "TNC Editorial"
 
-      - label: "Ngày đăng"
+      - label: "Ngày đăng (tùy chọn)"
         name: date
         widget: string
-        hint: "Định dạng: 30 Tháng 6, 2026"
+        required: false
+        hint: "Để trống sẽ tự động lấy ngày publish. Chỉ điền nếu muốn ghi đè, định dạng: 30 Tháng 6, 2026"
         default: ""
 
-      - label: "Thời gian đọc"
+      - label: "Thời gian đọc (tùy chọn)"
         name: read_time
         widget: string
-        default: "5 phút đọc"
+        required: false
+        default: ""
+        hint: "Để trống sẽ tự động ước tính theo độ dài bài."
 
       - label: "Bài nổi bật (hero trang chủ)"
         name: featured
