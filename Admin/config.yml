@@ -8,7 +8,7 @@
 
 backend:
   name: github
-  repo: TEN-GITHUB/TEN-REPO      # <-- ĐỔI DÒNG NÀY
+  repo: lamaronthebeatz-ai/thenewculture      # <-- ĐỔI DÒNG NÀY
   branch: main                    # nếu nhánh chính tên khác (master), đổi lại
 
 # Nơi lưu ảnh tải lên qua CMS
