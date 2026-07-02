@@ -11,7 +11,7 @@ tags:
   - '#Vietdragon #TNCOrigins #Lamar'
 ---
 
-![](/uploads/bf5a0a83-998d-4eff-9cdf-c0cd028f9fb8.jpeg)
+![](/uploads/bf5a0a83-998d-4eff-9cdf-c0cd028f9fb8.jpeg "Vietdragon")
 
 TÊN THẬT VÀ NGUỒN GỐC
 
