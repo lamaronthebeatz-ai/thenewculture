@@ -1,0 +1,59 @@
+# ============================================================
+# GitHub Actions — Tự động build site khi có thay đổi nội dung
+# ============================================================
+# Robot này chạy trên máy chủ GitHub. Mỗi khi bạn (hoặc CMS) thêm/sửa
+# bài viết trong content/ hoặc chỉnh script, nó tự:
+#   1. Cài Python
+#   2. Chạy scripts/build.py để sinh lại toàn bộ site vào public/
+#   3. Commit thư mục public/ đã cập nhật trở lại repo
+# Cloudflare Pages phát hiện commit mới -> tự cập nhật web.
+# ============================================================
+
+name: Build TNC site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "content/**"          # khi có bài viết mới/sửa
+      - "scripts/**"          # khi sửa script build hoặc CSS
+  workflow_dispatch:          # cho phép bấm chạy tay trong tab Actions
+
+# Cho phép workflow ghi lại vào repo
+permissions:
+  contents: write
+
+# Tránh 2 lần build chồng nhau
+concurrency:
+  group: build-site
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lấy mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Cài Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cài thư viện cần thiết
+        run: pip install pyyaml markdown
+
+      - name: Sinh lại toàn bộ site
+        run: python scripts/build.py
+
+      - name: Commit kết quả (nếu có thay đổi)
+        run: |
+          git config user.name "TNC Build Bot"
+          git config user.email "bot@thenewculture.local"
+          git add public
+          if git diff --staged --quiet; then
+            echo "Không có thay đổi để commit."
+          else
+            git commit -m "Tự động build site [skip ci]"
+            git push
+          fi
