@@ -1,0 +1,106 @@
+# ============================================================
+# CẤU HÌNH SVELTIA CMS — The New Culture
+# ============================================================
+# QUAN TRỌNG: đổi "TEN-GITHUB/TEN-REPO" bên dưới thành repo thật của bạn.
+# Ví dụ: nếu GitHub của bạn là "lamar" và repo tên "tnc-web"
+# thì ghi: repo: lamar/tnc-web
+# ============================================================
+
+backend:
+  name: github
+  repo: TEN-GITHUB/TEN-REPO      # <-- ĐỔI DÒNG NÀY
+  branch: main                    # nếu nhánh chính tên khác (master), đổi lại
+
+# Nơi lưu ảnh tải lên qua CMS
+media_folder: "public/uploads"    # ảnh lưu vật lý ở đây
+public_folder: "/uploads"         # đường dẫn ảnh khi hiển thị trên web
+
+# Ngôn ngữ giao diện CMS
+locale: vi
+
+# ============================================================
+# COLLECTIONS — các "loại nội dung" quản lý được
+# ============================================================
+collections:
+  - name: articles
+    label: "Bài viết"
+    label_singular: "Bài viết"
+    folder: "content/articles"
+    create: true                  # cho phép tạo bài mới
+    slug: "{{slug}}"              # tên file = slug tự sinh từ tiêu đề
+    identifier_field: title
+    summary: "{{title}}  ·  {{series}}"
+    sortable_fields: [order, date, title]
+    icon: article
+    fields:
+      - label: "Tiêu đề"
+        name: title
+        widget: string
+        hint: "Tiêu đề bài viết, hiển thị lớn ở đầu trang."
+
+      - label: "Series (chuyên mục)"
+        name: series
+        widget: select
+        hint: "Chọn 1 trong 16 tuyến nội dung. Bài sẽ tự xuất hiện trong trang series tương ứng."
+        options:
+          - { label: "TNC Origins", value: tnc-origins }
+          - { label: "TNC Profiles", value: tnc-profiles }
+          - { label: "TNC Records", value: tnc-records }
+          - { label: "TNC Tracks", value: tnc-tracks }
+          - { label: "TNC Breakdown", value: tnc-breakdown }
+          - { label: "TNC Editorial", value: tnc-editorial }
+          - { label: "TNC Reviews", value: tnc-reviews }
+          - { label: "TNC Timeline", value: tnc-timeline }
+          - { label: "TNC Culture", value: tnc-culture }
+          - { label: "Inside The Culture", value: inside-the-culture }
+          - { label: "TNC Community", value: tnc-community }
+          - { label: "TNC Radar", value: tnc-radar }
+          - { label: "TNC Discovery", value: tnc-discovery }
+          - { label: "TNC Music 101", value: tnc-music-101 }
+          - { label: "TNC Selects", value: tnc-selects }
+          - { label: "Behind The Culture", value: behind-the-culture }
+
+      - label: "Tóm tắt (dek)"
+        name: dek
+        widget: text
+        hint: "Đoạn tóm tắt ngắn hiển thị dưới tiêu đề và trong danh sách bài."
+
+      - label: "Tác giả"
+        name: author
+        widget: string
+        default: "TNC Editorial"
+
+      - label: "Ngày đăng"
+        name: date
+        widget: string
+        hint: "Định dạng: 30 Tháng 6, 2026"
+        default: ""
+
+      - label: "Thời gian đọc"
+        name: read_time
+        widget: string
+        default: "5 phút đọc"
+
+      - label: "Bài nổi bật (hero trang chủ)"
+        name: featured
+        widget: boolean
+        default: false
+        hint: "Bật nếu muốn bài này làm bài lớn nhất trên trang chủ. Chỉ nên bật 1 bài."
+
+      - label: "Thứ tự ưu tiên"
+        name: order
+        widget: number
+        default: 10
+        value_type: int
+        hint: "Số nhỏ = ưu tiên hiển thị trước (mới hơn). Bài mới nhất nên để số nhỏ như 1, 2, 3."
+
+      - label: "Thẻ (tags)"
+        name: tags
+        widget: list
+        allow_add: true
+        hint: "Các từ khóa liên quan, hiển thị cuối bài."
+
+      - label: "Nội dung bài viết"
+        name: body
+        widget: markdown
+        hint: "Viết nội dung tại đây. Dùng ## để tạo tiêu đề phụ, > để tạo trích dẫn."
