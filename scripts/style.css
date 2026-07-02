@@ -371,3 +371,25 @@ a:hover .media__zoom{transform:scale(1.04);}
 .contact-grid input,.contact-grid textarea{border:1px solid var(--c-line-strong);padding:11px 13px;font-family:var(--f-body);font-size:var(--t-base);}
 .contact-grid textarea{min-height:120px;resize:vertical;}
 @media (max-width:768px){.info-cards{grid-template-columns:1fr;}.contact-grid{grid-template-columns:1fr;}}
+
+/* ==========================================================================
+   V2.0 — SHARE / SEARCH / AUTHOR
+   ========================================================================== */
+/* Thanh chia sẻ */
+.share-bar{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;margin-top:var(--s-6);padding-top:var(--s-5);border-top:1px solid var(--c-line);}
+.share-bar__label{font-family:var(--f-mono);font-size:var(--t-xs);text-transform:uppercase;letter-spacing:0.08em;color:var(--c-ink-3);margin-right:var(--s-2);}
+.share-btn{font-family:var(--f-mono);font-size:var(--t-xs);font-weight:600;letter-spacing:0.04em;padding:8px 14px;border:1px solid var(--c-line-strong);border-radius:2px;background:var(--c-bg);color:var(--c-ink);transition:all var(--dur) var(--ease);cursor:pointer;}
+.share-btn:hover{background:var(--c-ink);color:var(--c-bg);}
+.share-copy.copied{background:var(--c-green);border-color:var(--c-green);color:#fff;}
+
+/* Trang tìm kiếm */
+.search-input{width:100%;font-family:var(--f-display);font-size:var(--t-xl);font-weight:700;padding:var(--s-4) 0;border:0;border-bottom:2px solid var(--c-line-strong);background:transparent;color:var(--c-ink);outline:none;}
+.search-input::placeholder{color:var(--c-ink-3);}
+
+/* Trang tác giả */
+.author-hero{display:flex;align-items:center;gap:var(--s-5);padding-block:var(--s-8) var(--s-6);border-bottom:2px solid var(--c-line-strong);margin-bottom:var(--s-7);}
+.author-hero__avatar{width:80px;height:80px;border-radius:50%;background:var(--c-bg-subtle);border:1px solid var(--c-line);flex-shrink:0;}
+.author-hero h1{font-size:var(--t-2xl);margin:var(--s-2) 0;}
+.author-hero p{color:var(--c-ink-2);font-size:var(--t-sm);}
+.author-hero .eyebrow{font-size:var(--t-xs);}
+@media (max-width:520px){.author-hero{flex-direction:column;align-items:flex-start;gap:var(--s-4);}}

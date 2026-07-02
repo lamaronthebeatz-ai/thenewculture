@@ -9,6 +9,15 @@ import os
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public")
 os.makedirs(OUT, exist_ok=True)
 
+# -----------------------------------------------------------------
+# CẤU HÌNH SITE — dùng cho SEO, Open Graph, sitemap
+# Đổi SITE_URL thành domain thật khi có tên miền riêng.
+# -----------------------------------------------------------------
+SITE_URL = "https://thenewculture.pages.dev"   # không có dấu / ở cuối
+SITE_NAME = "The New Culture"
+SITE_DESC = "Nền tảng tài liệu hóa và phân tích văn hóa hip-hop underground Việt Nam."
+
+
 # accent màu xoay vòng cho từng series (khớp class CSS .eyebrow--*)
 ACCENTS = ["", "--blue", "--green", "--purple", "--amber"]
 def accent_for(idx):
@@ -255,14 +264,42 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          'family=Archivo:wght@400;500;600;700;800;900&'
          'family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">')
 
-def head(title, desc="Nền tảng tài liệu hóa văn hóa hip-hop underground Việt Nam."):
+def head(title, desc=None, path="", image="", og_type="website"):
+    """Sinh <head> đầy đủ SEO + Open Graph.
+    path: đường dẫn tương đối của trang (vd 'article-abc.html') để tạo canonical/og:url.
+    image: đường dẫn ảnh đại diện (tương đối hoặc tuyệt đối)."""
+    import html as _html
+    desc = desc or SITE_DESC
+    desc_short = (desc[:157] + "…") if len(desc) > 158 else desc
+    canonical = f"{SITE_URL}/{path}" if path else SITE_URL + "/"
+    if image:
+        og_image = image if image.startswith("http") else f"{SITE_URL}/{image.lstrip('/')}"
+    else:
+        og_image = f"{SITE_URL}/og-default.png"
+    t = _html.escape(title, quote=True)
+    d = _html.escape(desc_short, quote=True)
     return f"""<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="{desc}">
-<title>{title} — The New Culture</title>
+<title>{t} — {SITE_NAME}</title>
+<meta name="description" content="{d}">
+<link rel="canonical" href="{canonical}">
+<meta name="theme-color" content="#E11D0F">
+<!-- Open Graph -->
+<meta property="og:type" content="{og_type}">
+<meta property="og:site_name" content="{SITE_NAME}">
+<meta property="og:title" content="{t}">
+<meta property="og:description" content="{d}">
+<meta property="og:url" content="{canonical}">
+<meta property="og:image" content="{og_image}">
+<meta property="og:locale" content="vi_VN">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{t}">
+<meta name="twitter:description" content="{d}">
+<meta name="twitter:image" content="{og_image}">
 {FONTS}
 <link rel="stylesheet" href="style.css">
 </head>
@@ -310,6 +347,9 @@ def masthead(active=None):
         <span class="wordmark__title">THE NEW CULTURE</span>
       </a>
       <div class="masthead__actions">
+        <a href="search.html" class="icon-btn" aria-label="Tìm kiếm">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+        </a>
         <a href="theo-doi.html" class="btn btn--solid">Theo dõi</a>
         <button class="icon-btn" id="menuToggle" aria-label="Mở menu" aria-expanded="false" aria-controls="siteMenu">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
@@ -434,6 +474,17 @@ def footer():
   menu.addEventListener('click',function(e){if(e.target===menu)hide();});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!menu.hidden)hide();});
 })();
+// Nút sao chép link bài viết
+(function(){
+  document.addEventListener('click',function(e){
+    var btn=e.target.closest('.share-copy');
+    if(!btn)return;
+    var url=btn.getAttribute('data-url')||location.href;
+    function done(){var t=btn.textContent;btn.textContent='Đã sao chép';btn.classList.add('copied');setTimeout(function(){btn.textContent=t;btn.classList.remove('copied');},1800);}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(done).catch(done);}
+    else{var i=document.createElement('input');i.value=url;document.body.appendChild(i);i.select();try{document.execCommand('copy');}catch(_){}document.body.removeChild(i);done();}
+  });
+})();
 </script>
 </body>
 </html>"""
@@ -453,6 +504,33 @@ def zoom(article):
     if cover:
         return f'<img class="media__zoom" src="{cover}" alt="" loading="lazy">'
     return '<div class="media__zoom"></div>'
+
+def author_slug(name):
+    """Chuyển tên tác giả thành slug file: 'TNC Editorial' -> 'tnc-editorial'."""
+    import unicodedata
+    s = unicodedata.normalize('NFD', name).encode('ascii', 'ignore').decode('ascii')
+    s = re.sub(r'[^a-zA-Z0-9]+', '-', s).strip('-').lower()
+    return s or "tnc"
+
+def author_url(name):
+    return f"author-{author_slug(name)}.html"
+
+def share_bar(a, path):
+    """Thanh nút chia sẻ mạng xã hội cho một bài viết."""
+    import urllib.parse
+    url = f"{SITE_URL}/{path}"
+    u = urllib.parse.quote(url, safe='')
+    t = urllib.parse.quote(a["title"], safe='')
+    fb = f"https://www.facebook.com/sharer/sharer.php?u={u}"
+    x = f"https://twitter.com/intent/tweet?url={u}&text={t}"
+    return f"""
+    <div class="share-bar" aria-label="Chia sẻ bài viết">
+      <span class="share-bar__label">Chia sẻ</span>
+      <a class="share-btn" href="{fb}" target="_blank" rel="noopener" aria-label="Chia sẻ Facebook">Facebook</a>
+      <a class="share-btn" href="{x}" target="_blank" rel="noopener" aria-label="Chia sẻ X">X</a>
+      <button class="share-btn share-copy" data-url="{url}" type="button">Sao chép link</button>
+    </div>"""
+
 
 # -----------------------------------------------------------------
 # RENDER: INDEX
@@ -736,7 +814,8 @@ def render_article_page(a):
 
     tags = "".join(f'<a href="all-series.html" class="btn btn--ghost" style="text-transform:none;font-family:var(--f-mono);">{t}</a>' for t in a["tags"])
 
-    html = head(a["title"], a["dek"]) + masthead(active=a["series"])
+    _path = article_url(a["slug"])
+    html = head(a["title"], a["dek"], path=_path, image=a.get("cover",""), og_type="article") + masthead(active=a["series"])
     html += f"""
 <main>
   <article>
@@ -750,7 +829,7 @@ def render_article_page(a):
       <div style="display:flex;align-items:center;gap:var(--s-3);padding:var(--s-4) 0;border-top:1px solid var(--c-line);border-bottom:1px solid var(--c-line);">
         <div style="width:40px;height:40px;border-radius:50%;background:var(--c-bg-subtle);"></div>
         <div>
-          <div style="font-weight:700;font-size:var(--t-sm);">{a['author']}</div>
+          <div style="font-weight:700;font-size:var(--t-sm);"><a href="{author_url(a['author'])}">{a['author']}</a></div>
           <div class="byline">{a['date']} · {a['read_time']}</div>
         </div>
       </div>
@@ -767,6 +846,9 @@ def render_article_page(a):
 
     <div class="container" style="max-width:680px;margin-top:var(--s-6);display:flex;gap:var(--s-2);flex-wrap:wrap;">
       {tags}
+    </div>
+
+    <div class="container" style="max-width:680px;">{share_bar(a, _path)}
     </div>
   </article>
 
@@ -810,8 +892,114 @@ img.media__zoom{position:absolute;inset:0;z-index:1;}
 # -----------------------------------------------------------------
 # RENDER: TRANG PHỤ
 # -----------------------------------------------------------------
-def page_wrap(title, desc, inner):
-    return head(title, desc) + masthead() + f"<main>\n{inner}\n</main>\n" + newsletter() + footer()
+def page_wrap(title, desc, inner, path=""):
+    return head(title, desc, path=path) + masthead() + f"<main>\n{inner}\n</main>\n" + newsletter() + footer()
+
+def render_search_page():
+    """Trang tìm kiếm — tải search-index.json và lọc bằng JS trên trình duyệt."""
+    inner = """
+  <section class="container">
+    <div class="page-hero">
+      <span class="eyebrow eyebrow--blue">Tìm kiếm</span>
+      <h1>Tìm trong Archive</h1>
+      <p>Nhập từ khóa để tìm bài viết theo tiêu đề, tóm tắt hoặc chuyên mục.</p>
+    </div>
+    <input type="search" id="searchInput" class="search-input" placeholder="Nhập từ khóa..." autofocus aria-label="Từ khóa tìm kiếm">
+    <p id="searchMeta" class="byline" style="margin:var(--s-4) 0;"></p>
+    <div id="searchResults" class="grid" style="grid-template-columns:1fr;gap:var(--s-5);"></div>
+  </section>
+  <script>
+  (function(){
+    var input=document.getElementById('searchInput');
+    var results=document.getElementById('searchResults');
+    var meta=document.getElementById('searchMeta');
+    var DATA=[];
+    fetch('search-index.json').then(function(r){return r.json();}).then(function(d){
+      DATA=d; var q=new URLSearchParams(location.search).get('q');
+      if(q){input.value=q; run(q);}
+    }).catch(function(){meta.textContent='Không tải được dữ liệu tìm kiếm.';});
+    function esc(s){return (s||'').replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+    function run(q){
+      q=(q||'').trim().toLowerCase();
+      if(!q){results.innerHTML='';meta.textContent='';return;}
+      var hits=DATA.filter(function(a){
+        return (a.title+' '+a.dek+' '+a.series_name+' '+(a.tags||[]).join(' ')).toLowerCase().indexOf(q)>-1;
+      });
+      meta.textContent=hits.length+' kết quả cho "'+q+'"';
+      results.innerHTML=hits.map(function(a){
+        return '<a class="card" href="'+a.url+'" style="flex-direction:row;gap:24px;align-items:center;">'+
+          '<div class="media media--3-2" style="flex:0 0 200px;"><div class="media__zoom"></div></div>'+
+          '<div><span class="eyebrow">'+esc(a.series_name)+'</span>'+
+          '<h3 style="font-size:1.375rem;margin:8px 0;">'+esc(a.title)+'</h3>'+
+          '<p style="color:var(--c-ink-2);font-size:0.8125rem;">'+esc(a.dek)+'</p></div></a>';
+      }).join('');
+    }
+    input.addEventListener('input',function(){run(input.value);});
+  })();
+  </script>
+"""
+    return page_wrap("Tìm kiếm", "Tìm bài viết trong Archive của The New Culture.", inner, path="search.html")
+
+def build_search_index():
+    """Sinh file JSON chứa dữ liệu tối giản của mọi bài để tìm kiếm phía trình duyệt."""
+    import json
+    data = []
+    for a in ARTICLES:
+        s = SERIES_BY_SLUG[a["series"]]
+        data.append({
+            "title": a["title"], "dek": a["dek"],
+            "series_name": s["name"], "tags": a.get("tags", []),
+            "url": article_url(a["slug"]),
+        })
+    return json.dumps(data, ensure_ascii=False)
+
+def build_sitemap():
+    """Sinh sitemap.xml liệt kê mọi trang chính cho SEO."""
+    urls = [SITE_URL + "/"]
+    for s in SERIES:
+        urls.append(f"{SITE_URL}/{series_url(s['slug'])}")
+    for a in ARTICLES:
+        urls.append(f"{SITE_URL}/{article_url(a['slug'])}")
+    for extra in ["all-series.html","video.html","search.html","su-kien.html",
+                  "ve-tnc.html","lien-he.html","hop-tac.html","tuyen-dung.html","tnc-sessions.html"]:
+        urls.append(f"{SITE_URL}/{extra}")
+    items = "\n".join(f"  <url><loc>{u}</loc></url>" for u in urls)
+    return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{items}\n</urlset>'
+
+def render_search_page_alias():
+    return render_search_page()
+
+def render_author_page(name, arts):
+    """Trang hồ sơ tác giả: tổng hợp toàn bộ bài viết của họ."""
+    rows = ""
+    for a in arts:
+        s = SERIES_BY_SLUG[a["series"]]
+        rows += f"""
+      <a class="card" href="{article_url(a['slug'])}" style="flex-direction:row;gap:var(--s-5);align-items:center;">
+        <div class="media media--3-2" style="flex:0 0 220px;">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
+        <div>
+          <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
+          <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{a['title']}</h3>
+          <p style="color:var(--c-ink-2);font-size:var(--t-sm);margin-bottom:var(--s-2);">{a['dek']}</p>
+          <span class="byline">{a['date']} · {a['read_time']}</span>
+        </div>
+      </a>"""
+    inner = f"""
+  <section class="container">
+    <div class="author-hero">
+      <div class="author-hero__avatar"></div>
+      <div>
+        <span class="eyebrow">Tác giả</span>
+        <h1>{name}</h1>
+        <p>{len(arts)} bài viết trên The New Culture.</p>
+      </div>
+    </div>
+    <div class="section-head"><h2>Bài viết</h2></div>
+    <div class="grid" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
+    </div>
+  </section>
+"""
+    return page_wrap(name, f"Các bài viết của {name} trên The New Culture.", inner, path=author_url(name))
 
 def render_all_series():
     cells = ""
@@ -1080,6 +1268,7 @@ def main():
     extra = {
         "all-series.html": render_all_series(),
         "video.html": render_video_page(),
+        "search.html": render_search_page(),
         "su-kien.html": render_events_page(),
         "ve-tnc.html": render_about_page(),
         "lien-he.html": render_contact_page(),
@@ -1093,7 +1282,23 @@ def main():
         with open(os.path.join(OUT, fname),"w",encoding="utf-8") as f:
             f.write(content)
 
-    print(f"Build v3 xong: 1 index + {len(SERIES)} series + {len(ARTICLES)} article + {len(extra)} trang phụ")
+    # Trang tác giả — gom bài theo từng tác giả
+    authors = {}
+    for a in ARTICLES:
+        authors.setdefault(a["author"], []).append(a)
+    for name, arts in authors.items():
+        with open(os.path.join(OUT, author_url(name)),"w",encoding="utf-8") as f:
+            f.write(render_author_page(name, arts))
+
+    # Chỉ mục tìm kiếm + sitemap + robots
+    with open(os.path.join(OUT,"search-index.json"),"w",encoding="utf-8") as f:
+        f.write(build_search_index())
+    with open(os.path.join(OUT,"sitemap.xml"),"w",encoding="utf-8") as f:
+        f.write(build_sitemap())
+    with open(os.path.join(OUT,"robots.txt"),"w",encoding="utf-8") as f:
+        f.write(f"User-agent: *\nAllow: /\nSitemap: {SITE_URL}/sitemap.xml\n")
+
+    print(f"Build v3 xong: 1 index + {len(SERIES)} series + {len(ARTICLES)} article + {len(extra)} trang phụ + {len(authors)} trang tác giả")
     print(f"Output: {OUT}")
 
 if __name__ == "__main__":
