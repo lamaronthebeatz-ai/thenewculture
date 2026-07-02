@@ -1,0 +1,30 @@
+name: Build TNC site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml markdown
+      - run: python scripts/build.py
+      - run: |
+          git config user.name "TNC Build Bot"
+          git config user.email "bot@thenewculture.local"
+          git add public
+          if git diff --staged --quiet; then
+            echo "Khong co thay doi."
+          else
+            git commit -m "Auto build [skip ci]"
+            git push
+          fi
