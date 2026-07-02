@@ -183,8 +183,8 @@ a:hover .media__zoom{transform:scale(1.04);}
 /* biến thể logo có tên chủ sở hữu phía trên (chỉ ở masthead chính) */
 .wordmark--lead{flex-direction:column;align-items:flex-start;gap:1px;}
 .wordmark--lead .wordmark__owner{
-  font-family:var(--f-mono);font-weight:500;font-size:0.6rem;letter-spacing:0.14em;
-  text-transform:uppercase;color:var(--c-red);line-height:1;margin-bottom:2px;
+  font-family:var(--f-mono);font-weight:500;font-size:0.7rem;letter-spacing:0.02em;
+  color:var(--c-red);line-height:1;margin-bottom:3px;font-style:italic;
 }
 .wordmark--lead .wordmark__title{font-size:1.5rem;}
 .icon-btn{width:38px;height:38px;display:grid;place-items:center;border-radius:3px;color:var(--c-ink);transition:background var(--dur);}

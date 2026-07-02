@@ -99,25 +99,83 @@ def _parse_frontmatter(raw):
     body = m.group(2).strip()
     return meta, body
 
+def _inline_md(text):
+    """Xử lý định dạng inline: đậm, nghiêng, link, code. Trả về HTML an toàn."""
+    import html as _html
+    # escape HTML trước để tránh chèn thẻ độc hại, rồi mới thêm định dạng
+    text = _html.escape(text, quote=False)
+    # link [text](url)
+    text = re.sub(r'\[([^\]]+)\]\((https?://[^\s)]+)\)',
+                  r'<a href="\2" target="_blank" rel="noopener">\1</a>', text)
+    # in đậm **text** hoặc __text__
+    text = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', text)
+    text = re.sub(r'__([^_]+)__', r'<strong>\1</strong>', text)
+    # in nghiêng *text* hoặc _text_
+    text = re.sub(r'(?<!\*)\*(?!\*)([^*]+)\*(?!\*)', r'<em>\1</em>', text)
+    text = re.sub(r'(?<!_)_(?!_)([^_]+)_(?!_)', r'<em>\1</em>', text)
+    # code `text`
+    text = re.sub(r'`([^`]+)`', r'<code>\1</code>', text)
+    return text
+
+def _youtube_id(url):
+    """Trích ID video từ nhiều dạng link YouTube."""
+    m = re.search(r'(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([A-Za-z0-9_-]{11})', url)
+    return m.group(1) if m else None
+
 def _md_body_to_blocks(md):
-    """Chuyển markdown đơn giản thành list block (kind, text) để render."""
+    """Chuyển markdown thành list block (kind, payload) để render.
+    Hỗ trợ: h2, blockquote, ảnh, video YouTube, danh sách, đoạn văn (có định dạng inline)."""
     blocks = []
     for para in re.split(r'\n\s*\n', md.strip()):
         para = para.strip()
         if not para:
             continue
+
+        # Ảnh đứng riêng: ![alt](url)  — có thể kèm chú thích trên dòng kế
+        img_match = re.match(r'^!\[([^\]]*)\]\(([^)]+)\)\s*$', para)
+        if img_match:
+            alt, src = img_match.group(1), img_match.group(2)
+            blocks.append(("image", {"src": src, "alt": alt, "caption": alt}))
+            continue
+
+        # Link YouTube đứng riêng -> nhúng video
+        if re.match(r'^https?://\S+$', para):
+            yid = _youtube_id(para)
+            if yid:
+                blocks.append(("youtube", yid))
+                continue
+
+        # Tiêu đề phụ
         if para.startswith('## '):
-            blocks.append(("h2", para[3:].strip()))
-        elif para.startswith('> '):
-            # gộp nhiều dòng blockquote
+            blocks.append(("h2", _inline_md(para[3:].strip())))
+            continue
+        if para.startswith('### '):
+            blocks.append(("h3", _inline_md(para[4:].strip())))
+            continue
+
+        # Trích dẫn
+        if para.startswith('> '):
             text = " ".join(line[2:].strip() if line.startswith('> ') else line.strip()
                              for line in para.split('\n'))
-            blocks.append(("blockquote", text))
-        else:
-            # gộp xuống dòng đơn trong 1 đoạn thành 1 paragraph
-            text = " ".join(line.strip() for line in para.split('\n'))
-            blocks.append(("p", text))
+            blocks.append(("blockquote", _inline_md(text)))
+            continue
+
+        # Danh sách gạch đầu dòng
+        if all(line.strip().startswith(('- ', '* ')) for line in para.split('\n') if line.strip()):
+            items = [_inline_md(line.strip()[2:].strip()) for line in para.split('\n') if line.strip()]
+            blocks.append(("list", items))
+            continue
+
+        # Đoạn văn thường
+        text = " ".join(line.strip() for line in para.split('\n'))
+        blocks.append(("p", _inline_md(text)))
     return blocks
+
+def _estimate_read_time(md):
+    """Ước tính thời gian đọc theo số từ (trung bình ~200 từ/phút cho tiếng Việt)."""
+    words = len(re.findall(r'\S+', md))
+    minutes = max(1, round(words / 200))
+    return f"{minutes} phút đọc"
 
 def load_articles():
     """Đọc tất cả file .md, trả về list article dict, sắp theo 'order' rồi 'date'."""
@@ -131,14 +189,24 @@ def load_articles():
             print(f"  ! Bỏ qua {os.path.basename(path)} (thiếu title/series)")
             continue
         slug = os.path.splitext(os.path.basename(path))[0]
+        # Thời gian đọc: ưu tiên giá trị nhập tay, nếu trống thì tự ước tính
+        read_time = meta.get("read_time") or _estimate_read_time(body_md)
+        # Ngày đăng: ưu tiên giá trị nhập tay; nếu trống, tự sinh theo ngày sửa file
+        date_val = meta.get("date")
+        if not date_val:
+            import datetime
+            mtime = datetime.datetime.fromtimestamp(os.path.getmtime(path))
+            thang = mtime.month
+            date_val = f"{mtime.day} Tháng {thang}, {mtime.year}"
         articles.append({
             "slug": slug,
             "series": meta["series"],
             "title": meta["title"],
             "dek": meta.get("dek", ""),
             "author": meta.get("author", "TNC Editorial"),
-            "date": meta.get("date", ""),
-            "read_time": meta.get("read_time", ""),
+            "date": date_val,
+            "read_time": read_time,
+            "cover": meta.get("cover", "") or "",
             "featured": bool(meta.get("featured", False)),
             "order": int(meta.get("order", 999)),
             "tags": meta.get("tags", []) or [],
@@ -379,6 +447,13 @@ def art_code(article):
     idx = ARTICLES_BY_SERIES[article["series"]].index(article) + 1
     return f"{s['code']}·{idx:03d}"
 
+def zoom(article):
+    """Trả về lớp media bên trong: ảnh bìa nếu có, ngược lại placeholder gradient."""
+    cover = article.get("cover") if article else ""
+    if cover:
+        return f'<img class="media__zoom" src="{cover}" alt="" loading="lazy">'
+    return '<div class="media__zoom"></div>'
+
 # -----------------------------------------------------------------
 # RENDER: INDEX
 # -----------------------------------------------------------------
@@ -410,7 +485,7 @@ def render_index():
         s = SERIES_BY_SLUG[a["series"]]
         side += f"""
         <a class="side-item" href="{article_url(a['slug'])}">
-          <div class="media media--1-1"><div class="media__zoom"></div></div>
+          <div class="media media--1-1">{zoom(a)}</div>
           <div>
             <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
             <h3>{a['title']}</h3>
@@ -446,7 +521,7 @@ def render_index():
         s = SERIES_BY_SLUG[a["series"]]
         latest += f"""
       <a class="card" href="{article_url(a['slug'])}">
-        <div class="media media--3-2"><div class="media__zoom"></div><span class="archive-code">{art_code(a)}</span></div>
+        <div class="media media--3-2">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
         <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
         <h3>{a['title']}</h3>
         <span class="byline">{a['author']} · {a['date']}</span>
@@ -478,7 +553,7 @@ def render_index():
     <div class="hero__grid">
       <article class="hero__lead">
         <a href="{article_url(hero['slug'])}">
-          <div class="media media--3-2"><div class="media__zoom"></div><span class="archive-code">{art_code(hero)}</span></div>
+          <div class="media media--3-2">{zoom(hero)}<span class="archive-code">{art_code(hero)}</span></div>
         </a>
         <div class="hero__body">
           <span class="eyebrow eyebrow{hs['accent']}">{hs['name']}</span>
@@ -513,7 +588,7 @@ def render_index():
     <div class="section-head"><h2>Câu chuyện nổi bật</h2></div>
     <div class="feature">
       <a href="{article_url(feat['slug'])}">
-        <div class="media media--16-9"><div class="media__zoom"></div><span class="archive-code">{art_code(feat)}</span></div>
+        <div class="media media--16-9">{zoom(feat)}<span class="archive-code">{art_code(feat)}</span></div>
       </a>
       <div>
         <span class="eyebrow eyebrow{fs['accent']}">{fs['name']}</span>
@@ -550,7 +625,7 @@ def render_series_page(s):
         for a in arts:
             rows += f"""
       <a class="card" href="{article_url(a['slug'])}" style="flex-direction:row;gap:var(--s-5);align-items:center;">
-        <div class="media media--3-2" style="flex:0 0 260px;"><div class="media__zoom"></div><span class="archive-code">{art_code(a)}</span></div>
+        <div class="media media--3-2" style="flex:0 0 260px;">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
         <div>
           <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
           <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{a['title']}</h3>
@@ -612,10 +687,32 @@ def render_series_page(s):
 # -----------------------------------------------------------------
 def render_body_blocks(blocks):
     out = []
-    for kind, text in blocks:
-        if kind == "p": out.append(f"      <p>{text}</p>")
-        elif kind == "h2": out.append(f"      <h2>{text}</h2>")
-        elif kind == "blockquote": out.append(f"      <blockquote>{text}</blockquote>")
+    for kind, payload in blocks:
+        if kind == "p":
+            out.append(f"      <p>{payload}</p>")
+        elif kind == "h2":
+            out.append(f"      <h2>{payload}</h2>")
+        elif kind == "h3":
+            out.append(f"      <h3 class=\"body-h3\">{payload}</h3>")
+        elif kind == "blockquote":
+            out.append(f"      <blockquote>{payload}</blockquote>")
+        elif kind == "list":
+            items = "".join(f"<li>{it}</li>" for it in payload)
+            out.append(f"      <ul class=\"body-list\">{items}</ul>")
+        elif kind == "image":
+            src = payload["src"]; alt = payload.get("alt", ""); cap = payload.get("caption", "")
+            cap_html = f'<figcaption>{cap}</figcaption>' if cap else ''
+            out.append(
+                f'      <figure class="body-figure">'
+                f'<img src="{src}" alt="{alt}" loading="lazy">{cap_html}</figure>'
+            )
+        elif kind == "youtube":
+            out.append(
+                f'      <div class="body-video"><iframe src="https://www.youtube.com/embed/{payload}" '
+                f'title="Video" frameborder="0" loading="lazy" '
+                f'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" '
+                f'allowfullscreen></iframe></div>'
+            )
     return "\n".join(out)
 
 def render_article_page(a):
@@ -631,7 +728,7 @@ def render_article_page(a):
         rs = SERIES_BY_SLUG[r["series"]]
         rel += f"""
       <a class="card" href="{article_url(r['slug'])}">
-        <div class="media media--3-2"><div class="media__zoom"></div><span class="archive-code">{art_code(r)}</span></div>
+        <div class="media media--3-2">{zoom(r)}<span class="archive-code">{art_code(r)}</span></div>
         <span class="eyebrow eyebrow{rs['accent']}">{rs['name']}</span>
         <h3>{r['title']}</h3>
         <span class="byline">{rs['name']} · {r['date']}</span>
@@ -660,7 +757,7 @@ def render_article_page(a):
     </div>
 
     <div class="container" style="max-width:1100px;margin-block:var(--s-6);">
-      <div class="media media--16-9"><div class="media__zoom"></div><span class="archive-code">{art_code(a)}</span></div>
+      <div class="media media--16-9">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
       <p class="byline" style="text-align:right;margin-top:var(--s-2);">Ảnh minh họa — TNC Archive</p>
     </div>
 
@@ -690,7 +787,24 @@ ARTICLE_CSS = """
 /* ----- ARTICLE BODY ----- */
 .article-body p{margin-bottom:1.4em;}
 .article-body h2{font-size:var(--t-lg);margin:1.6em 0 0.6em;}
+.article-body .body-h3{font-size:var(--t-md);font-weight:800;margin:1.4em 0 0.5em;}
 .article-body blockquote{border-left:3px solid var(--c-red);padding-left:var(--s-5);margin:1.6em 0;font-size:var(--t-lg);font-style:italic;color:var(--c-ink);line-height:1.4;}
+.article-body strong{font-weight:800;}
+.article-body em{font-style:italic;}
+.article-body a{color:var(--c-red);text-decoration:underline;text-underline-offset:2px;}
+.article-body code{font-family:var(--f-mono);font-size:0.85em;background:var(--c-bg-subtle);padding:2px 6px;border-radius:3px;}
+.article-body .body-list{margin:0 0 1.4em 1.2em;padding:0;}
+.article-body .body-list li{margin-bottom:0.5em;padding-left:0.3em;list-style:disc;}
+/* Ảnh trong bài */
+.article-body .body-figure{margin:2em 0;}
+.article-body .body-figure img{width:100%;height:auto;display:block;border:1px solid var(--c-line);}
+.article-body .body-figure figcaption{font-family:var(--f-mono);font-size:var(--t-xs);color:var(--c-ink-3);margin-top:var(--s-2);text-align:center;}
+/* Video nhúng YouTube (tỉ lệ 16:9 co giãn) */
+.article-body .body-video{position:relative;width:100%;aspect-ratio:16/9;margin:2em 0;background:#000;}
+.article-body .body-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+/* Ảnh bìa hiển thị đè lên placeholder */
+.media__zoom{width:100%;height:100%;object-fit:cover;}
+img.media__zoom{position:absolute;inset:0;z-index:1;}
 """
 
 # -----------------------------------------------------------------
