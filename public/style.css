@@ -188,9 +188,9 @@ a:hover .media__zoom{transform:scale(1.04);}
 }
 .wordmark--lead .wordmark__title{font-size:1.5rem;}
 /* Logo dạng ảnh tùy chỉnh (upload qua CMS) */
-.wordmark--img img{display:block;height:40px;width:auto;max-width:220px;object-fit:contain;}
-.wordmark--img.wordmark--lead img{height:44px;}
-@media (max-width:768px){.wordmark--img img{height:32px;}}
+.wordmark--img img{display:block;height:64px;width:auto;max-width:340px;object-fit:contain;}
+.wordmark--img.wordmark--lead img{height:72px;}
+@media (max-width:768px){.wordmark--img img{height:48px;max-width:280px;}}
 .icon-btn{width:38px;height:38px;display:grid;place-items:center;border-radius:3px;color:var(--c-ink);transition:background var(--dur);}
 .icon-btn:hover{background:var(--c-bg-subtle);}
 .masthead__actions{display:flex;align-items:center;gap:var(--s-3);}
