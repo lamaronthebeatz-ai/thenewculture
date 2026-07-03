@@ -8,7 +8,7 @@
 
 backend:
   name: github
-  repo: lamaronthebeatz-ai/thenewculture      # <-- ĐỔI DÒNG NÀY
+  repo: TEN-GITHUB/TEN-REPO      # <-- ĐỔI DÒNG NÀY
   branch: main                    # nếu nhánh chính tên khác (master), đổi lại
 
 # Nơi lưu ảnh tải lên qua CMS
@@ -127,3 +127,42 @@ collections:
           - { label: "Ảnh", name: cover, widget: image, required: false, hint: "Ảnh bìa ca khúc. Nếu để trống sẽ tự lấy ảnh từ video YouTube." }
           - { label: "Link YouTube", name: youtube, widget: string, required: false, hint: "Dán link YouTube của ca khúc để nhúng trình phát." }
           - { label: "Bình luận", name: note, widget: text, required: false, hint: "Lý do chọn / phân tích ngắn cho ca khúc này." }
+
+  # ============================================================
+  # CẤU HÌNH GIAO DIỆN — logo, khung GIF đầu trang, Spotify
+  # Đây là collection dạng "file đơn" — chỉ một bản ghi duy nhất
+  # ============================================================
+  - name: settings
+    label: "Cấu hình giao diện"
+    files:
+      - name: site
+        label: "Trang chủ & Logo"
+        file: "content/settings/site.yml"
+        fields:
+          - label: "Logo (ảnh)"
+            name: logo_image
+            widget: image
+            required: false
+            hint: "Tải ảnh logo lên để thay cho chữ 'THE NEW CULTURE' mặc định. Nên dùng ảnh nền trong suốt (PNG), cao khoảng 80-120px. Để trống sẽ dùng logo chữ mặc định."
+
+          - label: "Khung GIF đầu trang chủ"
+            name: hero_gif
+            widget: image
+            required: false
+            hint: "Ảnh GIF động, hiển thị to ở đầu trang chủ, tự chạy liên tục. Để trống sẽ ẩn khối này."
+
+          - label: "Tên bài hát (hiện trong khung GIF)"
+            name: hero_gif_song_title
+            widget: string
+            required: false
+
+          - label: "Nghệ sĩ (hiện trong khung GIF)"
+            name: hero_gif_song_artist
+            widget: string
+            required: false
+
+          - label: "Link nhúng Spotify"
+            name: spotify_embed_url
+            widget: string
+            required: false
+            hint: "Vào Spotify, chọn Share -> Embed track/playlist -> copy link trong thuộc tính src của đoạn mã, dán vào đây. Ví dụ dạng: https://open.spotify.com/embed/track/xxxxx . Để trống sẽ ẩn khối này. Khối này độc lập, không liên quan tới khung GIF phía trên."
