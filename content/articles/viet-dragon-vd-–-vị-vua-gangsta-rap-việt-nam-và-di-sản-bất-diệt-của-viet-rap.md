@@ -2,7 +2,7 @@
 title: Viet Dragon (VD) – Vị vua Gangsta Rap Việt Nam và di sản bất diệt của Viet Rap
 series: tnc-origins
 dek: Viet Dragon không chỉ là rapper; anh là biểu tượng của tinh thần bất khuất, sáng tạo không ngừng và lòng yêu rap chân thành.
-cover: /uploads/bf5a0a83-998d-4eff-9cdf-c0cd028f9fb8.jpeg
+cover: /uploads/3642.png
 author: Lamar
 date: 1 Tháng 7, 2026
 read_time: 5 phút đọc
