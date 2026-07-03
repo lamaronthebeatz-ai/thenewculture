@@ -219,11 +219,36 @@ def load_articles():
             "featured": bool(meta.get("featured", False)),
             "order": int(meta.get("order", 999)),
             "tags": meta.get("tags", []) or [],
+            "ranking": _normalize_ranking(meta.get("ranking")),
             "body": _md_body_to_blocks(body_md),
         })
     # sắp xếp: order tăng dần (order nhỏ = ưu tiên/mới), fallback theo slug
     articles.sort(key=lambda a: (a["order"], a["slug"]))
     return articles
+
+def _normalize_ranking(raw):
+    """Chuẩn hóa danh sách mục xếp hạng từ frontmatter.
+    Mỗi mục: {rank, song, artist, cover, youtube, note}. Bỏ qua mục thiếu tên ca khúc."""
+    if not raw or not isinstance(raw, list):
+        return []
+    items = []
+    for it in raw:
+        if not isinstance(it, dict):
+            continue
+        song = (it.get("song") or "").strip()
+        if not song:
+            continue
+        items.append({
+            "song": song,
+            "artist": (it.get("artist") or "").strip(),
+            "cover": (it.get("cover") or "").strip(),
+            "youtube": _youtube_id(it.get("youtube") or "") or "",
+            "note": (it.get("note") or "").strip(),
+        })
+    # xếp #1 trên cùng: tôn trọng thứ tự nhập; gán số hạng tăng dần
+    for i, it in enumerate(items, 1):
+        it["rank"] = i
+    return items
 
 ARTICLES = load_articles()
 
@@ -240,6 +265,7 @@ if not ARTICLES:
         "featured": True,
         "order": 1,
         "tags": [],
+        "ranking": [],
         "body": [("p", "Nội dung đầu tiên đang chờ được viết. Truy cập /admin/ để bắt đầu.")],
     }]
 # đưa featured lên đầu để làm hero (nếu có)
@@ -763,6 +789,44 @@ def render_series_page(s):
 # -----------------------------------------------------------------
 # RENDER: ARTICLE PAGE
 # -----------------------------------------------------------------
+def render_ranking(items):
+    """Sinh HTML bảng xếp hạng ca khúc: thứ hạng lớn, ảnh, nghệ sĩ, bình luận, nhúng YouTube."""
+    import html as _html
+    if not items:
+        return ""
+    rows = []
+    for it in items:
+        song = _html.escape(it["song"])
+        artist = _html.escape(it["artist"])
+        note = _inline_md(it["note"]) if it["note"] else ""
+        # ảnh mục: ưu tiên cover; nếu không có nhưng có youtube thì dùng thumbnail YouTube
+        if it["cover"]:
+            media = f'<img src="{it["cover"]}" alt="" loading="lazy">'
+        elif it["youtube"]:
+            media = f'<img src="https://img.youtube.com/vi/{it["youtube"]}/hqdefault.jpg" alt="" loading="lazy">'
+        else:
+            media = '<div class="rank-item__ph"></div>'
+        video = ""
+        if it["youtube"]:
+            video = (f'<div class="rank-item__video"><iframe src="https://www.youtube.com/embed/{it["youtube"]}" '
+                     f'title="{song}" loading="lazy" frameborder="0" '
+                     f'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" '
+                     f'allowfullscreen></iframe></div>')
+        note_html = f'<p class="rank-item__note">{note}</p>' if note else ""
+        artist_html = f'<span class="rank-item__artist">{artist}</span>' if artist else ""
+        rows.append(f"""
+      <li class="rank-item">
+        <div class="rank-item__num">{it['rank']:02d}</div>
+        <div class="rank-item__media">{media}</div>
+        <div class="rank-item__body">
+          <h3 class="rank-item__song">{song}</h3>
+          {artist_html}
+          {note_html}
+          {video}
+        </div>
+      </li>""")
+    return ('\n    <ol class="ranking">' + "".join(rows) + "\n    </ol>")
+
 def render_body_blocks(blocks):
     out = []
     for kind, payload in blocks:
@@ -844,6 +908,9 @@ def render_article_page(a):
 {body}
     </div>
 
+    <div class="container ranking-wrap">{render_ranking(a.get('ranking'))}
+    </div>
+
     <div class="container" style="max-width:680px;margin-top:var(--s-6);display:flex;gap:var(--s-2);flex-wrap:wrap;">
       {tags}
     </div>
@@ -887,6 +954,26 @@ ARTICLE_CSS = """
 /* Ảnh bìa hiển thị đè lên placeholder */
 .media__zoom{width:100%;height:100%;object-fit:cover;}
 img.media__zoom{position:absolute;inset:0;z-index:1;}
+
+/* ----- BẢNG XẾP HẠNG (Listicle) ----- */
+.ranking-wrap{max-width:820px;}
+.ranking{list-style:none;margin:var(--s-6) 0 0;padding:0;counter-reset:rank;}
+.rank-item{display:grid;grid-template-columns:auto 200px 1fr;gap:var(--s-5);align-items:start;padding:var(--s-6) 0;border-top:2px solid var(--c-line-strong);}
+.rank-item:first-child{border-top-width:3px;}
+.rank-item__num{font-family:var(--f-display);font-weight:900;font-size:clamp(2.5rem,6vw,4rem);line-height:0.9;color:var(--c-red);letter-spacing:-0.03em;}
+.rank-item__media{position:relative;aspect-ratio:1/1;background:var(--c-bg-subtle);overflow:hidden;border:1px solid var(--c-line);}
+.rank-item__media img{width:100%;height:100%;object-fit:cover;display:block;}
+.rank-item__ph{position:absolute;inset:0;background:linear-gradient(135deg,#232323,#0e0e0e);}
+.rank-item__song{font-family:var(--f-display);font-weight:800;font-size:var(--t-lg);line-height:1.15;margin:0 0 var(--s-1);}
+.rank-item__artist{display:block;font-family:var(--f-mono);font-size:var(--t-sm);color:var(--c-ink-3);margin-bottom:var(--s-3);letter-spacing:0.02em;}
+.rank-item__note{font-size:var(--t-base);line-height:1.65;color:var(--c-ink-2);margin-bottom:var(--s-4);}
+.rank-item__video{position:relative;width:100%;aspect-ratio:16/9;background:#000;}
+.rank-item__video iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+@media (max-width:680px){
+  .rank-item{grid-template-columns:auto 1fr;gap:var(--s-4);}
+  .rank-item__media{grid-column:2;max-width:160px;}
+  .rank-item__body{grid-column:1 / -1;}
+}
 """
 
 # -----------------------------------------------------------------
