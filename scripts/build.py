@@ -17,6 +17,16 @@ SITE_URL = "https://thenewculture.pages.dev"   # không có dấu / ở cuối
 SITE_NAME = "The New Culture"
 SITE_DESC = "Nền tảng tài liệu hóa và phân tích văn hóa hip-hop underground Việt Nam."
 
+def _today_vn():
+    """Sinh chuỗi ngày hiện tại theo định dạng Việt: 'Thứ Ba · 02.07.2026'."""
+    import datetime
+    thu_map = ["Chủ Nhật","Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm","Thứ Sáu","Thứ Bảy"]
+    now = datetime.datetime.now()
+    thu = thu_map[int(now.strftime("%w"))]
+    return f"{thu} · {now.strftime('%d.%m.%Y')}"
+
+TODAY_VN = _today_vn()
+
 
 # accent màu xoay vòng cho từng series (khớp class CSS .eyebrow--*)
 ACCENTS = ["", "--blue", "--green", "--purple", "--amber"]
@@ -252,6 +262,27 @@ def _normalize_ranking(raw):
 
 ARTICLES = load_articles()
 
+# -----------------------------------------------------------------
+# CẤU HÌNH SITE (logo, GIF hero, Spotify) — đọc từ content/settings/site.yml
+# -----------------------------------------------------------------
+def load_settings():
+    path = os.path.join(REPO_ROOT, "content", "settings", "site.yml")
+    defaults = {
+        "logo_image": "", "hero_gif": "",
+        "hero_gif_song_title": "", "hero_gif_song_artist": "",
+        "spotify_embed_url": "",
+    }
+    if not os.path.isfile(path):
+        return defaults
+    with open(path, encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    for k in defaults:
+        defaults[k] = (data.get(k) or "").strip() if isinstance(data.get(k), str) else defaults[k]
+    return defaults
+
+SETTINGS = load_settings()
+
+
 # Bảo hiểm: nếu chưa có bài nào, tạo 1 bài chào mừng tạm để trang chủ không lỗi
 if not ARTICLES:
     ARTICLES = [{
@@ -343,6 +374,20 @@ NAV_ITEMS = [
     ("tnc-radar","TNC Radar"),
 ]
 
+def wordmark_html(variant="lead"):
+    """Sinh logo: ảnh tùy chỉnh nếu có trong Settings, ngược lại chữ mặc định.
+    variant='lead' dùng cho masthead chính (có dòng Lamar's phía trên);
+    variant='plain' dùng cho menu overlay / footer."""
+    if SETTINGS.get("logo_image"):
+        alt = "The New Culture"
+        cls = "wordmark wordmark--img" + (" wordmark--lead" if variant == "lead" else "")
+        return f'<a href="index.html" class="{cls}" aria-label="The New Culture — trang chủ"><img src="{SETTINGS["logo_image"]}" alt="{alt}"></a>'
+    if variant == "lead":
+        return ('<a href="index.html" class="wordmark wordmark--lead" aria-label="The New Culture — trang chủ">'
+                '<span class="wordmark__owner">Lamar\'s</span>'
+                '<span class="wordmark__title">THE NEW CULTURE</span></a>')
+    return '<a href="index.html" class="wordmark"><span class="wordmark__title">THE NEW CULTURE</span></a>'
+
 def masthead(active=None):
     nav_links = ""
     for slug, label in NAV_ITEMS:
@@ -358,7 +403,7 @@ def masthead(active=None):
 <header class="masthead">
   <div class="masthead__util">
     <div class="container">
-      <span>Thứ Ba · 30.06.2026 · Hà Nội</span>
+      <span>{TODAY_VN} · Hà Nội</span>
       <div class="u-links">
         <a href="all-series.html">Series</a>
         <a href="tnc-sessions.html">TNC Sessions</a>
@@ -368,10 +413,7 @@ def masthead(active=None):
   </div>
   <div class="masthead__main">
     <div class="container">
-      <a href="index.html" class="wordmark wordmark--lead" aria-label="The New Culture — trang chủ">
-        <span class="wordmark__owner">Lamar's</span>
-        <span class="wordmark__title">THE NEW CULTURE</span>
-      </a>
+      {wordmark_html('lead')}
       <div class="masthead__actions">
         <a href="search.html" class="icon-btn" aria-label="Tìm kiếm">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
@@ -394,7 +436,7 @@ def masthead(active=None):
 <div class="menu-overlay" id="siteMenu" role="dialog" aria-modal="true" aria-label="Menu điều hướng" hidden>
   <div class="menu-overlay__bar">
     <div class="container">
-      <a href="index.html" class="wordmark"><span class="wordmark__title">THE NEW CULTURE</span></a>
+      {wordmark_html('plain')}
       <button class="icon-btn" id="menuClose" aria-label="Đóng menu">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
@@ -447,7 +489,7 @@ def footer():
   <div class="container">
     <div class="footer__grid">
       <div class="footer__brand">
-        <a href="index.html" class="wordmark"><span class="wordmark__title">THE NEW CULTURE</span></a>
+        {wordmark_html('plain')}
         <p>Nền tảng tài liệu hóa và phân tích văn hóa hip-hop underground Việt Nam. Lưu giữ để không giá trị nào bị lãng quên.</p>
         <div class="footer__social">
           <a href="https://facebook.com" target="_blank" rel="noopener" aria-label="Facebook">Fb</a>
@@ -561,6 +603,86 @@ def share_bar(a, path):
 # -----------------------------------------------------------------
 # RENDER: INDEX
 # -----------------------------------------------------------------
+def render_gif_hero():
+    """Khung GIF lớn đầu trang chủ: ảnh động tự chạy + thumbnail/thông tin bài hát.
+    Không phát âm thanh — chỉ là khối trình diễn hình ảnh. Ẩn hoàn toàn nếu chưa cấu hình."""
+    gif = SETTINGS.get("hero_gif")
+    if not gif:
+        return ""
+    title = SETTINGS.get("hero_gif_song_title", "")
+    artist = SETTINGS.get("hero_gif_song_artist", "")
+    info = ""
+    if title or artist:
+        info = f"""
+      <div class="gif-hero__info">
+        <span class="gif-hero__label">Đang vang lên</span>
+        <span class="gif-hero__song">{title}</span>
+        <span class="gif-hero__artist">{artist}</span>
+      </div>"""
+    return f"""
+  <section class="gif-hero">
+    <img src="{gif}" alt="{title or 'The New Culture'}" class="gif-hero__img">
+    {info}
+  </section>
+"""
+
+def render_spotify_block():
+    """Khối nhúng Spotify riêng biệt, độc lập với khung GIF. Ẩn nếu chưa cấu hình."""
+    url = SETTINGS.get("spotify_embed_url")
+    if not url:
+        return ""
+    return f"""
+  <section class="container spotify-block">
+    <div class="section-head"><h2>Đang nghe</h2></div>
+    <iframe src="{url}" width="100%" height="152" frameborder="0" allowfullscreen=""
+      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+      loading="lazy" title="Spotify player"></iframe>
+  </section>
+"""
+
+def latest_ranking_article():
+    """Tìm bài có bảng xếp hạng (ranking không rỗng), ưu tiên bài mới nhất theo order."""
+    candidates = [a for a in ARTICLES if a.get("ranking")]
+    return candidates[0] if candidates else None
+
+def render_ranking_spotlight():
+    """Khối BXH TNC Selects cố định trên trang chủ — luôn hiện bài ranking mới nhất."""
+    a = latest_ranking_article()
+    if not a:
+        return ""
+    s = SERIES_BY_SLUG[a["series"]]
+    top_items = a["ranking"][:5]
+    rows = ""
+    for it in top_items:
+        img = ""
+        if it["cover"]:
+            img = f'<img src="{it["cover"]}" alt="" loading="lazy">'
+        elif it["youtube"]:
+            img = f'<img src="https://img.youtube.com/vi/{it["youtube"]}/hqdefault.jpg" alt="" loading="lazy">'
+        artist = f'<span class="spotlight-item__artist">{it["artist"]}</span>' if it["artist"] else ""
+        rows += f"""
+        <li class="spotlight-item">
+          <span class="spotlight-item__num">{it['rank']:02d}</span>
+          <div class="spotlight-item__media">{img}</div>
+          <div>
+            <span class="spotlight-item__song">{it['song']}</span>
+            {artist}
+          </div>
+        </li>"""
+    return f"""
+  <section class="ranking-spotlight">
+    <div class="container">
+      <div class="section-head">
+        <h2>Bảng Xếp Hạng — {s['name']}</h2>
+        <a class="more" href="{article_url(a['slug'])}">Xem toàn bộ →</a>
+      </div>
+      <a class="ranking-spotlight__title-link" href="{article_url(a['slug'])}">{a['title']}</a>
+      <ol class="spotlight-list">{rows}
+      </ol>
+    </div>
+  </section>
+"""
+
 def render_index():
     if not ARTICLES:
         # Không có bài nào: vẫn dựng trang chủ với phần Series, bỏ phần bài viết
@@ -651,6 +773,8 @@ def render_index():
       </a>"""
 
     html = head("Underground. Documented.") + masthead()
+    html += render_gif_hero()
+    html += render_spotify_block()
     html += f"""
 <main>
   <section class="hero container">
@@ -676,7 +800,7 @@ def render_index():
     <div class="trending__grid">{trending}
     </div>
   </section>
-
+{render_ranking_spotlight()}
   <section class="series-band">
     <div class="container">
       <div class="section-head">
