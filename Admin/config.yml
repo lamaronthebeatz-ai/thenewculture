@@ -8,7 +8,7 @@
 
 backend:
   name: github
-  repo: lamaronthebeatz-ai/thenewculture      # <-- ĐỔI DÒNG NÀY
+  repo: TEN-GITHUB/TEN-REPO      # <-- ĐỔI DÒNG NÀY
   branch: main                    # nếu nhánh chính tên khác (master), đổi lại
 
 # Nơi lưu ảnh tải lên qua CMS
@@ -113,3 +113,17 @@ collections:
         name: body
         widget: markdown
         hint: "Viết nội dung tại đây. Dùng ## để tạo tiêu đề phụ, > để tạo trích dẫn."
+
+      - label: "Bảng xếp hạng (tùy chọn)"
+        name: ranking
+        widget: list
+        required: false
+        label_singular: "Ca khúc"
+        summary: "{{fields.song}} — {{fields.artist}}"
+        hint: "Chỉ dùng cho bài dạng bảng xếp hạng ca khúc. Thêm các mục theo thứ tự #1 trên cùng. Để trống nếu là bài viết thường."
+        fields:
+          - { label: "Tên ca khúc", name: song, widget: string }
+          - { label: "Nghệ sĩ", name: artist, widget: string, required: false }
+          - { label: "Ảnh", name: cover, widget: image, required: false, hint: "Ảnh bìa ca khúc. Nếu để trống sẽ tự lấy ảnh từ video YouTube." }
+          - { label: "Link YouTube", name: youtube, widget: string, required: false, hint: "Dán link YouTube của ca khúc để nhúng trình phát." }
+          - { label: "Bình luận", name: note, widget: text, required: false, hint: "Lý do chọn / phân tích ngắn cho ca khúc này." }
