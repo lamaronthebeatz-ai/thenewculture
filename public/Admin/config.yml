@@ -8,7 +8,7 @@
 
 backend:
   name: github
-  repo: lamaronthebeatz-ai/thenewculture      # <-- ĐỔI DÒNG NÀY
+  repo: TEN-GITHUB/TEN-REPO      # <-- ĐỔI DÒNG NÀY
   branch: main                    # nếu nhánh chính tên khác (master), đổi lại
 
 # Nơi lưu ảnh tải lên qua CMS
@@ -166,3 +166,35 @@ collections:
             widget: string
             required: false
             hint: "Vào Spotify, chọn Share -> Embed track/playlist -> copy link trong thuộc tính src của đoạn mã, dán vào đây. Ví dụ dạng: https://open.spotify.com/embed/track/xxxxx . Để trống sẽ ẩn khối này. Khối này độc lập, không liên quan tới khung GIF phía trên."
+
+  # ============================================================
+  # HỒ SƠ BIÊN TẬP VIÊN — mỗi bản ghi tạo 1 trang tác giả riêng
+  # LƯU Ý QUAN TRỌNG: trường "Tên" bên dưới phải khớp CHÍNH XÁC
+  # (kể cả hoa/thường, khoảng trắng) với trường "Tác giả" đã điền
+  # trong các bài viết, nếu không hệ thống sẽ không nối được.
+  # ============================================================
+  - name: editors
+    label: "Biên tập viên"
+    label_singular: "Biên tập viên"
+    folder: "content/editors"
+    create: true
+    slug: "{{slug}}"
+    identifier_field: name
+    summary: "{{name}}"
+    fields:
+      - label: "Tên"
+        name: name
+        widget: string
+        hint: "Phải khớp chính xác với tên đã điền ở trường 'Tác giả' trong bài viết."
+
+      - label: "Ảnh đại diện"
+        name: avatar
+        widget: image
+        required: false
+        hint: "Ảnh chân dung, nên vuông (ví dụ 400x400px) để hiển thị tròn đẹp. Để trống sẽ hiện ô trống mặc định."
+
+      - label: "Giới thiệu"
+        name: bio
+        widget: text
+        required: false
+        hint: "Tiểu sử ngắn, hiển thị ở đầu trang hồ sơ tác giả."
