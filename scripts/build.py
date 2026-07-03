@@ -282,6 +282,35 @@ def load_settings():
 
 SETTINGS = load_settings()
 
+# -----------------------------------------------------------------
+# HỒ SƠ BIÊN TẬP VIÊN — đọc từ content/editors/*.md
+# Chỉ tác giả có hồ sơ tại đây mới được sinh trang tác giả và hiện link
+# trong bài viết. Tên trong trường "name" phải khớp chính xác (kể cả
+# hoa/thường và khoảng trắng) với trường "author" trong bài viết.
+# -----------------------------------------------------------------
+def load_editors():
+    editors_dir = os.path.join(REPO_ROOT, "content", "editors")
+    editors = {}
+    if not os.path.isdir(editors_dir):
+        return editors
+    for path in sorted(glob.glob(os.path.join(editors_dir, "*.md"))):
+        with open(path, encoding="utf-8") as f:
+            raw = f.read()
+        meta, _ = _parse_frontmatter(raw)
+        name = (meta.get("name") or "").strip()
+        if not name:
+            print(f"  ! Bỏ qua hồ sơ {os.path.basename(path)} (thiếu tên)")
+            continue
+        editors[name] = {
+            "name": name,
+            "avatar": (meta.get("avatar") or "").strip(),
+            "bio": (meta.get("bio") or "").strip(),
+            "slug": os.path.splitext(os.path.basename(path))[0],
+        }
+    return editors
+
+EDITORS = load_editors()
+
 
 # Bảo hiểm: nếu chưa có bài nào, tạo 1 bài chào mừng tạm để trang chủ không lỗi
 if not ARTICLES:
@@ -582,6 +611,24 @@ def author_slug(name):
 
 def author_url(name):
     return f"author-{author_slug(name)}.html"
+
+def author_byline_html(author_name):
+    """Sinh khối avatar + tên tác giả cho trang bài viết.
+    Nếu tác giả có hồ sơ trong content/editors/: hiện ảnh thật (nếu có) + tên dạng liên kết.
+    Nếu không có hồ sơ: hiện tên dạng chữ thường, không liên kết, avatar giữ ô trống mặc định."""
+    ed = EDITORS.get(author_name)
+    if ed:
+        if ed["avatar"]:
+            avatar_html = f'<img src="{ed["avatar"]}" alt="{author_name}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;display:block;">'
+        else:
+            avatar_html = '<div style="width:40px;height:40px;border-radius:50%;background:var(--c-bg-subtle);"></div>'
+        name_html = f'<a href="{author_url(author_name)}">{author_name}</a>'
+    else:
+        avatar_html = '<div style="width:40px;height:40px;border-radius:50%;background:var(--c-bg-subtle);"></div>'
+        name_html = author_name
+    return (f'<div style="display:flex;align-items:center;gap:var(--s-3);padding:var(--s-4) 0;'
+            f'border-top:1px solid var(--c-line);border-bottom:1px solid var(--c-line);">'
+            f'{avatar_html}<div><div style="font-weight:700;font-size:var(--t-sm);">{name_html}</div>')
 
 def share_bar(a, path):
     """Thanh nút chia sẻ mạng xã hội cho một bài viết."""
@@ -1021,10 +1068,7 @@ def render_article_page(a):
       <span class="eyebrow eyebrow{s['accent']}" style="font-size:var(--t-sm);">{s['name']} · {art_code(a)}</span>
       <h1 style="font-size:var(--t-3xl);margin:var(--s-4) 0;">{a['title']}</h1>
       <p style="font-size:var(--t-lg);color:var(--c-ink-2);line-height:1.4;margin-bottom:var(--s-5);">{a['dek']}</p>
-      <div style="display:flex;align-items:center;gap:var(--s-3);padding:var(--s-4) 0;border-top:1px solid var(--c-line);border-bottom:1px solid var(--c-line);">
-        <div style="width:40px;height:40px;border-radius:50%;background:var(--c-bg-subtle);"></div>
-        <div>
-          <div style="font-weight:700;font-size:var(--t-sm);"><a href="{author_url(a['author'])}">{a['author']}</a></div>
+      {author_byline_html(a['author'])}
           <div class="byline">{a['date']} · {a['read_time']}</div>
         </div>
       </div>
@@ -1188,7 +1232,14 @@ def render_search_page_alias():
     return render_search_page()
 
 def render_author_page(name, arts):
-    """Trang hồ sơ tác giả: tổng hợp toàn bộ bài viết của họ."""
+    """Trang hồ sơ tác giả: ảnh, tiểu sử (từ content/editors/) + toàn bộ bài viết của họ.
+    Chỉ được gọi khi tác giả đã có hồ sơ trong EDITORS (kiểm tra ở nơi gọi trong main())."""
+    ed = EDITORS.get(name, {})
+    avatar = ed.get("avatar", "")
+    bio = ed.get("bio", "")
+    avatar_html = (f'<img src="{avatar}" alt="{name}" class="author-hero__avatar">'
+                   if avatar else '<div class="author-hero__avatar"></div>')
+    bio_html = f'<p class="author-hero__bio">{bio}</p>' if bio else ""
     rows = ""
     for a in arts:
         s = SERIES_BY_SLUG[a["series"]]
@@ -1205,11 +1256,12 @@ def render_author_page(name, arts):
     inner = f"""
   <section class="container">
     <div class="author-hero">
-      <div class="author-hero__avatar"></div>
+      {avatar_html}
       <div>
         <span class="eyebrow">Tác giả</span>
         <h1>{name}</h1>
         <p>{len(arts)} bài viết trên The New Culture.</p>
+        {bio_html}
       </div>
     </div>
     <div class="section-head"><h2>Bài viết</h2></div>
@@ -1217,7 +1269,7 @@ def render_author_page(name, arts):
     </div>
   </section>
 """
-    return page_wrap(name, f"Các bài viết của {name} trên The New Culture.", inner, path=author_url(name))
+    return page_wrap(name, bio or f"Các bài viết của {name} trên The New Culture.", inner, path=author_url(name))
 
 def render_all_series():
     cells = ""
@@ -1500,13 +1552,21 @@ def main():
         with open(os.path.join(OUT, fname),"w",encoding="utf-8") as f:
             f.write(content)
 
-    # Trang tác giả — gom bài theo từng tác giả
+    # Trang tác giả — CHỈ sinh cho tác giả đã có hồ sơ trong content/editors/
+    # (theo quyết định: bắt buộc có hồ sơ CMS mới hiện trang, tránh trang trống
+    # cho các tên chuyên mục như "TNC Editorial", "TNC Radar")
     authors = {}
     for a in ARTICLES:
         authors.setdefault(a["author"], []).append(a)
+    skipped_authors = []
     for name, arts in authors.items():
+        if name not in EDITORS:
+            skipped_authors.append(name)
+            continue
         with open(os.path.join(OUT, author_url(name)),"w",encoding="utf-8") as f:
             f.write(render_author_page(name, arts))
+    if skipped_authors:
+        print(f"  (Chưa có trang tác giả cho: {', '.join(skipped_authors)} — thiếu hồ sơ trong content/editors/)")
 
     # Chỉ mục tìm kiếm + sitemap + robots
     with open(os.path.join(OUT,"search-index.json"),"w",encoding="utf-8") as f:
@@ -1516,7 +1576,8 @@ def main():
     with open(os.path.join(OUT,"robots.txt"),"w",encoding="utf-8") as f:
         f.write(f"User-agent: *\nAllow: /\nSitemap: {SITE_URL}/sitemap.xml\n")
 
-    print(f"Build v3 xong: 1 index + {len(SERIES)} series + {len(ARTICLES)} article + {len(extra)} trang phụ + {len(authors)} trang tác giả")
+    generated_authors = len(authors) - len(skipped_authors)
+    print(f"Build v3 xong: 1 index + {len(SERIES)} series + {len(ARTICLES)} article + {len(extra)} trang phụ + {generated_authors} trang tác giả")
     print(f"Output: {OUT}")
 
 if __name__ == "__main__":
