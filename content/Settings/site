@@ -1,0 +1,6 @@
+# Cấu hình chung của toàn site — chỉnh qua CMS, không cần sửa code.
+logo_image: ""          # để trống = dùng chữ "THE NEW CULTURE" mặc định
+hero_gif: ""            # ảnh GIF lớn đầu trang chủ, để trống = ẩn khối này
+hero_gif_song_title: ""
+hero_gif_song_artist: ""
+spotify_embed_url: ""   # link nhúng Spotify, để trống = ẩn khối nhạc
