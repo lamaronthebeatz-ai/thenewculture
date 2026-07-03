@@ -1,7 +1,7 @@
 ---
-title: Viet Dragon (VD) – Vị vua Gangsta Rap Việt Nam và di sản bất diệt của Viet Rap
+title: 'Viet Dragon: "VD là Ví Dụ của Rap Việt"'
 series: tnc-origins
-dek: Viet Dragon không chỉ là rapper; anh là biểu tượng của tinh thần bất khuất, sáng tạo không ngừng và lòng yêu rap chân thành.
+dek: Viet Dragon không chỉ là rapper; anh là biểu tượng của văn hoá Hiphop, sáng tạo không ngừng và là tượng đài không thể nào thay thế.
 cover: /uploads/3642.png
 author: Lamar
 date: 1 Tháng 7, 2026
@@ -37,6 +37,24 @@ CUỘC SỐNG CÁ NHÂN VÀ NGÀY RA ĐI
 Viet Dragon sống giữa Việt Nam và Úc, mang trong mình bản sắc “con lai văn hóa” – sinh ra miền Nam, gốc gác ba miền, trưởng thành ở nước ngoài. Anh là người nhiệt huyết, quan tâm cộng đồng, nhưng cũng đầy mâu thuẫn và “điên rồ” theo cách của một nghệ sĩ thực thụ.
 
 Ngày 10 tháng 8 năm 2012, Viet Dragon qua đời ở tuổi 32-33 (hưởng dương 33 tuổi). Tin tức ban đầu bị nghi ngờ vì trước đó đã có tin đồn giả, nhưng sau khi được xác nhận bởi người thân và cộng đồng (qua Linh Lam và các nguồn uy tín), cả Viet Hip-Hop bàng hoàng. Cơn mưa lớn vào ngày tang lễ được nhiều người xem như trời đất tưởng nhớ vị vua.
+
+CÁC SẢN PHẨM TIÊU BIỂU
+
+VIETDRAGON - SOUTH SIDE KING
+
+https://youtu.be/20925tVFsfo?si=sFFuhBY0cOU_zhJU
+
+VIETDRAGON - TỨ PHƯƠNG BẤT BẠI
+
+https://youtu.be/SBNl36H6VfU?si=dJkvnUBVeQJDMudm
+
+VIETDRAGON FT. DSK, ANDREE, PHUONGCD - THE GOOD DIE YOUNG
+
+https://youtu.be/tUwPDPxv5sA?si=var7tzbQ_-EeeUdp
+
+VIETDRAGON FT. ACY - 1008
+
+https://youtu.be/cGmpo5Ye7PM?si=9fr-fk9MdCLKZbZ5
 
 DI SẢN VÀ ẢNH HƯỞNG
 
