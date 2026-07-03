@@ -187,6 +187,10 @@ a:hover .media__zoom{transform:scale(1.04);}
   color:var(--c-red);line-height:1;margin-bottom:3px;font-style:italic;
 }
 .wordmark--lead .wordmark__title{font-size:1.5rem;}
+/* Logo dạng ảnh tùy chỉnh (upload qua CMS) */
+.wordmark--img img{display:block;height:40px;width:auto;max-width:220px;object-fit:contain;}
+.wordmark--img.wordmark--lead img{height:44px;}
+@media (max-width:768px){.wordmark--img img{height:32px;}}
 .icon-btn{width:38px;height:38px;display:grid;place-items:center;border-radius:3px;color:var(--c-ink);transition:background var(--dur);}
 .icon-btn:hover{background:var(--c-bg-subtle);}
 .masthead__actions{display:flex;align-items:center;gap:var(--s-3);}
@@ -393,3 +397,55 @@ a:hover .media__zoom{transform:scale(1.04);}
 .author-hero p{color:var(--c-ink-2);font-size:var(--t-sm);}
 .author-hero .eyebrow{font-size:var(--t-xs);}
 @media (max-width:520px){.author-hero{flex-direction:column;align-items:flex-start;gap:var(--s-4);}}
+
+/* ==========================================================================
+   V3.0 — GIF HERO + SPOTIFY BLOCK
+   ========================================================================== */
+.gif-hero{position:relative;width:100vw;margin-left:calc(50% - 50vw);aspect-ratio:16/7;max-height:640px;min-height:320px;overflow:hidden;background:#0a0a0a;display:block;}
+.gif-hero__img{width:100%;height:100%;object-fit:cover;display:block;}
+.gif-hero__info{
+  position:absolute;left:0;right:0;bottom:0;z-index:2;padding:var(--s-6) var(--gutter);
+  background:linear-gradient(0deg, rgba(0,0,0,0.85) 10%, transparent 100%);
+  display:flex;flex-direction:column;gap:2px;color:#fff;
+}
+.gif-hero__label{font-family:var(--f-mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--c-red);}
+.gif-hero__song{font-family:var(--f-display);font-weight:800;font-size:clamp(1.25rem,3vw,2rem);line-height:1.1;}
+.gif-hero__artist{font-family:var(--f-mono);font-size:var(--t-sm);color:rgba(255,255,255,0.75);}
+@media (max-width:768px){.gif-hero{aspect-ratio:4/3;max-height:420px;min-height:260px;}}
+
+.spotify-block{margin-top:var(--s-7);}
+.spotify-block iframe{border-radius:4px;border:1px solid var(--c-line);}
+
+/* ==========================================================================
+   V3.0 — RANKING SPOTLIGHT (khối BXH cố định trên trang chủ)
+   ========================================================================== */
+.ranking-spotlight{background:var(--c-bg-subtle);border-top:1px solid var(--c-line);border-bottom:1px solid var(--c-line);margin-top:var(--s-8);padding-block:var(--s-7);}
+.ranking-spotlight__title-link{
+  display:block;font-family:var(--f-display);font-weight:800;font-size:var(--t-xl);
+  margin-bottom:var(--s-5);color:var(--c-ink);transition:color var(--dur);
+}
+.ranking-spotlight__title-link:hover{color:var(--c-red);}
+.spot-rows{display:flex;flex-direction:column;margin-top:var(--s-5);}
+.spot-row{
+  display:grid;grid-template-columns:44px 108px 1fr;gap:var(--s-4);align-items:center;
+  padding:var(--s-3) 0;border-top:1px solid var(--c-line);text-decoration:none;
+}
+.spot-row:first-child{border-top:2px solid var(--c-line-strong);}
+.spot-row__num{font-family:var(--f-display);font-weight:900;font-size:1.5rem;color:var(--c-red);line-height:1;}
+.spot-row__media{position:relative;aspect-ratio:16/9;background:var(--c-bg);border:1px solid var(--c-line);overflow:hidden;border-radius:2px;}
+.spot-row__media img{width:100%;height:100%;object-fit:cover;display:block;}
+.spot-row__ph{position:absolute;inset:0;background:linear-gradient(135deg,#232323,#0e0e0e);}
+.spot-row__play{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.65);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:9px;line-height:1;
+}
+.spot-row__body{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.spot-row__song{font-weight:700;font-size:var(--t-sm);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color var(--dur);}
+.spot-row:hover .spot-row__song{color:var(--c-red);}
+.spot-row__artist{font-family:var(--f-mono);font-size:11px;color:var(--c-ink-3);}
+.spot-more-note{display:block;margin-top:var(--s-3);font-family:var(--f-mono);font-size:11px;color:var(--c-ink-3);text-align:right;}
+@media (max-width:560px){
+  .spot-row{grid-template-columns:32px 76px 1fr;gap:var(--s-3);}
+  .spot-row__num{font-size:1.15rem;}
+}

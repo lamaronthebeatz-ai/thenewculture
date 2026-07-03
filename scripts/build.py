@@ -646,7 +646,9 @@ def latest_ranking_article():
     return candidates[0] if candidates else None
 
 def render_ranking_spotlight():
-    """Khối BXH TNC Selects cố định trên trang chủ — luôn hiện bài ranking mới nhất."""
+    """Khối BXH TNC Selects cố định trên trang chủ — luôn hiện bài ranking mới nhất.
+    Bố cục hàng ngang: số hạng lớn + ảnh thumbnail tĩnh + tên bài/nghệ sĩ.
+    Chỉ hiện thumbnail — không nhúng trình phát YouTube (giữ trang chủ nhẹ)."""
     a = latest_ranking_article()
     if not a:
         return ""
@@ -654,21 +656,25 @@ def render_ranking_spotlight():
     top_items = a["ranking"][:5]
     rows = ""
     for it in top_items:
-        img = ""
         if it["cover"]:
             img = f'<img src="{it["cover"]}" alt="" loading="lazy">'
         elif it["youtube"]:
             img = f'<img src="https://img.youtube.com/vi/{it["youtube"]}/hqdefault.jpg" alt="" loading="lazy">'
-        artist = f'<span class="spotlight-item__artist">{it["artist"]}</span>' if it["artist"] else ""
+        else:
+            img = '<div class="spot-row__ph"></div>'
+        play_badge = '<span class="spot-row__play">▶</span>' if it["youtube"] else ""
+        artist = f'<span class="spot-row__artist">{it["artist"]}</span>' if it["artist"] else ""
         rows += f"""
-        <li class="spotlight-item">
-          <span class="spotlight-item__num">{it['rank']:02d}</span>
-          <div class="spotlight-item__media">{img}</div>
-          <div>
-            <span class="spotlight-item__song">{it['song']}</span>
-            {artist}
-          </div>
-        </li>"""
+      <a class="spot-row" href="{article_url(a['slug'])}">
+        <span class="spot-row__num">{it['rank']:02d}</span>
+        <span class="spot-row__media">{img}{play_badge}</span>
+        <span class="spot-row__body">
+          <span class="spot-row__song">{it['song']}</span>
+          {artist}
+        </span>
+      </a>"""
+    more_count = len(a["ranking"]) - len(top_items)
+    more_note = f'<span class="spot-more-note">+{more_count} mục khác trong bài</span>' if more_count > 0 else ""
     return f"""
   <section class="ranking-spotlight">
     <div class="container">
@@ -677,8 +683,9 @@ def render_ranking_spotlight():
         <a class="more" href="{article_url(a['slug'])}">Xem toàn bộ →</a>
       </div>
       <a class="ranking-spotlight__title-link" href="{article_url(a['slug'])}">{a['title']}</a>
-      <ol class="spotlight-list">{rows}
-      </ol>
+      <div class="spot-rows">{rows}
+      </div>
+      {more_note}
     </div>
   </section>
 """
