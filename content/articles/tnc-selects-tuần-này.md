@@ -6,7 +6,7 @@ cover: /uploads/3746.png
 author: TNC SELECTAS
 date: ''
 read_time: ''
-featured: true
+featured: false
 order: 2
 tags:
   - '#TNCSELECTS'
