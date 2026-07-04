@@ -191,6 +191,12 @@ collections:
             pattern: ['^https?://.+', 'Đường dẫn phải bắt đầu bằng http:// hoặc https://']
             hint: "Để trống sẽ ẩn biểu tượng TikTok ở chân trang."
 
+          - label: "Ảnh/GIF nền khung header"
+            name: header_bg_image
+            widget: image
+            required: false
+            hint: "Ảnh hoặc GIF động hiển thị làm nền cho khung chứa logo và nút Theo dõi. Chấp nhận định dạng .jpg, .png, .gif. Để trống sẽ giữ nền trắng mặc định."
+
   # ============================================================
   # HỒ SƠ BIÊN TẬP VIÊN — mỗi bản ghi tạo 1 trang tác giả riêng
   # LƯU Ý QUAN TRỌNG: trường "Tên" bên dưới phải khớp CHÍNH XÁC
