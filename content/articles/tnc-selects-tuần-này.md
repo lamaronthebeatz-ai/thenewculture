@@ -6,7 +6,7 @@ cover: ''
 author: TNC SELECTAS
 date: ''
 read_time: ''
-featured: false
+featured: true
 order: 2
 tags:
   - '#TNCSELECTS'
