@@ -1,15 +1,11 @@
 # ============================================================
 # CẤU HÌNH SVELTIA CMS — The New Culture
 # ============================================================
-# QUAN TRỌNG: đổi "TEN-GITHUB/TEN-REPO" bên dưới thành repo thật của bạn.
-# Ví dụ: nếu GitHub của bạn là "lamar" và repo tên "tnc-web"
-# thì ghi: repo: lamar/tnc-web
-# ============================================================
 
 backend:
   name: github
-  repo: lamaronthebeatz-ai/thenewculture      # <-- ĐỔI DÒNG NÀY
-  branch: main                    # nếu nhánh chính tên khác (master), đổi lại
+  repo: lamaronthebeatz-ai/thenewculture
+  branch: main
 
 # Nơi lưu ảnh tải lên qua CMS
 media_folder: "public/uploads"    # ảnh lưu vật lý ở đây
@@ -166,6 +162,34 @@ collections:
             widget: string
             required: false
             hint: "Vào Spotify, chọn Share -> Embed track/playlist -> copy link trong thuộc tính src của đoạn mã, dán vào đây. Ví dụ dạng: https://open.spotify.com/embed/track/xxxxx . Để trống sẽ ẩn khối này. Khối này độc lập, không liên quan tới khung GIF phía trên."
+
+          - label: "Link Facebook"
+            name: social_facebook
+            widget: string
+            required: false
+            pattern: ['^https?://.+', 'Đường dẫn phải bắt đầu bằng http:// hoặc https://']
+            hint: "Dán đầy đủ đường dẫn trang Facebook của TNC. Nút 'Theo dõi' ở đầu trang sẽ tự động dẫn tới đây. Để trống sẽ ẩn biểu tượng Facebook ở chân trang."
+
+          - label: "Link Instagram"
+            name: social_instagram
+            widget: string
+            required: false
+            pattern: ['^https?://.+', 'Đường dẫn phải bắt đầu bằng http:// hoặc https://']
+            hint: "Để trống sẽ ẩn biểu tượng Instagram ở chân trang."
+
+          - label: "Link YouTube"
+            name: social_youtube
+            widget: string
+            required: false
+            pattern: ['^https?://.+', 'Đường dẫn phải bắt đầu bằng http:// hoặc https://']
+            hint: "Để trống sẽ ẩn biểu tượng YouTube ở chân trang."
+
+          - label: "Link TikTok"
+            name: social_tiktok
+            widget: string
+            required: false
+            pattern: ['^https?://.+', 'Đường dẫn phải bắt đầu bằng http:// hoặc https://']
+            hint: "Để trống sẽ ẩn biểu tượng TikTok ở chân trang."
 
   # ============================================================
   # HỒ SƠ BIÊN TẬP VIÊN — mỗi bản ghi tạo 1 trang tác giả riêng
