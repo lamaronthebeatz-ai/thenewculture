@@ -6,7 +6,7 @@ cover: /uploads/3747.jpg
 author: Lamar
 date: ''
 read_time: ''
-featured: false
+featured: true
 order: 2
 tags:
   - '#TNC'
