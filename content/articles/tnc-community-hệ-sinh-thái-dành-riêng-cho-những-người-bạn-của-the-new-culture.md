@@ -3,11 +3,11 @@ title: TNC Community - Hệ sinh thái "dành riêng" cho những người bạn
 series: tnc-community
 dek: TNC Community là hệ sinh thái cộng đồng chính thức của The New Culture, được xây dựng trên nền tảng Discord.
 cover: /uploads/3749.png
-author: TNC Editorial
+author: Lamar
 date: ''
 read_time: ''
 featured: false
-order: 10
+order: 3
 tags:
   - '#TNC'
   - '#TNCCommunity'
