@@ -271,6 +271,8 @@ def load_settings():
         "logo_image": "", "hero_gif": "",
         "hero_gif_song_title": "", "hero_gif_song_artist": "",
         "spotify_embed_url": "",
+        "social_facebook": "", "social_instagram": "",
+        "social_youtube": "", "social_tiktok": "",
     }
     if not os.path.isfile(path):
         return defaults
@@ -417,6 +419,23 @@ def wordmark_html(variant="lead"):
                 '<span class="wordmark__title">THE NEW CULTURE</span></a>')
     return '<a href="index.html" class="wordmark"><span class="wordmark__title">THE NEW CULTURE</span></a>'
 
+def active_socials():
+    """Trả về danh sách (nhãn, url) cho các nền tảng đã được điền link trong CMS.
+    Nền tảng nào để trống sẽ không xuất hiện trong danh sách — tránh hiện link chết."""
+    platforms = [
+        ("Facebook", SETTINGS.get("social_facebook", "")),
+        ("Instagram", SETTINGS.get("social_instagram", "")),
+        ("YouTube", SETTINGS.get("social_youtube", "")),
+        ("TikTok", SETTINGS.get("social_tiktok", "")),
+    ]
+    return [(label, url) for label, url in platforms if url]
+
+def follow_button_url():
+    """Nút 'Theo dõi' ở đầu trang: dẫn thẳng tới Facebook nếu đã cấu hình,
+    ngược lại tạm thời dẫn về trang Theo dõi nội bộ của site."""
+    fb = SETTINGS.get("social_facebook", "")
+    return fb if fb else "theo-doi.html"
+
 def masthead(active=None):
     nav_links = ""
     for slug, label in NAV_ITEMS:
@@ -447,7 +466,7 @@ def masthead(active=None):
         <a href="search.html" class="icon-btn" aria-label="Tìm kiếm">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
         </a>
-        <a href="theo-doi.html" class="btn btn--solid">Theo dõi</a>
+        <a href="{follow_button_url()}"{' target="_blank" rel="noopener"' if SETTINGS.get('social_facebook') else ''} class="btn btn--solid">Theo dõi</a>
         <button class="icon-btn" id="menuToggle" aria-label="Mở menu" aria-expanded="false" aria-controls="siteMenu">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
         </button>
@@ -513,7 +532,17 @@ def newsletter():
 """
 
 def footer():
-    return """
+    socials = active_socials()
+    icon_map = {"Facebook": "Fb", "Instagram": "Ig", "YouTube": "Yt", "TikTok": "Tt"}
+    social_icons_html = "".join(
+        f'<a href="{url}" target="_blank" rel="noopener" aria-label="{label}">{icon_map[label]}</a>'
+        for label, url in socials
+    )
+    social_list_html = "".join(
+        f'<li><a href="{url}" target="_blank" rel="noopener">{label}</a></li>'
+        for label, url in socials
+    )
+    return f"""
 <footer class="footer">
   <div class="container">
     <div class="footer__grid">
@@ -521,10 +550,7 @@ def footer():
         {wordmark_html('plain')}
         <p>Nền tảng tài liệu hóa và phân tích văn hóa hip-hop underground Việt Nam. Lưu giữ để không giá trị nào bị lãng quên.</p>
         <div class="footer__social">
-          <a href="https://facebook.com" target="_blank" rel="noopener" aria-label="Facebook">Fb</a>
-          <a href="https://instagram.com" target="_blank" rel="noopener" aria-label="Instagram">Ig</a>
-          <a href="https://youtube.com" target="_blank" rel="noopener" aria-label="YouTube">Yt</a>
-          <a href="https://tiktok.com" target="_blank" rel="noopener" aria-label="TikTok">Tt</a>
+          {social_icons_html}
         </div>
       </div>
       <div class="footer__col"><h4>Khám phá</h4><ul>
@@ -540,10 +566,7 @@ def footer():
         <li><a href="series-tnc-radar.html">TNC Radar</a></li>
       </ul></div>
       <div class="footer__col"><h4>Nền tảng</h4><ul>
-        <li><a href="https://facebook.com" target="_blank" rel="noopener">Facebook</a></li>
-        <li><a href="https://instagram.com" target="_blank" rel="noopener">Instagram</a></li>
-        <li><a href="https://youtube.com" target="_blank" rel="noopener">YouTube</a></li>
-        <li><a href="https://tiktok.com" target="_blank" rel="noopener">TikTok</a></li>
+        {social_list_html}
       </ul></div>
       <div class="footer__col"><h4>Tổ chức</h4><ul>
         <li><a href="ve-tnc.html">Về TNC</a></li>
@@ -558,7 +581,7 @@ def footer():
     </div>
   </div>
 </footer>
-<script>
+""" + """<script>
 (function(){
   var open=document.getElementById('menuToggle');
   var close=document.getElementById('menuClose');
@@ -1397,7 +1420,7 @@ def render_contact_page():
     </form>
     <div class="prose" style="margin-top:var(--s-8);">
       <h2>Kênh trực tiếp</h2>
-      <p>Email biên tập: bientap@thenewculture.vn<br>Hợp tác &amp; thương mại: hoptac@thenewculture.vn</p>
+      <p>Email biên tập: <a href="mailto:thenewculture.universe@gmail.com" style="color:var(--c-red);">thenewculture.universe@gmail.com</a><br>Hợp tác &amp; thương mại: <a href="mailto:thenewculture.universe@gmail.com" style="color:var(--c-red);">thenewculture.universe@gmail.com</a></p>
     </div>
   </section>
 """
@@ -1417,7 +1440,7 @@ def render_partner_page():
       <div class="info-card"><div class="k">03</div><h3>Dự án Archive</h3><p>Hợp tác tài liệu hóa dài hạn về một nghệ sĩ, label hoặc giai đoạn.</p></div>
     </div>
     <div class="prose" style="margin-top:var(--s-8);">
-      <p>Để bắt đầu, gửi đề xuất tới <strong>hoptac@thenewculture.vn</strong> hoặc qua <a href="lien-he.html" style="color:var(--c-red);">trang liên hệ</a>.</p>
+      <p>Để bắt đầu, gửi đề xuất tới <a href="mailto:thenewculture.universe@gmail.com" style="color:var(--c-red);"><strong>thenewculture.universe@gmail.com</strong></a> hoặc qua <a href="lien-he.html" style="color:var(--c-red);">trang liên hệ</a>.</p>
     </div>
   </section>
 """
@@ -1452,6 +1475,15 @@ def render_careers_page():
     return page_wrap("Tuyển dụng", "Cơ hội nghề nghiệp tại The New Culture", inner)
 
 def render_subscribe_page(title, desc, eyebrow):
+    socials = active_socials()
+    if socials:
+        links_html = ", ".join(
+            f'<a href="{url}" target="_blank" rel="noopener" style="color:var(--c-red);">{label}</a>'
+            for label, url in socials
+        )
+        social_line = f'<p>Bạn cũng có thể theo dõi TNC trên các nền tảng: {links_html}.</p>'
+    else:
+        social_line = ""
     inner = f"""
   <section class="container">
     <div class="page-hero">
@@ -1464,7 +1496,7 @@ def render_subscribe_page(title, desc, eyebrow):
       <div class="full"><button type="submit" class="btn btn--solid">Đăng ký nhận</button></div>
     </form>
     <div class="prose" style="margin-top:var(--s-7);">
-      <p>Bạn cũng có thể theo dõi TNC trên các nền tảng: <a href="https://facebook.com" target="_blank" rel="noopener" style="color:var(--c-red);">Facebook</a>, <a href="https://instagram.com" target="_blank" rel="noopener" style="color:var(--c-red);">Instagram</a>, <a href="https://youtube.com" target="_blank" rel="noopener" style="color:var(--c-red);">YouTube</a>, <a href="https://tiktok.com" target="_blank" rel="noopener" style="color:var(--c-red);">TikTok</a>.</p>
+      {social_line}
     </div>
   </section>
 """
