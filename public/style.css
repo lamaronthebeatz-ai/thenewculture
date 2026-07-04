@@ -177,7 +177,14 @@ a:hover .media__zoom{transform:scale(1.04);}
 .masthead__util a:hover{color:var(--c-red);}
 .masthead__util .u-links{display:flex;gap:var(--s-5);}
 
-.masthead__main .container{display:flex;align-items:center;justify-content:space-between;height:68px;}
+.masthead__main{position:relative;background-color:var(--c-bg);}
+.masthead__main .container{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;height:88px;}
+/* Ảnh/GIF nền phủ toàn bộ khung header, không bị giới hạn bởi container */
+.masthead__main--has-bg{background-size:cover;background-position:center;background-repeat:no-repeat;}
+.masthead__main--has-bg::before{
+  content:"";position:absolute;inset:0;z-index:1;
+  background:rgba(255,255,255,0.72);
+}
 .wordmark{font-family:var(--f-display);font-weight:900;font-size:1.5rem;letter-spacing:-0.03em;display:flex;align-items:center;gap:2px;}
 .wordmark__title{font-family:var(--f-display);font-weight:900;letter-spacing:-0.03em;line-height:1;}
 /* biến thể logo có tên chủ sở hữu phía trên (chỉ ở masthead chính) */
@@ -187,10 +194,14 @@ a:hover .media__zoom{transform:scale(1.04);}
   color:var(--c-red);line-height:1;margin-bottom:3px;font-style:italic;
 }
 .wordmark--lead .wordmark__title{font-size:1.5rem;}
-/* Logo dạng ảnh tùy chỉnh (upload qua CMS) */
-.wordmark--img img{display:block;height:64px;width:auto;max-width:340px;object-fit:contain;}
-.wordmark--img.wordmark--lead img{height:72px;}
-@media (max-width:768px){.wordmark--img img{height:48px;max-width:280px;}}
+/* Logo dạng ảnh tùy chỉnh (upload qua CMS) — phóng to tối đa trong giới hạn khung header */
+.wordmark--img img{display:block;height:80px;width:auto;max-width:520px;object-fit:contain;}
+.wordmark--img.wordmark--lead img{height:80px;}
+@media (max-width:768px){
+  .wordmark--img img,
+  .wordmark--img.wordmark--lead img{height:60px;max-width:320px;}
+  .masthead__main .container{height:68px;}
+}
 .icon-btn{width:38px;height:38px;display:grid;place-items:center;border-radius:3px;color:var(--c-ink);transition:background var(--dur);}
 .icon-btn:hover{background:var(--c-bg-subtle);}
 .masthead__actions{display:flex;align-items:center;gap:var(--s-3);}
@@ -392,9 +403,10 @@ a:hover .media__zoom{transform:scale(1.04);}
 
 /* Trang tác giả */
 .author-hero{display:flex;align-items:center;gap:var(--s-5);padding-block:var(--s-8) var(--s-6);border-bottom:2px solid var(--c-line-strong);margin-bottom:var(--s-7);}
-.author-hero__avatar{width:80px;height:80px;border-radius:50%;background:var(--c-bg-subtle);border:1px solid var(--c-line);flex-shrink:0;}
+.author-hero__avatar{width:80px;height:80px;border-radius:50%;background:var(--c-bg-subtle);border:1px solid var(--c-line);flex-shrink:0;object-fit:cover;display:block;}
 .author-hero h1{font-size:var(--t-2xl);margin:var(--s-2) 0;}
 .author-hero p{color:var(--c-ink-2);font-size:var(--t-sm);}
+.author-hero__bio{margin-top:var(--s-2);max-width:56ch;line-height:1.6;}
 .author-hero .eyebrow{font-size:var(--t-xs);}
 @media (max-width:520px){.author-hero{flex-direction:column;align-items:flex-start;gap:var(--s-4);}}
 
