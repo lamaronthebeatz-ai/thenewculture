@@ -273,6 +273,7 @@ def load_settings():
         "spotify_embed_url": "",
         "social_facebook": "", "social_instagram": "",
         "social_youtube": "", "social_tiktok": "",
+        "header_bg_image": "",
     }
     if not os.path.isfile(path):
         return defaults
@@ -459,7 +460,7 @@ def masthead(active=None):
       </div>
     </div>
   </div>
-  <div class="masthead__main">
+  <div class="masthead__main{' masthead__main--has-bg' if SETTINGS.get('header_bg_image') else ''}"{f' style="background-image:url(\'{SETTINGS["header_bg_image"]}\')"' if SETTINGS.get('header_bg_image') else ''}>
     <div class="container">
       {wordmark_html('lead')}
       <div class="masthead__actions">
