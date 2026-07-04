@@ -1,20 +1,10 @@
-# Cấu hình chung của toàn site — chỉnh qua CMS, không cần sửa code.
-logo_image: ""          # để trống = dùng chữ "THE NEW CULTURE" mặc định
-hero_gif: ""            # ảnh GIF lớn đầu trang chủ, để trống = ẩn khối này
-hero_gif_song_title: ""
-hero_gif_song_artist: ""
-spotify_embed_url: ""   # link nhúng Spotify, để trống = ẩn khối nhạc
-
-# Liên kết mạng xã hội — hiển thị ở chân trang và trang Newsletter.
-# Để trống nền tảng nào sẽ tự ẩn biểu tượng của nền tảng đó, không hiện link chết.
-social_facebook: ""
-social_instagram: ""
-social_youtube: ""
-social_tiktok: ""
-
-# Nút "Theo dõi" ở đầu trang sẽ dẫn thẳng tới link Facebook phía trên.
-# Nếu chưa điền Facebook, nút này tạm thời dẫn tới trang Theo dõi nội bộ.
-
-# Ảnh hoặc GIF nền cho khung header (vùng chứa logo + nút Theo dõi).
-# Nhận cả file ảnh tĩnh (.jpg, .png) lẫn ảnh động (.gif). Để trống sẽ giữ nền trắng mặc định.
-header_bg_image: ""
+logo_image: /uploads/3727.png
+hero_gif: ''
+hero_gif_song_title: ''
+hero_gif_song_artist: ''
+spotify_embed_url: ''
+social_facebook: https://www.facebook.com/share/1Ax4Jzy3kM/?mibextid=wwXIfr
+social_instagram: https://www.facebook.com/share/1Ax4Jzy3kM/?mibextid=wwXIfr
+social_youtube: https://www.facebook.com/share/1Ax4Jzy3kM/?mibextid=wwXIfr
+social_tiktok: https://www.facebook.com/share/1Ax4Jzy3kM/?mibextid=wwXIfr
+header_bg_image: /uploads/3695.gif
