@@ -239,6 +239,51 @@
     else{var i=document.createElement('input');i.value=url;document.body.appendChild(i);i.select();try{document.execCommand('copy');}catch(_){}document.body.removeChild(i);done();}
   });
 })();
+// Hero slideshow: tự động chuyển slide, kèm điều khiển tay bằng nút và chấm chỉ báo
+(function(){
+  var root=document.querySelector('[data-slideshow]');
+  if(!root)return;
+  var track=root.querySelector('.hero-slideshow__track');
+  var slides=Array.prototype.slice.call(root.querySelectorAll('.hero-slide'));
+  var dots=Array.prototype.slice.call(root.querySelectorAll('.hero-dot'));
+  var prevBtn=root.querySelector('[data-slide-prev]');
+  var nextBtn=root.querySelector('[data-slide-next]');
+  if(slides.length<2)return;
+  var current=0;
+  var intervalMs=parseInt(root.getAttribute('data-slide-interval'),10)||5000;
+  var timer=null;
+
+  function goTo(index){
+    slides[current].classList.remove('is-active');
+    dots[current].classList.remove('is-active');
+    current=(index+slides.length)%slides.length;
+    slides[current].classList.add('is-active');
+    dots[current].classList.add('is-active');
+  }
+  function next(){goTo(current+1);}
+  function prev(){goTo(current-1);}
+  function startAuto(){
+    stopAuto();
+    timer=setInterval(next,intervalMs);
+  }
+  function stopAuto(){
+    if(timer){clearInterval(timer);timer=null;}
+  }
+  function restartAuto(){startAuto();}
+
+  if(nextBtn)nextBtn.addEventListener('click',function(){next();restartAuto();});
+  if(prevBtn)prevBtn.addEventListener('click',function(){prev();restartAuto();});
+  dots.forEach(function(dot){
+    dot.addEventListener('click',function(){
+      var idx=parseInt(dot.getAttribute('data-slide-goto'),10);
+      goTo(idx);restartAuto();
+    });
+  });
+  // Tạm dừng tự động chuyển khi người dùng đang tương tác chuột trên khung
+  root.addEventListener('mouseenter',stopAuto);
+  root.addEventListener('mouseleave',startAuto);
+  startAuto();
+})();
 </script>
 </body>
 </html>
