@@ -259,15 +259,12 @@
     else{var i=document.createElement('input');i.value=url;document.body.appendChild(i);i.select();try{document.execCommand('copy');}catch(_){}document.body.removeChild(i);done();}
   });
 })();
-// Hero slideshow: tự động chuyển slide, kèm điều khiển tay bằng nút và chấm chỉ báo
+// Hero slideshow: tự động chuyển sau 5 giây, chủ động chuyển bằng vuốt (di động)
+// hoặc kéo chuột (desktop). Không dùng nút bấm hay chấm chỉ báo — giữ ảnh sạch.
 (function(){
   var root=document.querySelector('[data-slideshow]');
   if(!root)return;
-  var track=root.querySelector('.hero-slideshow__track');
   var slides=Array.prototype.slice.call(root.querySelectorAll('.hero-full-slide'));
-  var dots=Array.prototype.slice.call(root.querySelectorAll('.hero-dot'));
-  var prevBtn=root.querySelector('[data-slide-prev]');
-  var nextBtn=root.querySelector('[data-slide-next]');
   if(slides.length<2)return;
   var current=0;
   var intervalMs=parseInt(root.getAttribute('data-slide-interval'),10)||5000;
@@ -275,10 +272,8 @@
 
   function goTo(index){
     slides[current].classList.remove('is-active');
-    dots[current].classList.remove('is-active');
     current=(index+slides.length)%slides.length;
     slides[current].classList.add('is-active');
-    dots[current].classList.add('is-active');
   }
   function next(){goTo(current+1);}
   function prev(){goTo(current-1);}
@@ -291,17 +286,53 @@
   }
   function restartAuto(){startAuto();}
 
-  if(nextBtn)nextBtn.addEventListener('click',function(){next();restartAuto();});
-  if(prevBtn)prevBtn.addEventListener('click',function(){prev();restartAuto();});
-  dots.forEach(function(dot){
-    dot.addEventListener('click',function(){
-      var idx=parseInt(dot.getAttribute('data-slide-goto'),10);
-      goTo(idx);restartAuto();
-    });
+  // Ngưỡng khoảng cách tối thiểu (px) để tính là một thao tác vuốt/kéo thực sự,
+  // tránh nhầm với một cú bấm nhẹ vào tiêu đề hoặc nút "Đọc bài" bên trong slide.
+  var SWIPE_THRESHOLD=50;
+  var startX=0,startY=0,isDragging=false,dragMoved=false;
+
+  function dragStart(x,y){
+    startX=x;startY=y;isDragging=true;dragMoved=false;
+    stopAuto();
+  }
+  function dragEnd(x,y){
+    if(!isDragging)return;
+    isDragging=false;
+    var dx=x-startX,dy=y-startY;
+    if(Math.abs(dx)>SWIPE_THRESHOLD && Math.abs(dx)>Math.abs(dy)){
+      dragMoved=true;
+      if(dx<0){next();}else{prev();}
+    }
+    restartAuto();
+  }
+
+  // Cảm ứng (di động)
+  root.addEventListener('touchstart',function(e){
+    var t=e.changedTouches[0];
+    dragStart(t.clientX,t.clientY);
+  },{passive:true});
+  root.addEventListener('touchend',function(e){
+    var t=e.changedTouches[0];
+    dragEnd(t.clientX,t.clientY);
   });
-  // Tạm dừng tự động chuyển khi người dùng đang tương tác chuột trên khung
-  root.addEventListener('mouseenter',stopAuto);
-  root.addEventListener('mouseleave',startAuto);
+
+  // Chuột kéo (desktop)
+  root.addEventListener('mousedown',function(e){
+    dragStart(e.clientX,e.clientY);
+    e.preventDefault();
+  });
+  root.addEventListener('mouseup',function(e){
+    dragEnd(e.clientX,e.clientY);
+  });
+  root.addEventListener('mouseleave',function(){
+    if(isDragging){isDragging=false;restartAuto();}
+  });
+  // Nếu vừa kéo xong (dragMoved), chặn sự kiện click phát sinh ngay sau đó
+  // để không vô tình mở link bài viết khi người dùng chỉ có ý định kéo slide.
+  root.addEventListener('click',function(e){
+    if(dragMoved){e.preventDefault();e.stopPropagation();dragMoved=false;}
+  },true);
+
   startAuto();
 })();
 </script>
