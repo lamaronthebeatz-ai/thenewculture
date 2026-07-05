@@ -314,6 +314,56 @@ def load_editors():
 
 EDITORS = load_editors()
 
+# -----------------------------------------------------------------
+# HỒ SƠ NHÂN VẬT/ĐƠN VỊ (TNC Profiles — dạng "thẻ tướng")
+# Đọc từ content/profiles/*.md. Đây là loại dữ liệu tách biệt hoàn toàn
+# với "Bài viết" — chỉ dùng riêng cho series TNC Profiles.
+# -----------------------------------------------------------------
+PROFILE_TYPES = {
+    "nghe-si":       {"label": "Nghệ sĩ",           "accent": ""},
+    "producer":      {"label": "Producer",          "accent": "--gold"},
+    "label":         {"label": "Label",             "accent": "--blue"},
+    "studio":        {"label": "Studio",            "accent": "--green"},
+    "quan-ly":       {"label": "Quản lý & Booking",  "accent": "--purple"},
+    "khac":          {"label": "Nhà sáng tạo khác",  "accent": "--amber"},
+}
+
+def load_profiles():
+    profiles_dir = os.path.join(REPO_ROOT, "content", "profiles")
+    profiles = []
+    if not os.path.isdir(profiles_dir):
+        return profiles
+    for path in sorted(glob.glob(os.path.join(profiles_dir, "*.md"))):
+        with open(path, encoding="utf-8") as f:
+            raw = f.read()
+        meta, body_md = _parse_frontmatter(raw)
+        name = (meta.get("name") or "").strip()
+        if not name:
+            print(f"  ! Bỏ qua hồ sơ {os.path.basename(path)} (thiếu tên)")
+            continue
+        ptype = (meta.get("type") or "khac").strip()
+        if ptype not in PROFILE_TYPES:
+            print(f"  ! Hồ sơ {os.path.basename(path)}: loại '{ptype}' không hợp lệ, dùng 'khac'")
+            ptype = "khac"
+        try:
+            influence = int(meta.get("influence", 0))
+        except (TypeError, ValueError):
+            influence = 0
+        influence = max(0, min(100, influence))  # kẹp trong khoảng 0-100
+        profiles.append({
+            "slug": os.path.splitext(os.path.basename(path))[0],
+            "name": name,
+            "type": ptype,
+            "role": (meta.get("role") or "").strip(),
+            "influence": influence,
+            "avatar": (meta.get("avatar") or "").strip(),
+            "short_desc": (meta.get("short_desc") or "").strip(),
+            "body": _md_body_to_blocks(body_md),
+        })
+    return profiles
+
+PROFILES = load_profiles()
+
 
 # Bảo hiểm: nếu chưa có bài nào, tạo 1 bài chào mừng tạm để trang chủ không lỗi
 if not ARTICLES:
@@ -681,6 +731,9 @@ def author_slug(name):
 def author_url(name):
     return f"author-{author_slug(name)}.html"
 
+def profile_url(slug):
+    return f"profile-{slug}.html"
+
 def author_byline_html(author_name):
     """Sinh khối avatar + tên tác giả cho trang bài viết.
     Nếu tác giả có hồ sơ trong content/editors/: hiện ảnh thật (nếu có) + tên dạng liên kết.
@@ -1028,6 +1081,141 @@ def render_index():
 # -----------------------------------------------------------------
 # RENDER: SERIES PAGE
 # -----------------------------------------------------------------
+def render_profile_card(p):
+    """Sinh HTML một 'thẻ tướng' cho lưới danh mục TNC Profiles."""
+    ptype = PROFILE_TYPES[p["type"]]
+    avatar_html = (f'<img src="{p["avatar"]}" alt="{p["name"]}" loading="lazy">'
+                   if p["avatar"] else '<div class="profile-card__ph"></div>')
+    return f"""
+      <a class="profile-card" href="{profile_url(p['slug'])}" data-type="{p['type']}">
+        <div class="profile-card__media">{avatar_html}
+          <span class="profile-card__type eyebrow eyebrow{ptype['accent']}">{ptype['label']}</span>
+        </div>
+        <div class="profile-card__body">
+          <h3 class="profile-card__name">{p['name']}</h3>
+          <span class="profile-card__role">{p['role']}</span>
+          <div class="profile-card__influence">
+            <div class="profile-card__influence-bar"><span style="width:{p['influence']}%"></span></div>
+            <span class="profile-card__influence-num">{p['influence']}</span>
+          </div>
+        </div>
+      </a>"""
+
+def render_profiles_series_page(s):
+    """Trang danh mục chuyên biệt cho series TNC Profiles: lưới 'thẻ tướng'
+    thay vì danh sách bài viết chuẩn. Được gọi thay cho render_series_page()
+    khi phát hiện đúng slug 'tnc-profiles'."""
+    cards_html = "".join(render_profile_card(p) for p in PROFILES)
+    if not PROFILES:
+        cards_html = """
+      <div style="grid-column:1/-1;padding:var(--s-8);text-align:center;border:1px dashed var(--c-line);">
+        <p style="font-family:var(--f-mono);font-size:var(--t-sm);color:var(--c-ink-3);text-transform:uppercase;letter-spacing:0.06em;">Chưa có hồ sơ nào được thêm</p>
+        <p style="color:var(--c-ink-3);margin-top:var(--s-2);font-size:var(--t-sm);">Hồ sơ nhân vật và đơn vị trong ngành đang được biên tập.</p>
+      </div>"""
+
+    filter_buttons = '<button class="profile-filter is-active" data-filter-type="all">Tất cả</button>'
+    for key, meta in PROFILE_TYPES.items():
+        filter_buttons += f'<button class="profile-filter" data-filter-type="{key}">{meta["label"]}</button>'
+
+    others = ""
+    for o in SERIES:
+        if o["slug"] == s["slug"]: continue
+        others += f"""
+        <a class="series-cell" href="{series_url(o['slug'])}">
+          <span class="series-cell__code">{o['code']} · {o['num']}</span>
+          <h3>{o['name']}</h3>
+        </a>"""
+
+    html = head(s["name"], s["desc"]) + masthead(active=s["slug"])
+    html += f"""
+<main>
+  <section class="container" style="padding-top:var(--s-6);">
+    <nav class="byline" style="margin-bottom:var(--s-6);" aria-label="breadcrumb">
+      <a href="index.html">Trang chủ</a> / <a href="index.html#series">Series</a> / {s['name']}
+    </nav>
+    <div style="border-bottom:2px solid var(--c-line-strong);padding-bottom:var(--s-6);margin-bottom:var(--s-6);">
+      <span class="eyebrow eyebrow{s['accent']}" style="font-size:var(--t-sm);">{s['code']} · Series {s['num']} / 16</span>
+      <h1 style="font-size:var(--t-3xl);margin:var(--s-3) 0;max-width:18ch;">{s['name']}</h1>
+      <p style="font-size:var(--t-md);color:var(--c-ink-2);max-width:56ch;">{s['desc']}</p>
+      <div class="byline" style="margin-top:var(--s-4);display:flex;gap:var(--s-5);flex-wrap:wrap;">
+        <span>{len(PROFILES)} hồ sơ trong hệ thống</span>
+        <span>Editorial Content System — TNCOS</span>
+      </div>
+    </div>
+
+    <div class="profile-filters">{filter_buttons}</div>
+
+    <div class="profile-grid" id="profileGrid">{cards_html}
+    </div>
+  </section>
+
+  <section class="series-band" style="margin-top:var(--s-9);">
+    <div class="container">
+      <div class="section-head"><h2>Series khác</h2></div>
+      <div class="series-grid">
+        {others}
+      </div>
+    </div>
+  </section>
+</main>
+<script>
+(function(){{
+  var buttons=document.querySelectorAll('.profile-filter');
+  var cards=document.querySelectorAll('.profile-card');
+  buttons.forEach(function(btn){{
+    btn.addEventListener('click',function(){{
+      buttons.forEach(function(b){{b.classList.remove('is-active');}});
+      btn.classList.add('is-active');
+      var type=btn.getAttribute('data-filter-type');
+      cards.forEach(function(card){{
+        var cardType=card.querySelector('.profile-card__type').textContent.trim();
+        var match=(type==='all')||(card.getAttribute('data-type')===type);
+        card.style.display=match?'':'none';
+      }});
+    }});
+  }});
+}})();
+</script>
+"""
+    html += footer()
+    return html
+
+def render_profile_page(p):
+    """Trang chi tiết đầy đủ thông tin một hồ sơ nhân vật/đơn vị."""
+    ptype = PROFILE_TYPES[p["type"]]
+    avatar_html = (f'<img src="{p["avatar"]}" alt="{p["name"]}" class="profile-hero__avatar">'
+                   if p["avatar"] else '<div class="profile-hero__avatar"></div>')
+    body_html = render_body_blocks(p["body"])
+    path = profile_url(p["slug"])
+    html = head(p["name"], p["short_desc"], path=path) + masthead(active="tnc-profiles")
+    html += f"""
+<main>
+  <section class="container" style="padding-top:var(--s-6);">
+    <nav class="byline" style="margin-bottom:var(--s-6);" aria-label="breadcrumb">
+      <a href="index.html">Trang chủ</a> / <a href="series-tnc-profiles.html">TNC Profiles</a> / {p['name']}
+    </nav>
+    <div class="profile-hero">
+      {avatar_html}
+      <div>
+        <span class="eyebrow eyebrow{ptype['accent']}">{ptype['label']}</span>
+        <h1>{p['name']}</h1>
+        <p class="profile-hero__role">{p['role']}</p>
+        <div class="profile-hero__influence">
+          <span class="profile-hero__influence-label">Độ ảnh hưởng</span>
+          <div class="profile-card__influence-bar profile-hero__bar"><span style="width:{p['influence']}%"></span></div>
+          <span class="profile-card__influence-num">{p['influence']}</span>
+        </div>
+      </div>
+    </div>
+    <div class="article-body" style="max-width:720px;font-size:var(--t-md);line-height:1.8;margin-top:var(--s-7);">
+{body_html}
+    </div>
+  </section>
+</main>
+"""
+    html += footer()
+    return html
+
 def render_series_page(s):
     arts = ARTICLES_BY_SERIES.get(s["slug"], [])
     rows = ""
@@ -1666,10 +1854,18 @@ def main():
         f.write(render_index())
     for s in SERIES:
         with open(os.path.join(OUT, series_url(s["slug"])),"w",encoding="utf-8") as f:
-            f.write(render_series_page(s))
+            if s["slug"] == "tnc-profiles":
+                f.write(render_profiles_series_page(s))
+            else:
+                f.write(render_series_page(s))
     for a in ARTICLES:
         with open(os.path.join(OUT, article_url(a["slug"])),"w",encoding="utf-8") as f:
             f.write(render_article_page(a))
+
+    # Trang chi tiết hồ sơ nhân vật/đơn vị (TNC Profiles)
+    for p in PROFILES:
+        with open(os.path.join(OUT, profile_url(p["slug"])),"w",encoding="utf-8") as f:
+            f.write(render_profile_page(p))
 
     # trang phụ
     extra = {
