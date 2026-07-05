@@ -3,6 +3,8 @@ name: Viet Dragon
 type: nghe-si
 role: Rapper
 influence: 100
+badges:
+  - goat
 avatar: /uploads/bf5a0a83-998d-4eff-9cdf-c0cd028f9fb8.jpeg
 short_desc: Viet Dragon không chỉ là rapper; anh là biểu tượng của văn hoá Hiphop, sáng tạo không ngừng và là tượng đài không thể nào thay thế.
 ---
