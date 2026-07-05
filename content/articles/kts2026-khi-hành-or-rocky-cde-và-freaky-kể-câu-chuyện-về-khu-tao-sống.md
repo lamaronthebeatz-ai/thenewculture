@@ -19,6 +19,8 @@ tags:
 ranking: []
 ---
 
+https://youtu.be/E64bsWgs8_w?si=47iMjpFAos7gGXSv
+
 Sau khi phát hành, **KTS2026** nhanh chóng thu hút sự chú ý của cộng đồng rap Việt khi đạt hơn 2,2 triệu lượt xem trên YouTube chỉ sau vài tháng. Tuy nhiên, sức hút của ca khúc không chỉ đến từ những con số, mà còn nằm ở cách Hành Or, Rocky CDE và Freaky cùng xây dựng một bức tranh đậm màu sắc miền Tây và tinh thần underground.
 
 Được sản xuất bởi Hổ, **KTS2026** vận hành trên nền trap hiện đại với tiết tấu mạnh, bass dày và phần melody được tiết chế vừa đủ để tạo không gian cho ba rapper thể hiện cá tính. Đây không phải là một bản nhạc đặt nặng yếu tố kỹ thuật hay thử nghiệm, mà tập trung vào năng lượng, tính kết nối và bản sắc địa phương.
