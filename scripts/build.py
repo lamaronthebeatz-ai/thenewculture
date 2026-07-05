@@ -1036,6 +1036,7 @@ def render_index():
     </div>
   </section>
 {render_ranking_spotlight()}
+{render_profiles_homepage_block()}
   <section class="series-band">
     <div class="container">
       <div class="section-head">
@@ -1091,6 +1092,37 @@ def influence_tier(influence):
     if influence >= 50:
         return "notable"     # Nổi bật — viền vàng nhạt, phát sáng nhẹ
     return "standard"        # Thường — không hiệu ứng
+
+def top_profiles_for_homepage(limit=10):
+    """Lọc hồ sơ đủ điều kiện hiển thị trên trang chủ: chỉ từ cấp Nổi bật
+    (độ ảnh hưởng >= 50) trở lên, sắp xếp giảm dần theo độ ảnh hưởng,
+    giới hạn tối đa `limit` hồ sơ đầu tiên."""
+    eligible = [p for p in PROFILES if p["influence"] >= 50]
+    eligible.sort(key=lambda p: p["influence"], reverse=True)
+    return eligible[:limit]
+
+def render_profiles_homepage_block():
+    """Khối 'TNC Profiles' cố định trên trang chủ: carousel cuộn ngang
+    hiển thị tối đa 10 hồ sơ có độ ảnh hưởng cao nhất (từ cấp Nổi bật
+    trở lên). Tự ẩn hoàn toàn nếu không có hồ sơ nào đủ điều kiện."""
+    top_profiles = top_profiles_for_homepage(limit=10)
+    if not top_profiles:
+        return ""
+    cards_html = "".join(render_profile_card(p) for p in top_profiles)
+    return f"""
+  <section class="profiles-spotlight">
+    <div class="container">
+      <div class="section-head">
+        <h2>TNC Profiles</h2>
+        <a class="more" href="series-tnc-profiles.html">Xem toàn bộ hồ sơ →</a>
+      </div>
+      <div class="profiles-spotlight__scroll">
+        <div class="profiles-spotlight__track">{cards_html}
+        </div>
+      </div>
+    </div>
+  </section>
+"""
 
 def render_profile_card(p):
     """Sinh HTML một 'thẻ tướng' cho lưới danh mục TNC Profiles."""
