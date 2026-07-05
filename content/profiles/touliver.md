@@ -3,6 +3,9 @@ name: Touliver
 type: producer
 role: Producer
 influence: 100
+badges:
+  - verified
+  - veteran
 avatar: /uploads/3773.jpg
 short_desc: Touliver là một trong những producer tài năng và có sức ảnh hưởng nhất làng nhạc Việt hiện nay.
 ---
