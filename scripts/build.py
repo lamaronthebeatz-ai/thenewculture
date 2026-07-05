@@ -1081,13 +1081,25 @@ def render_index():
 # -----------------------------------------------------------------
 # RENDER: SERIES PAGE
 # -----------------------------------------------------------------
+def influence_tier(influence):
+    """Xác định cấp độ hiệu ứng phát sáng dựa trên độ ảnh hưởng (0-100).
+    Trả về slug cấp độ dùng làm data-attribute cho CSS xử lý hiệu ứng."""
+    if influence >= 95:
+        return "legendary"   # Huyền thoại — hào quang vàng kim rực, có nhấp nháy
+    if influence >= 80:
+        return "elite"       # Xuất sắc — viền vàng đậm, phát sáng rõ
+    if influence >= 50:
+        return "notable"     # Nổi bật — viền vàng nhạt, phát sáng nhẹ
+    return "standard"        # Thường — không hiệu ứng
+
 def render_profile_card(p):
     """Sinh HTML một 'thẻ tướng' cho lưới danh mục TNC Profiles."""
     ptype = PROFILE_TYPES[p["type"]]
+    tier = influence_tier(p["influence"])
     avatar_html = (f'<img src="{p["avatar"]}" alt="{p["name"]}" loading="lazy">'
                    if p["avatar"] else '<div class="profile-card__ph"></div>')
     return f"""
-      <a class="profile-card" href="{profile_url(p['slug'])}" data-type="{p['type']}">
+      <a class="profile-card" href="{profile_url(p['slug'])}" data-type="{p['type']}" data-tier="{tier}">
         <div class="profile-card__media">{avatar_html}
           <span class="profile-card__type eyebrow eyebrow{ptype['accent']}">{ptype['label']}</span>
         </div>
@@ -1183,8 +1195,9 @@ def render_profiles_series_page(s):
 def render_profile_page(p):
     """Trang chi tiết đầy đủ thông tin một hồ sơ nhân vật/đơn vị."""
     ptype = PROFILE_TYPES[p["type"]]
-    avatar_html = (f'<img src="{p["avatar"]}" alt="{p["name"]}" class="profile-hero__avatar">'
-                   if p["avatar"] else '<div class="profile-hero__avatar"></div>')
+    tier = influence_tier(p["influence"])
+    avatar_html = (f'<img src="{p["avatar"]}" alt="{p["name"]}" class="profile-hero__avatar" data-tier="{tier}">'
+                   if p["avatar"] else f'<div class="profile-hero__avatar" data-tier="{tier}"></div>')
     body_html = render_body_blocks(p["body"])
     path = profile_url(p["slug"])
     html = head(p["name"], p["short_desc"], path=path) + masthead(active="tnc-profiles")
