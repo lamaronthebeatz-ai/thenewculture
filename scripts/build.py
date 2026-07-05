@@ -606,6 +606,51 @@ def footer():
     else{var i=document.createElement('input');i.value=url;document.body.appendChild(i);i.select();try{document.execCommand('copy');}catch(_){}document.body.removeChild(i);done();}
   });
 })();
+// Hero slideshow: tự động chuyển slide, kèm điều khiển tay bằng nút và chấm chỉ báo
+(function(){
+  var root=document.querySelector('[data-slideshow]');
+  if(!root)return;
+  var track=root.querySelector('.hero-slideshow__track');
+  var slides=Array.prototype.slice.call(root.querySelectorAll('.hero-slide'));
+  var dots=Array.prototype.slice.call(root.querySelectorAll('.hero-dot'));
+  var prevBtn=root.querySelector('[data-slide-prev]');
+  var nextBtn=root.querySelector('[data-slide-next]');
+  if(slides.length<2)return;
+  var current=0;
+  var intervalMs=parseInt(root.getAttribute('data-slide-interval'),10)||5000;
+  var timer=null;
+
+  function goTo(index){
+    slides[current].classList.remove('is-active');
+    dots[current].classList.remove('is-active');
+    current=(index+slides.length)%slides.length;
+    slides[current].classList.add('is-active');
+    dots[current].classList.add('is-active');
+  }
+  function next(){goTo(current+1);}
+  function prev(){goTo(current-1);}
+  function startAuto(){
+    stopAuto();
+    timer=setInterval(next,intervalMs);
+  }
+  function stopAuto(){
+    if(timer){clearInterval(timer);timer=null;}
+  }
+  function restartAuto(){startAuto();}
+
+  if(nextBtn)nextBtn.addEventListener('click',function(){next();restartAuto();});
+  if(prevBtn)prevBtn.addEventListener('click',function(){prev();restartAuto();});
+  dots.forEach(function(dot){
+    dot.addEventListener('click',function(){
+      var idx=parseInt(dot.getAttribute('data-slide-goto'),10);
+      goTo(idx);restartAuto();
+    });
+  });
+  // Tạm dừng tự động chuyển khi người dùng đang tương tác chuột trên khung
+  root.addEventListener('mouseenter',stopAuto);
+  root.addEventListener('mouseleave',startAuto);
+  startAuto();
+})();
 </script>
 </body>
 </html>"""
@@ -674,6 +719,57 @@ def share_bar(a, path):
 # -----------------------------------------------------------------
 # RENDER: INDEX
 # -----------------------------------------------------------------
+def render_hero_slideshow(slides):
+    """Khung hero trái dạng slideshow: tự động chuyển giữa các bài mới nhất,
+    kèm chấm chỉ báo và nút điều hướng tay. Nếu chỉ có 1 bài, hiển thị tĩnh
+    (không cần điều khiển slide) để tránh giao diện thừa không có tác dụng."""
+    if not slides:
+        return ""
+
+    if len(slides) == 1:
+        a = slides[0]
+        s = SERIES_BY_SLUG[a["series"]]
+        return f"""
+      <article class="hero__lead">
+        <a href="{article_url(a['slug'])}">
+          <div class="media media--3-2">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
+        </a>
+        <div class="hero__body">
+          <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
+          <h1><a href="{article_url(a['slug'])}">{a['title']}</a></h1>
+          <p>{a['dek']}</p>
+          <span class="byline">{a['author']} · {a['read_time']}</span>
+        </div>
+      </article>"""
+
+    slides_html = ""
+    dots_html = ""
+    for i, a in enumerate(slides):
+        s = SERIES_BY_SLUG[a["series"]]
+        active_cls = " is-active" if i == 0 else ""
+        slides_html += f"""
+        <div class="hero-slide{active_cls}" data-slide-index="{i}">
+          <a href="{article_url(a['slug'])}">
+            <div class="media media--3-2">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
+          </a>
+          <div class="hero__body">
+            <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
+            <h1><a href="{article_url(a['slug'])}">{a['title']}</a></h1>
+            <p>{a['dek']}</p>
+            <span class="byline">{a['author']} · {a['read_time']}</span>
+          </div>
+        </div>"""
+        dots_html += f'<button class="hero-dot{active_cls}" data-slide-goto="{i}" aria-label="Bài {i+1}"></button>'
+
+    return f"""
+      <article class="hero__lead hero-slideshow" data-slideshow data-slide-interval="5000">
+        <div class="hero-slideshow__track">{slides_html}
+        </div>
+        <button class="hero-slide-nav hero-slide-nav--prev" data-slide-prev aria-label="Bài trước">‹</button>
+        <button class="hero-slide-nav hero-slide-nav--next" data-slide-next aria-label="Bài sau">›</button>
+        <div class="hero-dots">{dots_html}</div>
+      </article>"""
+
 def render_gif_hero():
     """Khung GIF lớn đầu trang chủ: ảnh động tự chạy + thumbnail/thông tin bài hát.
     Không phát âm thanh — chỉ là khối trình diễn hình ảnh. Ẩn hoàn toàn nếu chưa cấu hình."""
@@ -779,13 +875,29 @@ def render_index():
     s3 = _get(2); s3s = SERIES_BY_SLUG[s3["series"]] if s3 else None
     feat = _get(4); fs = SERIES_BY_SLUG[feat["series"]] if feat else None
 
-    # hero side items (chỉ hiện bài khác hero, tránh trùng khi ít bài)
+    # Khung hero trái giờ là slideshow chứa 3 bài mới nhất: hero (0), s2 (1), s3 (2)
+    slide_articles = [a for a in (hero, s2, s3) if a]
+    # loại trùng slug nếu ARTICLES có ít hơn 3 bài (đã quay vòng ở _get)
+    seen_slides = set()
+    slides_unique = []
+    for a in slide_articles:
+        if a["slug"] not in seen_slides:
+            seen_slides.add(a["slug"])
+            slides_unique.append(a)
+    slide_articles = slides_unique
+
+    # Cột phải: 5 bài viết tiếp theo, không trùng với các bài đã dùng cho slide
     side = ""
-    seen = {hero["slug"]} if hero else set()
-    for a in (s2, s3):
+    seen = set(a["slug"] for a in slide_articles)
+    side_count = 0
+    i = 0
+    while side_count < 5 and i < len(ARTICLES) + 5:
+        a = _get(3 + i)  # bắt đầu từ vị trí sau các bài dùng cho slide
+        i += 1
         if not a or a["slug"] in seen:
             continue
         seen.add(a["slug"])
+        side_count += 1
         s = SERIES_BY_SLUG[a["series"]]
         side += f"""
         <a class="side-item" href="{article_url(a['slug'])}">
@@ -795,6 +907,8 @@ def render_index():
             <h3>{a['title']}</h3>
           </div>
         </a>"""
+        if side_count >= len(ARTICLES) - len(slide_articles):
+            break  # đã liệt kê hết bài có thể dùng, tránh vòng lặp vô hạn khi kho bài ít
 
     # trending: 6 bài
     trending = ""
@@ -857,17 +971,7 @@ def render_index():
 <main>
   <section class="hero container">
     <div class="hero__grid">
-      <article class="hero__lead">
-        <a href="{article_url(hero['slug'])}">
-          <div class="media media--3-2">{zoom(hero)}<span class="archive-code">{art_code(hero)}</span></div>
-        </a>
-        <div class="hero__body">
-          <span class="eyebrow eyebrow{hs['accent']}">{hs['name']}</span>
-          <h1><a href="{article_url(hero['slug'])}">{hero['title']}</a></h1>
-          <p>{hero['dek']}</p>
-          <span class="byline">{hero['author']} · {hero['read_time']}</span>
-        </div>
-      </article>
+      {render_hero_slideshow(slide_articles)}
       <aside class="hero__side">{side}
       </aside>
     </div>
