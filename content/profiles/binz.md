@@ -3,6 +3,9 @@ name: Binz
 type: nghe-si
 role: Rapper
 influence: 80
+badges:
+  - hot
+  - verified
 avatar: /uploads/3772.jpg
 short_desc: Binz (tên thật Lê Nguyễn Trung Đan, sinh ngày 24/5/1988 tại Gia Lai) là một trong những rapper, ca sĩ kiêm sáng tác hàng đầu của làng nhạc Việt Nam.
 ---
