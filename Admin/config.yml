@@ -228,3 +228,65 @@ collections:
         widget: text
         required: false
         hint: "Tiểu sử ngắn, hiển thị ở đầu trang hồ sơ tác giả."
+
+  # ============================================================
+  # HỒ SƠ NHÂN VẬT/ĐƠN VỊ (TNC Profiles — "thẻ tướng")
+  # Nhấn vào series TNC Profiles trên web sẽ hiện lưới thẻ bài từ đây.
+  # ============================================================
+  - name: profiles
+    label: "Hồ sơ TNC Profiles"
+    label_singular: "Hồ sơ"
+    folder: "content/profiles"
+    create: true
+    slug: "{{slug}}"
+    identifier_field: name
+    summary: "{{name}} — {{type}}"
+    fields:
+      - label: "Tên"
+        name: name
+        widget: string
+        hint: "Tên nghệ sĩ, hoặc tên đơn vị (label, studio...)."
+
+      - label: "Loại"
+        name: type
+        widget: select
+        options:
+          - { label: "Nghệ sĩ", value: "nghe-si" }
+          - { label: "Producer", value: "producer" }
+          - { label: "Label", value: "label" }
+          - { label: "Studio", value: "studio" }
+          - { label: "Quản lý & Booking", value: "quan-ly" }
+          - { label: "Nhà sáng tạo khác", value: "khac" }
+        hint: "Hiển thị dưới dạng nhãn màu trên thẻ bài."
+
+      - label: "Vai trò / Chức danh"
+        name: role
+        widget: string
+        hint: "Ví dụ: Rapper, Producer, Label độc lập, Quản lý nghệ sĩ..."
+
+      - label: "Độ ảnh hưởng"
+        name: influence
+        widget: number
+        value_type: int
+        min: 0
+        max: 100
+        default: 50
+        hint: "Thang điểm 0-100, hiển thị dạng thanh chỉ số trên thẻ bài, giống chỉ số sức mạnh trong thẻ tướng."
+
+      - label: "Ảnh đại diện"
+        name: avatar
+        widget: image
+        required: false
+        hint: "Ảnh hiển thị trên thẻ bài và đầu trang chi tiết. Nên dùng ảnh tỷ lệ dọc (ví dụ 3:4) để khớp khung thẻ."
+
+      - label: "Mô tả ngắn"
+        name: short_desc
+        widget: text
+        required: false
+        hint: "Một câu mô tả ngắn, dùng cho việc chia sẻ mạng xã hội khi dán link trang hồ sơ này."
+
+      - label: "Nội dung chi tiết"
+        name: body
+        widget: markdown
+        required: false
+        hint: "Tiểu sử, dấu ấn nổi bật, thông tin chi tiết — hiển thị đầy đủ ở trang riêng của hồ sơ này."
