@@ -273,6 +273,21 @@ collections:
         default: 50
         hint: "Thang điểm 0-100, hiển thị dạng thanh chỉ số trên thẻ bài, giống chỉ số sức mạnh trong thẻ tướng."
 
+      - label: "Badge thành tích"
+        name: badges
+        widget: select
+        multiple: true
+        required: false
+        options:
+          - { label: "GOAT — Đỉnh cao mọi thời đại", value: "goat" }
+          - { label: "HOT — Đang thịnh hành, sôi nổi", value: "hot" }
+          - { label: "RISING — Đang trên đà tăng trưởng", value: "rising" }
+          - { label: "TALENT — Gương mặt mới tiềm năng", value: "talent" }
+          - { label: "VERIFIED — Đã xác thực chính chủ", value: "verified" }
+          - { label: "VETERAN — Kỳ cựu, thâm niên lâu năm", value: "veteran" }
+          - { label: "UNDERRATED — Thực lực cao hơn được ghi nhận", value: "underrated" }
+        hint: "Chọn thủ công một hoặc nhiều badge phù hợp. GOAT sẽ khiến tên hồ sơ hiện hiệu ứng 'bốc lửa' kèm badge đỏ phát sáng cạnh tên; các badge khác hiển thị xếp chồng bên dưới vai trò."
+
       - label: "Ảnh đại diện"
         name: avatar
         widget: image
