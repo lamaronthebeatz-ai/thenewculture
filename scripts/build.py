@@ -328,6 +328,19 @@ PROFILE_TYPES = {
     "khac":          {"label": "Nhà sáng tạo khác",  "accent": "--amber"},
 }
 
+# Hệ thống Badge thành tích — gán thủ công qua CMS, không phụ thuộc điểm số.
+# Một hồ sơ có thể mang nhiều badge cùng lúc. Thứ tự trong dict quyết định
+# thứ tự hiển thị xếp chồng trên thẻ (badge nổi bật nhất đứng trước).
+PROFILE_BADGES = {
+    "goat":       {"label": "GOAT",       "desc": "Đỉnh cao mọi thời đại"},
+    "hot":        {"label": "HOT",        "desc": "Đang thịnh hành, hoạt động sôi nổi"},
+    "rising":     {"label": "RISING",     "desc": "Đang trên đà tăng trưởng rõ rệt"},
+    "talent":     {"label": "TALENT",     "desc": "Gương mặt mới tiềm năng, được ủng hộ"},
+    "verified":   {"label": "VERIFIED",   "desc": "Hồ sơ đã được xác thực chính chủ"},
+    "veteran":    {"label": "VETERAN",    "desc": "Kỳ cựu, có thâm niên lâu năm trong nghề"},
+    "underrated": {"label": "UNDERRATED", "desc": "Thực lực cao hơn mức được ghi nhận"},
+}
+
 def load_profiles():
     profiles_dir = os.path.join(REPO_ROOT, "content", "profiles")
     profiles = []
@@ -350,6 +363,17 @@ def load_profiles():
         except (TypeError, ValueError):
             influence = 0
         influence = max(0, min(100, influence))  # kẹp trong khoảng 0-100
+
+        # Đọc danh sách badge, lọc bỏ giá trị không hợp lệ, giữ đúng thứ tự ưu tiên PROFILE_BADGES
+        raw_badges = meta.get("badges") or []
+        if not isinstance(raw_badges, list):
+            raw_badges = []
+        valid_badges = set(b for b in raw_badges if b in PROFILE_BADGES)
+        ordered_badges = [key for key in PROFILE_BADGES if key in valid_badges]
+        invalid = set(raw_badges) - set(PROFILE_BADGES.keys())
+        if invalid:
+            print(f"  ! Hồ sơ {os.path.basename(path)}: badge không hợp lệ bị bỏ qua: {', '.join(invalid)}")
+
         profiles.append({
             "slug": os.path.splitext(os.path.basename(path))[0],
             "name": name,
@@ -358,6 +382,7 @@ def load_profiles():
             "influence": influence,
             "avatar": (meta.get("avatar") or "").strip(),
             "short_desc": (meta.get("short_desc") or "").strip(),
+            "badges": ordered_badges,
             "body": _md_body_to_blocks(body_md),
         })
     return profiles
@@ -1124,20 +1149,46 @@ def render_profiles_homepage_block():
   </section>
 """
 
+def render_badges_html(badges, context="card"):
+    """Sinh HTML cho nhóm badge thành tích (không bao gồm GOAT — badge đó
+    được xử lý riêng để đặt cạnh tên theo đúng thiết kế 'hiệu ứng bốc lửa').
+    context: 'card' (thẻ bài) hoặc 'hero' (trang chi tiết) — điều chỉnh kích cỡ."""
+    others = [b for b in badges if b != "goat"]
+    if not others:
+        return ""
+    size_cls = " badge--lg" if context == "hero" else ""
+    items = "".join(
+        f'<span class="badge badge--{key}{size_cls}" title="{PROFILE_BADGES[key]["desc"]}">{PROFILE_BADGES[key]["label"]}</span>'
+        for key in others
+    )
+    return f'<div class="profile-badges profile-badges--{context}">{items}</div>'
+
+def render_goat_name_html(name, has_goat):
+    """Sinh HTML tên hồ sơ, kèm hiệu ứng GOAT nếu có: tên 'bốc lửa' bằng CSS
+    gradient + animation, cộng badge 'GOAT' đỏ phát sáng đặt bên phải tên."""
+    if not has_goat:
+        return name
+    goat_badge = '<span class="badge badge--goat" title="Đỉnh cao mọi thời đại">GOAT</span>'
+    return f'<span class="profile-name--goat">{name}</span> {goat_badge}'
+
 def render_profile_card(p):
     """Sinh HTML một 'thẻ tướng' cho lưới danh mục TNC Profiles."""
     ptype = PROFILE_TYPES[p["type"]]
     tier = influence_tier(p["influence"])
+    has_goat = "goat" in p["badges"]
     avatar_html = (f'<img src="{p["avatar"]}" alt="{p["name"]}" loading="lazy">'
                    if p["avatar"] else '<div class="profile-card__ph"></div>')
+    name_html = render_goat_name_html(p["name"], has_goat)
+    badges_html = render_badges_html(p["badges"], context="card")
     return f"""
       <a class="profile-card" href="{profile_url(p['slug'])}" data-type="{p['type']}" data-tier="{tier}">
         <div class="profile-card__media">{avatar_html}
           <span class="profile-card__type eyebrow eyebrow{ptype['accent']}">{ptype['label']}</span>
         </div>
         <div class="profile-card__body">
-          <h3 class="profile-card__name">{p['name']}</h3>
+          <h3 class="profile-card__name">{name_html}</h3>
           <span class="profile-card__role">{p['role']}</span>
+          {badges_html}
           <div class="profile-card__influence">
             <div class="profile-card__influence-bar"><span style="width:{p['influence']}%"></span></div>
             <span class="profile-card__influence-num">{p['influence']}</span>
@@ -1228,9 +1279,12 @@ def render_profile_page(p):
     """Trang chi tiết đầy đủ thông tin một hồ sơ nhân vật/đơn vị."""
     ptype = PROFILE_TYPES[p["type"]]
     tier = influence_tier(p["influence"])
+    has_goat = "goat" in p["badges"]
     avatar_html = (f'<img src="{p["avatar"]}" alt="{p["name"]}" class="profile-hero__avatar" data-tier="{tier}">'
                    if p["avatar"] else f'<div class="profile-hero__avatar" data-tier="{tier}"></div>')
     body_html = render_body_blocks(p["body"])
+    name_html = render_goat_name_html(p["name"], has_goat)
+    badges_html = render_badges_html(p["badges"], context="hero")
     path = profile_url(p["slug"])
     html = head(p["name"], p["short_desc"], path=path) + masthead(active="tnc-profiles")
     html += f"""
@@ -1243,8 +1297,9 @@ def render_profile_page(p):
       {avatar_html}
       <div>
         <span class="eyebrow eyebrow{ptype['accent']}">{ptype['label']}</span>
-        <h1>{p['name']}</h1>
+        <h1>{name_html}</h1>
         <p class="profile-hero__role">{p['role']}</p>
+        {badges_html}
         <div class="profile-hero__influence">
           <span class="profile-hero__influence-label">Độ ảnh hưởng</span>
           <div class="profile-card__influence-bar profile-hero__bar"><span style="width:{p['influence']}%"></span></div>

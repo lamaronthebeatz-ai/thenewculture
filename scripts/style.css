@@ -617,3 +617,104 @@ a:hover .media__zoom{transform:scale(1.04);}
 @media (max-width:768px){
   .profiles-spotlight__track .profile-card{width:170px;}
 }
+
+/* ==========================================================================
+   HỆ THỐNG BADGE THÀNH TÍCH (7 loại — GOAT, HOT, RISING, TALENT, VERIFIED,
+   VETERAN, UNDERRATED) — mỗi badge có màu sắc và hiệu ứng riêng theo mức
+   độ nhận diện. GOAT được xử lý đặc biệt: tên "bốc lửa" + badge cạnh tên.
+   ========================================================================== */
+
+/* ----- Khối chứa badge (không bao gồm GOAT) — xếp chồng trên thẻ ----- */
+.profile-badges{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0;}
+.profile-badges--hero{margin:10px 0 var(--s-4);}
+
+.badge{
+  display:inline-flex;align-items:center;gap:3px;
+  font-family:var(--f-mono);font-weight:700;font-size:9px;letter-spacing:0.06em;
+  padding:3px 8px;border-radius:3px;text-transform:uppercase;line-height:1.4;
+  white-space:nowrap;cursor:default;
+}
+.badge--lg{font-size:11px;padding:4px 11px;}
+
+/* ----- GOAT — đỏ rực, phát sáng mạnh, đặt cạnh tên (không nằm trong nhóm .profile-badges) ----- */
+.badge--goat{
+  background:linear-gradient(135deg,#FF3B1F,#B8140A);color:#FFF3E0;
+  box-shadow:0 0 10px rgba(255,59,31,0.75),0 0 3px rgba(255,120,0,0.9) inset;
+  animation:goatPulse 1.8s ease-in-out infinite;
+  vertical-align:middle;
+}
+@keyframes goatPulse{
+  0%,100%{box-shadow:0 0 10px rgba(255,59,31,0.75),0 0 3px rgba(255,120,0,0.9) inset;}
+  50%{box-shadow:0 0 18px rgba(255,80,20,0.95),0 0 5px rgba(255,150,0,1) inset;}
+}
+/* Hiệu ứng "bốc lửa" cho tên — gradient chuyển động đỏ-cam-vàng + rung nhẹ text-shadow */
+.profile-name--goat{
+  background:linear-gradient(90deg,#B8140A,#FF3B1F,#FF8C00,#FF3B1F,#B8140A);
+  background-size:300% auto;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:goatFireShift 2.2s linear infinite;
+  text-shadow:0 0 6px rgba(255,90,0,0.35);
+}
+@keyframes goatFireShift{
+  0%{background-position:0% center;}
+  100%{background-position:300% center;}
+}
+
+/* ----- HOT — cam-đỏ gradient, nhịp đập nhẹ ----- */
+.badge--hot{
+  background:linear-gradient(135deg,#FF6B35,#E8332A);color:#fff;
+  animation:hotBeat 1.5s ease-in-out infinite;
+}
+@keyframes hotBeat{
+  0%,100%{transform:scale(1);}
+  50%{transform:scale(1.06);}
+}
+
+/* ----- RISING — xanh lá, mũi tên, viền phát sáng chuyển động lên ----- */
+.badge--rising{
+  background:#0E8A4B;color:#fff;
+  box-shadow:0 0 6px rgba(14,138,75,0.5);
+  animation:risingGlow 2s ease-in-out infinite;
+}
+.badge--rising::before{content:"↑ ";}
+@keyframes risingGlow{
+  0%,100%{box-shadow:0 0 6px rgba(14,138,75,0.5);}
+  50%{box-shadow:0 0 12px rgba(14,138,75,0.8),0 -2px 6px rgba(14,138,75,0.4);}
+}
+
+/* ----- TALENT — tím, lấp lánh nhẹ ----- */
+.badge--talent{
+  background:linear-gradient(135deg,#7B3FE4,#5B2BAF);color:#fff;
+  position:relative;overflow:hidden;
+}
+.badge--talent::after{
+  content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;
+  background:linear-gradient(115deg,transparent,rgba(255,255,255,0.55),transparent);
+  animation:talentShimmer 2.8s ease-in-out infinite;
+}
+@keyframes talentShimmer{
+  0%{left:-60%;}
+  50%{left:130%;}
+  100%{left:130%;}
+}
+
+/* ----- VERIFIED — xanh dương, dấu tích, điềm tĩnh không phát sáng ----- */
+.badge--verified{
+  background:#1D4ED8;color:#fff;
+}
+.badge--verified::before{content:"✓ ";}
+
+/* ----- VETERAN — nâu đồng/vàng cổ điển, tĩnh, uy tín ----- */
+.badge--veteran{
+  background:#5C4425;color:#E8D5A8;border:1px solid #8A6B3D;
+}
+
+/* ----- UNDERRATED — xám xanh, viền đứt nét, khiêm tốn ----- */
+.badge--underrated{
+  background:transparent;color:#5A6B78;border:1px dashed #8A9BA8;
+}
+
+@media (prefers-reduced-motion:reduce){
+  .badge--goat,.profile-name--goat,.badge--hot,.badge--rising,.badge--talent::after{
+    animation:none !important;
+  }
+}
