@@ -226,6 +226,7 @@ def load_articles():
             "date": date_val,
             "read_time": read_time,
             "cover": meta.get("cover", "") or "",
+            "poster": meta.get("poster", "") or "",
             "featured": bool(meta.get("featured", False)),
             "order": int(meta.get("order", 999)),
             "tags": meta.get("tags", []) or [],
@@ -400,6 +401,8 @@ if not ARTICLES:
         "author": "TNC Editorial",
         "date": "",
         "read_time": "1 phút đọc",
+        "cover": "",
+        "poster": "",
         "featured": True,
         "order": 1,
         "tags": [],
@@ -685,15 +688,12 @@ def footer():
     else{var i=document.createElement('input');i.value=url;document.body.appendChild(i);i.select();try{document.execCommand('copy');}catch(_){}document.body.removeChild(i);done();}
   });
 })();
-// Hero slideshow: tự động chuyển slide, kèm điều khiển tay bằng nút và chấm chỉ báo
+// Hero slideshow: tự động chuyển sau 5 giây, chủ động chuyển bằng vuốt (di động)
+// hoặc kéo chuột (desktop). Không dùng nút bấm hay chấm chỉ báo — giữ ảnh sạch.
 (function(){
   var root=document.querySelector('[data-slideshow]');
   if(!root)return;
-  var track=root.querySelector('.hero-slideshow__track');
   var slides=Array.prototype.slice.call(root.querySelectorAll('.hero-full-slide'));
-  var dots=Array.prototype.slice.call(root.querySelectorAll('.hero-dot'));
-  var prevBtn=root.querySelector('[data-slide-prev]');
-  var nextBtn=root.querySelector('[data-slide-next]');
   if(slides.length<2)return;
   var current=0;
   var intervalMs=parseInt(root.getAttribute('data-slide-interval'),10)||5000;
@@ -701,10 +701,8 @@ def footer():
 
   function goTo(index){
     slides[current].classList.remove('is-active');
-    dots[current].classList.remove('is-active');
     current=(index+slides.length)%slides.length;
     slides[current].classList.add('is-active');
-    dots[current].classList.add('is-active');
   }
   function next(){goTo(current+1);}
   function prev(){goTo(current-1);}
@@ -717,17 +715,53 @@ def footer():
   }
   function restartAuto(){startAuto();}
 
-  if(nextBtn)nextBtn.addEventListener('click',function(){next();restartAuto();});
-  if(prevBtn)prevBtn.addEventListener('click',function(){prev();restartAuto();});
-  dots.forEach(function(dot){
-    dot.addEventListener('click',function(){
-      var idx=parseInt(dot.getAttribute('data-slide-goto'),10);
-      goTo(idx);restartAuto();
-    });
+  // Ngưỡng khoảng cách tối thiểu (px) để tính là một thao tác vuốt/kéo thực sự,
+  // tránh nhầm với một cú bấm nhẹ vào tiêu đề hoặc nút "Đọc bài" bên trong slide.
+  var SWIPE_THRESHOLD=50;
+  var startX=0,startY=0,isDragging=false,dragMoved=false;
+
+  function dragStart(x,y){
+    startX=x;startY=y;isDragging=true;dragMoved=false;
+    stopAuto();
+  }
+  function dragEnd(x,y){
+    if(!isDragging)return;
+    isDragging=false;
+    var dx=x-startX,dy=y-startY;
+    if(Math.abs(dx)>SWIPE_THRESHOLD && Math.abs(dx)>Math.abs(dy)){
+      dragMoved=true;
+      if(dx<0){next();}else{prev();}
+    }
+    restartAuto();
+  }
+
+  // Cảm ứng (di động)
+  root.addEventListener('touchstart',function(e){
+    var t=e.changedTouches[0];
+    dragStart(t.clientX,t.clientY);
+  },{passive:true});
+  root.addEventListener('touchend',function(e){
+    var t=e.changedTouches[0];
+    dragEnd(t.clientX,t.clientY);
   });
-  // Tạm dừng tự động chuyển khi người dùng đang tương tác chuột trên khung
-  root.addEventListener('mouseenter',stopAuto);
-  root.addEventListener('mouseleave',startAuto);
+
+  // Chuột kéo (desktop)
+  root.addEventListener('mousedown',function(e){
+    dragStart(e.clientX,e.clientY);
+    e.preventDefault();
+  });
+  root.addEventListener('mouseup',function(e){
+    dragEnd(e.clientX,e.clientY);
+  });
+  root.addEventListener('mouseleave',function(){
+    if(isDragging){isDragging=false;restartAuto();}
+  });
+  // Nếu vừa kéo xong (dragMoved), chặn sự kiện click phát sinh ngay sau đó
+  // để không vô tình mở link bài viết khi người dùng chỉ có ý định kéo slide.
+  root.addEventListener('click',function(e){
+    if(dragMoved){e.preventDefault();e.stopPropagation();dragMoved=false;}
+  },true);
+
   startAuto();
 })();
 </script>
@@ -742,6 +776,29 @@ def art_code(article):
     s = SERIES_BY_SLUG[article["series"]]
     idx = ARTICLES_BY_SERIES[article["series"]].index(article) + 1
     return f"{s['code']}·{idx:03d}"
+
+def is_community_poster(article):
+    """Xác định một bài viết có nên hiển thị dạng poster dọc hay không:
+    phải thuộc series TNC Community VÀ đã có ảnh poster. Nếu thuộc
+    TNC Community nhưng chưa có poster, bài vẫn hiển thị dạng thẻ chuẩn
+    (graceful fallback), tránh vỡ giao diện khi thiếu ảnh."""
+    return article.get("series") == "tnc-community" and bool(article.get("poster"))
+
+def render_poster_card(a):
+    """Sinh thẻ poster dọc cho một bài viết TNC Community. Bấm vào dẫn
+    thẳng tới trang bài viết đầy đủ — không có khung riêng, kế thừa
+    hạ tầng bài viết chuẩn (tác giả, chia sẻ, SEO)."""
+    return f"""
+      <a class="poster-card" href="{article_url(a['slug'])}">
+        <div class="poster-card__media">
+          <img src="{a['poster']}" alt="{a['title']}" loading="lazy">
+          <span class="poster-card__archive">{art_code(a)}</span>
+        </div>
+        <div class="poster-card__body">
+          <h3 class="poster-card__title">{a['title']}</h3>
+          <span class="poster-card__meta">{a['date']}</span>
+        </div>
+      </a>"""
 
 def zoom(article):
     """Trả về lớp media bên trong: ảnh bìa nếu có, ngược lại placeholder gradient."""
@@ -826,9 +883,10 @@ def share_bar(a, path):
 # -----------------------------------------------------------------
 def render_hero_slideshow(slides):
     """Khối hero toàn màn hình dạng ảnh nền, tiêu đề/mô tả/nút đè lên góc dưới trái
-    (bố cục tham chiếu Complex.com). Tự động chuyển giữa các bài mới nhất, kèm
-    chấm chỉ báo và nút điều hướng tay. Tràn viền toàn bộ chiều ngang màn hình.
-    Nếu chỉ có 1 bài, hiển thị tĩnh (không cần điều khiển slide)."""
+    (bố cục tham chiếu Complex.com). Tự động chuyển giữa các bài mới nhất sau
+    mỗi 5 giây. Người dùng chủ động chuyển bằng thao tác vuốt (di động) hoặc
+    kéo chuột (desktop) — không dùng nút bấm hay chấm chỉ báo, giữ giao diện
+    ảnh sạch, không bị che khuất. Nếu chỉ có 1 bài, hiển thị tĩnh."""
     if not slides:
         return ""
 
@@ -847,7 +905,6 @@ def render_hero_slideshow(slides):
   </section>"""
 
     slides_html = ""
-    dots_html = ""
     for i, a in enumerate(slides):
         s = SERIES_BY_SLUG[a["series"]]
         active_cls = " is-active" if i == 0 else ""
@@ -861,15 +918,11 @@ def render_hero_slideshow(slides):
           <a href="{article_url(a['slug'])}" class="hero-full__cta">Đọc bài</a>
         </div>
       </div>"""
-        dots_html += f'<button class="hero-dot{active_cls}" data-slide-goto="{i}" aria-label="Bài {i+1}"></button>'
 
     return f"""
   <section class="hero-full hero-slideshow" data-slideshow data-slide-interval="5000">
     <div class="hero-slideshow__track">{slides_html}
     </div>
-    <button class="hero-slide-nav hero-slide-nav--prev" data-slide-prev aria-label="Bài trước">‹</button>
-    <button class="hero-slide-nav hero-slide-nav--next" data-slide-next aria-label="Bài sau">›</button>
-    <div class="hero-dots">{dots_html}</div>
   </section>"""
 
 def render_gif_hero():
@@ -1085,6 +1138,7 @@ def render_index():
   </section>
 {render_ranking_spotlight()}
 {render_profiles_homepage_block()}
+{render_community_homepage_block()}
   <section class="series-band">
     <div class="container">
       <div class="section-head">
@@ -1148,6 +1202,36 @@ def top_profiles_for_homepage(limit=10):
     eligible = [p for p in PROFILES if p["influence"] >= 50]
     eligible.sort(key=lambda p: p["influence"], reverse=True)
     return eligible[:limit]
+
+def top_community_posters_for_homepage(limit=10):
+    """Lọc bài viết TNC Community đã có ảnh poster, sắp theo thứ tự order
+    (mới nhất trước — nhất quán với cách sắp xếp bài viết toàn hệ thống),
+    giới hạn tối đa `limit` bài đầu tiên."""
+    eligible = [a for a in ARTICLES_BY_SERIES.get("tnc-community", []) if is_community_poster(a)]
+    return eligible[:limit]
+
+def render_community_homepage_block():
+    """Khối 'TNC Community' cố định trên trang chủ: carousel cuộn ngang
+    hiển thị tối đa 10 poster sự kiện/hoạt động mới nhất. Tự ẩn hoàn toàn
+    nếu chưa có bài viết Community nào có ảnh poster."""
+    top_posters = top_community_posters_for_homepage(limit=10)
+    if not top_posters:
+        return ""
+    cards_html = "".join(render_poster_card(a) for a in top_posters)
+    return f"""
+  <section class="profiles-spotlight">
+    <div class="container">
+      <div class="section-head">
+        <h2>TNC Community</h2>
+        <a class="more" href="series-tnc-community.html">Xem toàn bộ hoạt động →</a>
+      </div>
+      <div class="profiles-spotlight__scroll">
+        <div class="profiles-spotlight__track poster-spotlight__track">{cards_html}
+        </div>
+      </div>
+    </div>
+  </section>
+"""
 
 def render_profiles_homepage_block():
     """Khối 'TNC Profiles' cố định trên trang chủ: carousel cuộn ngang
@@ -1332,6 +1416,76 @@ def render_profile_page(p):
     </div>
     <div class="article-body" style="max-width:720px;font-size:var(--t-md);line-height:1.8;margin-top:var(--s-7);">
 {body_html}
+    </div>
+  </section>
+</main>
+"""
+    html += footer()
+    return html
+
+def render_community_series_page(s):
+    """Trang danh mục chuyên biệt cho series TNC Community: lưới poster dọc
+    thay vì danh sách bài viết chuẩn. Được gọi thay cho render_series_page()
+    khi phát hiện đúng slug 'tnc-community'. Bài chưa có ảnh poster vẫn
+    hiển thị dạng thẻ chuẩn (fallback), không bị loại khỏi danh mục."""
+    arts = ARTICLES_BY_SERIES.get(s["slug"], [])
+    cards_html = ""
+    if arts:
+        for a in arts:
+            if is_community_poster(a):
+                cards_html += render_poster_card(a)
+            else:
+                cards_html += f"""
+      <a class="card" href="{article_url(a['slug'])}">
+        <div class="media media--3-2">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
+        <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
+        <h3>{a['title']}</h3>
+        <span class="byline">{a['author']} · {a['date']}</span>
+      </a>"""
+        grid_class = "poster-grid"
+    else:
+        cards_html = """
+      <div style="grid-column:1/-1;padding:var(--s-8);text-align:center;border:1px dashed var(--c-line);">
+        <p style="font-family:var(--f-mono);font-size:var(--t-sm);color:var(--c-ink-3);text-transform:uppercase;letter-spacing:0.06em;">Chưa có bài viết xuất bản</p>
+        <p style="color:var(--c-ink-3);margin-top:var(--s-2);font-size:var(--t-sm);">Nội dung đầu tiên của tuyến này đang được biên tập.</p>
+      </div>"""
+        grid_class = "poster-grid"
+
+    others = ""
+    for o in SERIES:
+        if o["slug"] == s["slug"]: continue
+        others += f"""
+        <a class="series-cell" href="{series_url(o['slug'])}">
+          <span class="series-cell__code">{o['code']} · {o['num']}</span>
+          <h3>{o['name']}</h3>
+        </a>"""
+
+    html = head(s["name"], s["desc"]) + masthead(active=s["slug"])
+    html += f"""
+<main>
+  <section class="container" style="padding-top:var(--s-6);">
+    <nav class="byline" style="margin-bottom:var(--s-6);" aria-label="breadcrumb">
+      <a href="index.html">Trang chủ</a> / <a href="index.html#series">Series</a> / {s['name']}
+    </nav>
+    <div style="border-bottom:2px solid var(--c-line-strong);padding-bottom:var(--s-6);margin-bottom:var(--s-7);">
+      <span class="eyebrow eyebrow{s['accent']}" style="font-size:var(--t-sm);">{s['code']} · Series {s['num']} / 16</span>
+      <h1 style="font-size:var(--t-3xl);margin:var(--s-3) 0;max-width:18ch;">{s['name']}</h1>
+      <p style="font-size:var(--t-md);color:var(--c-ink-2);max-width:56ch;">{s['desc']}</p>
+      <div class="byline" style="margin-top:var(--s-4);display:flex;gap:var(--s-5);flex-wrap:wrap;">
+        <span>{len(arts)} bài viết đã xuất bản</span>
+        <span>Editorial Content System — TNCOS</span>
+      </div>
+    </div>
+
+    <div class="{grid_class}">{cards_html}
+    </div>
+  </section>
+
+  <section class="series-band" style="margin-top:var(--s-9);">
+    <div class="container">
+      <div class="section-head"><h2>Series khác</h2></div>
+      <div class="series-grid">{others}
+      </div>
     </div>
   </section>
 </main>
@@ -1980,6 +2134,8 @@ def main():
         with open(os.path.join(OUT, series_url(s["slug"])),"w",encoding="utf-8") as f:
             if s["slug"] == "tnc-profiles":
                 f.write(render_profiles_series_page(s))
+            elif s["slug"] == "tnc-community":
+                f.write(render_community_series_page(s))
             else:
                 f.write(render_series_page(s))
     for a in ARTICLES:

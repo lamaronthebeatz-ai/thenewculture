@@ -253,31 +253,18 @@ a:hover .media__zoom{transform:scale(1.04);}
 }
 .hero-full__cta:hover{background:var(--c-red);color:#fff;}
 
-/* Hero slideshow — 3 bài mới nhất tự động luân phiên, xếp chồng toàn phần */
+/* Hero slideshow — 3 bài mới nhất tự động luân phiên, xếp chồng toàn phần.
+   Chuyển slide bằng vuốt (di động) hoặc kéo chuột (desktop) — không dùng
+   nút bấm hay chấm chỉ báo, giữ giao diện ảnh sạch, không bị che khuất. */
 .hero-slideshow .hero-slideshow__track{position:relative;width:100%;height:100%;}
 .hero-full-slide{position:absolute;inset:0;display:none;}
 .hero-full-slide.is-active{display:block;animation:heroFadeIn .5s ease;}
 @keyframes heroFadeIn{from{opacity:0;}to{opacity:1;}}
-.hero-slide-nav{
-  position:absolute;top:calc(50% - 24px);z-index:3;width:44px;height:44px;border-radius:50%;
-  background:rgba(255,255,255,0.92);border:1px solid var(--c-line-strong);
-  display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1;
-  cursor:pointer;transition:background var(--dur) var(--ease);
-}
-.hero-slide-nav:hover{background:var(--c-ink);color:#fff;}
-.hero-slide-nav--prev{left:var(--gutter);}
-.hero-slide-nav--next{right:var(--gutter);}
-.hero-dots{position:absolute;bottom:var(--s-5);right:var(--gutter);z-index:3;display:flex;gap:8px;}
-.hero-dot{
-  width:9px;height:9px;border-radius:50%;border:1px solid rgba(255,255,255,0.9);
-  background:rgba(255,255,255,0.35);cursor:pointer;padding:0;transition:background var(--dur),transform var(--dur);
-}
-.hero-dot.is-active{background:var(--c-red);border-color:var(--c-red);transform:scale(1.15);}
+.hero-slideshow{cursor:grab;touch-action:pan-y;user-select:none;}
+.hero-slideshow:active{cursor:grabbing;}
 @media (max-width:768px){
   .hero-full{aspect-ratio:3/4;max-height:640px;min-height:520px;}
   .hero-full__content{padding:var(--s-6) var(--gutter) var(--s-7);max-width:100%;}
-  .hero-slide-nav{width:36px;height:36px;font-size:18px;}
-  .hero-dots{right:50%;transform:translateX(50%);bottom:var(--s-4);}
 }
 
 /* ----- Khối "Mới cập nhật" — 5 bài viết, tách riêng ngay dưới hero ------ */
@@ -776,3 +763,35 @@ a:hover .media__zoom{transform:scale(1.04);}
   .author-box{flex-direction:column;align-items:center;text-align:center;}
   .author-box__body{align-items:center;}
 }
+
+/* ==========================================================================
+   TNC COMMUNITY — THẺ POSTER DỌC (sự kiện, hoạt động cộng đồng)
+   ========================================================================== */
+
+/* ----- Thẻ poster — dùng chung cho lưới danh mục và carousel trang chủ --- */
+.poster-card{
+  display:block;border:1px solid var(--c-line-strong);border-radius:4px;overflow:hidden;
+  background:var(--c-bg);transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease);
+}
+.poster-card:hover{transform:translateY(-4px);box-shadow:0 10px 24px rgba(0,0,0,0.14);}
+.poster-card__media{position:relative;aspect-ratio:2/3;background:var(--c-bg-subtle);overflow:hidden;}
+.poster-card__media img{width:100%;height:100%;object-fit:cover;display:block;}
+.poster-card__archive{
+  position:absolute;top:var(--s-3);left:var(--s-3);z-index:2;
+  font-family:var(--f-mono);font-size:10px;font-weight:500;letter-spacing:0.08em;
+  color:#fff;background:rgba(11,11,11,0.72);backdrop-filter:blur(4px);
+  padding:3px 8px;border-radius:2px;
+}
+.poster-card__body{padding:var(--s-4);border-top:2px solid var(--c-ink);}
+.poster-card__title{font-family:var(--f-display);font-weight:800;font-size:var(--t-sm);line-height:1.25;margin-bottom:4px;}
+.poster-card__meta{font-family:var(--f-mono);font-size:10px;color:var(--c-ink-3);letter-spacing:0.02em;}
+
+/* ----- Lưới poster tại trang danh mục TNC Community ---------------------- */
+.poster-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--s-5);}
+@media (max-width:1024px){.poster-grid{grid-template-columns:repeat(4,1fr);}}
+@media (max-width:768px){.poster-grid{grid-template-columns:repeat(3,1fr);}}
+@media (max-width:560px){.poster-grid{grid-template-columns:repeat(2,1fr);}}
+
+/* ----- Carousel trang chủ: thẻ poster hẹp hơn thẻ hồ sơ do tỷ lệ dọc cao - */
+.poster-spotlight__track .poster-card{width:180px;flex-shrink:0;scroll-snap-align:start;}
+@media (max-width:768px){.poster-spotlight__track .poster-card{width:150px;}}
