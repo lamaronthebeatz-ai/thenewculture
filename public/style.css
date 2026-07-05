@@ -486,6 +486,60 @@ a:hover .media__zoom{transform:scale(1.04);}
   .spot-row__num{font-size:1.15rem;}
 }
 
+/* ==========================================================================
+   TNC PROFILES — "THẺ TƯỚNG" (hồ sơ nhân vật/đơn vị)
+   ========================================================================== */
+
+/* Bộ lọc theo loại */
+.profile-filters{display:flex;flex-wrap:wrap;gap:var(--s-2);margin-bottom:var(--s-6);}
+.profile-filter{
+  font-family:var(--f-mono);font-size:var(--t-xs);font-weight:600;letter-spacing:0.04em;
+  padding:8px 16px;border:1px solid var(--c-line-strong);border-radius:20px;background:var(--c-bg);
+  color:var(--c-ink);cursor:pointer;transition:all var(--dur) var(--ease);
+}
+.profile-filter:hover{border-color:var(--c-red);color:var(--c-red);}
+.profile-filter.is-active{background:var(--c-ink);color:var(--c-bg);border-color:var(--c-ink);}
+
+/* Lưới thẻ bài */
+.profile-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s-5);}
+@media (max-width:1024px){.profile-grid{grid-template-columns:repeat(3,1fr);}}
+@media (max-width:768px){.profile-grid{grid-template-columns:repeat(2,1fr);}}
+@media (max-width:480px){.profile-grid{grid-template-columns:1fr;}}
+
+/* Thẻ bài — thiết kế kiểu "collectible card" */
+.profile-card{
+  display:block;border:1px solid var(--c-line-strong);border-radius:4px;overflow:hidden;
+  background:var(--c-bg);transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease);
+}
+.profile-card:hover{transform:translateY(-4px);box-shadow:0 10px 24px rgba(0,0,0,0.12);}
+.profile-card__media{position:relative;aspect-ratio:3/4;background:var(--c-bg-subtle);overflow:hidden;}
+.profile-card__media img{width:100%;height:100%;object-fit:cover;display:block;}
+.profile-card__ph{position:absolute;inset:0;background:linear-gradient(145deg,#232323,#0e0e0e);}
+.profile-card__type{
+  position:absolute;top:var(--s-3);left:var(--s-3);z-index:2;
+  background:rgba(255,255,255,0.94);padding:3px 10px;border-radius:12px;font-size:10px;
+}
+.profile-card__body{padding:var(--s-4);border-top:2px solid var(--c-ink);}
+.profile-card__name{font-family:var(--f-display);font-weight:800;font-size:var(--t-md);line-height:1.2;margin-bottom:2px;}
+.profile-card__role{display:block;font-family:var(--f-mono);font-size:11px;color:var(--c-ink-3);margin-bottom:var(--s-3);}
+.profile-card__influence{display:flex;align-items:center;gap:var(--s-2);}
+.profile-card__influence-bar{flex:1;height:6px;background:var(--c-bg-subtle);border-radius:3px;overflow:hidden;}
+.profile-card__influence-bar span{display:block;height:100%;background:var(--c-red);border-radius:3px;}
+.profile-card__influence-num{font-family:var(--f-mono);font-weight:700;font-size:var(--t-xs);min-width:1.6em;text-align:right;}
+
+/* Trang chi tiết hồ sơ */
+.profile-hero{display:flex;align-items:center;gap:var(--s-6);padding-block:var(--s-6) var(--s-7);border-bottom:2px solid var(--c-line-strong);}
+.profile-hero__avatar{width:140px;height:140px;border-radius:8px;background:var(--c-bg-subtle);border:1px solid var(--c-line);flex-shrink:0;object-fit:cover;display:block;}
+.profile-hero h1{font-size:var(--t-2xl);margin:var(--s-2) 0 var(--s-1);}
+.profile-hero__role{font-family:var(--f-mono);font-size:var(--t-sm);color:var(--c-ink-3);margin-bottom:var(--s-4);}
+.profile-hero__influence{display:flex;align-items:center;gap:var(--s-3);max-width:320px;}
+.profile-hero__influence-label{font-family:var(--f-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--c-ink-3);white-space:nowrap;}
+.profile-hero__bar{height:8px;}
+@media (max-width:600px){
+  .profile-hero{flex-direction:column;align-items:flex-start;gap:var(--s-4);}
+  .profile-hero__avatar{width:100px;height:100px;}
+}
+
 /* ----- ARTICLE BODY ----- */
 .article-body p{margin-bottom:1.4em;}
 .article-body h2{font-size:var(--t-lg);margin:1.6em 0 0.6em;}

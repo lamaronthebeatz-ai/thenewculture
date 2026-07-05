@@ -96,20 +96,22 @@
     <nav class="byline" style="margin-bottom:var(--s-6);" aria-label="breadcrumb">
       <a href="index.html">Trang chủ</a> / <a href="index.html#series">Series</a> / TNC Profiles
     </nav>
-    <div style="border-bottom:2px solid var(--c-line-strong);padding-bottom:var(--s-6);margin-bottom:var(--s-7);">
+    <div style="border-bottom:2px solid var(--c-line-strong);padding-bottom:var(--s-6);margin-bottom:var(--s-6);">
       <span class="eyebrow eyebrow--blue" style="font-size:var(--t-sm);">TNC·TNC · Series 02 / 16</span>
       <h1 style="font-size:var(--t-3xl);margin:var(--s-3) 0;max-width:18ch;">TNC Profiles</h1>
       <p style="font-size:var(--t-md);color:var(--c-ink-2);max-width:56ch;">Hồ sơ chi tiết về nghệ sĩ, producer, label, collective và các nhân vật trong ngành.</p>
       <div class="byline" style="margin-top:var(--s-4);display:flex;gap:var(--s-5);flex-wrap:wrap;">
-        <span>0 bài viết đã xuất bản</span>
+        <span>0 hồ sơ trong hệ thống</span>
         <span>Editorial Content System — TNCOS</span>
       </div>
     </div>
 
-    <div class="grid" style="grid-template-columns:1fr;gap:var(--s-6);">
+    <div class="profile-filters"><button class="profile-filter is-active" data-filter-type="all">Tất cả</button><button class="profile-filter" data-filter-type="nghe-si">Nghệ sĩ</button><button class="profile-filter" data-filter-type="producer">Producer</button><button class="profile-filter" data-filter-type="label">Label</button><button class="profile-filter" data-filter-type="studio">Studio</button><button class="profile-filter" data-filter-type="quan-ly">Quản lý & Booking</button><button class="profile-filter" data-filter-type="khac">Nhà sáng tạo khác</button></div>
+
+    <div class="profile-grid" id="profileGrid">
       <div style="grid-column:1/-1;padding:var(--s-8);text-align:center;border:1px dashed var(--c-line);">
-        <p style="font-family:var(--f-mono);font-size:var(--t-sm);color:var(--c-ink-3);text-transform:uppercase;letter-spacing:0.06em;">Chưa có bài viết xuất bản</p>
-        <p style="color:var(--c-ink-3);margin-top:var(--s-2);font-size:var(--t-sm);">Nội dung đầu tiên của tuyến này đang được biên tập.</p>
+        <p style="font-family:var(--f-mono);font-size:var(--t-sm);color:var(--c-ink-3);text-transform:uppercase;letter-spacing:0.06em;">Chưa có hồ sơ nào được thêm</p>
+        <p style="color:var(--c-ink-3);margin-top:var(--s-2);font-size:var(--t-sm);">Hồ sơ nhân vật và đơn vị trong ngành đang được biên tập.</p>
       </div>
     </div>
   </section>
@@ -118,6 +120,7 @@
     <div class="container">
       <div class="section-head"><h2>Series khác</h2></div>
       <div class="series-grid">
+        
         <a class="series-cell" href="series-tnc-origins.html">
           <span class="series-cell__code">TNC·TNC · 01</span>
           <h3>TNC Origins</h3>
@@ -182,6 +185,24 @@
     </div>
   </section>
 </main>
+<script>
+(function(){
+  var buttons=document.querySelectorAll('.profile-filter');
+  var cards=document.querySelectorAll('.profile-card');
+  buttons.forEach(function(btn){
+    btn.addEventListener('click',function(){
+      buttons.forEach(function(b){b.classList.remove('is-active');});
+      btn.classList.add('is-active');
+      var type=btn.getAttribute('data-filter-type');
+      cards.forEach(function(card){
+        var cardType=card.querySelector('.profile-card__type').textContent.trim();
+        var match=(type==='all')||(card.getAttribute('data-type')===type);
+        card.style.display=match?'':'none';
+      });
+    });
+  });
+})();
+</script>
 
 <footer class="footer">
   <div class="container">
