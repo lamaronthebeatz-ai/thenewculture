@@ -428,10 +428,13 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          'family=Archivo:wght@400;500;600;700;800;900&'
          'family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">')
 
-def head(title, desc=None, path="", image="", og_type="website"):
+def head(title, desc=None, path="", image="", og_type="website", append_site_name=True):
     """Sinh <head> đầy đủ SEO + Open Graph.
     path: đường dẫn tương đối của trang (vd 'article-abc.html') để tạo canonical/og:url.
-    image: đường dẫn ảnh đại diện (tương đối hoặc tuyệt đối)."""
+    image: đường dẫn ảnh đại diện (tương đối hoặc tuyệt đối).
+    append_site_name: mặc định True — tự nối '— The New Culture' vào cuối tiêu đề
+    (quy ước SEO chuẩn cho phần lớn trang). Đặt False khi tiêu đề đã tự chứa
+    tên thương hiệu (ví dụ trang chủ), tránh lặp tên khi chia sẻ mạng xã hội."""
     import html as _html
     desc = desc or SITE_DESC
     desc_short = (desc[:157] + "…") if len(desc) > 158 else desc
@@ -440,14 +443,15 @@ def head(title, desc=None, path="", image="", og_type="website"):
         og_image = image if image.startswith("http") else f"{SITE_URL}/{image.lstrip('/')}"
     else:
         og_image = f"{SITE_URL}/og-default.png"
-    t = _html.escape(title, quote=True)
+    full_title = f"{title} — {SITE_NAME}" if append_site_name else title
+    t = _html.escape(full_title, quote=True)
     d = _html.escape(desc_short, quote=True)
     return f"""<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>{t} — {SITE_NAME}</title>
+<title>{t}</title>
 <meta name="description" content="{d}">
 <link rel="canonical" href="{canonical}">
 <meta name="theme-color" content="#E11D0F">
@@ -527,7 +531,7 @@ def masthead(active=None):
 <header class="masthead">
   <div class="masthead__util">
     <div class="container">
-      <span>{TODAY_VN} · Hà Nội</span>
+      <span>{TODAY_VN} · Sài Gòn</span>
       <div class="u-links">
         <a href="all-series.html">Series</a>
         <a href="tnc-sessions.html">TNC Sessions</a>
@@ -776,6 +780,29 @@ def author_byline_html(author_name):
     return (f'<div style="display:flex;align-items:center;gap:var(--s-3);padding:var(--s-4) 0;'
             f'border-top:1px solid var(--c-line);border-bottom:1px solid var(--c-line);">'
             f'{avatar_html}<div><div style="font-weight:700;font-size:var(--t-sm);">{name_html}</div>')
+
+def author_bio_box_html(author_name):
+    """Sinh khung giới thiệu đầy đủ biên tập viên, đặt cuối mỗi bài viết:
+    ảnh đại diện cỡ lớn, tên (dạng liên kết tới trang hồ sơ), và trọn vẹn
+    tiểu sử. Chỉ hiển thị khi tác giả đã có hồ sơ đầy đủ trong CMS
+    (content/editors/) — tự ẩn hoàn toàn nếu thiếu, tránh khung trống
+    hoặc thông tin không đầy đủ."""
+    ed = EDITORS.get(author_name)
+    if not ed or not ed.get("bio"):
+        return ""
+    avatar_html = (f'<img src="{ed["avatar"]}" alt="{author_name}" class="author-box__avatar">'
+                   if ed["avatar"] else '<div class="author-box__avatar"></div>')
+    return f"""
+    <div class="container" style="max-width:680px;">
+      <div class="author-box">
+        {avatar_html}
+        <div class="author-box__body">
+          <span class="author-box__label">Về tác giả</span>
+          <a href="{author_url(author_name)}" class="author-box__name">{author_name}</a>
+          <p class="author-box__bio">{ed['bio']}</p>
+        </div>
+      </div>
+    </div>"""
 
 def share_bar(a, path):
     """Thanh nút chia sẻ mạng xã hội cho một bài viết."""
@@ -1042,7 +1069,7 @@ def render_index():
         <h3>{a['title']}</h3>
       </a>"""
 
-    html = head("Underground. Documented.") + masthead()
+    html = head("The New Culture - Tạp chí âm nhạc đương đại đầu tiên tại Việt Nam", append_site_name=False) + masthead()
     html += render_gif_hero()
     html += render_spotify_block()
     html += f"""
@@ -1508,6 +1535,7 @@ def render_article_page(a):
 
     <div class="container" style="max-width:680px;">{share_bar(a, _path)}
     </div>
+{author_bio_box_html(a['author'])}
   </article>
 
   <section class="section container">
