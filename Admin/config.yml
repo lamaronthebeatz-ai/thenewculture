@@ -67,6 +67,12 @@ collections:
         required: false
         hint: "Ảnh đại diện bài viết, hiển thị ở trang chủ, trang series và đầu bài. Để trống sẽ dùng nền mặc định."
 
+      - label: "Ảnh Poster (chỉ dùng cho TNC Community)"
+        name: poster
+        widget: image
+        required: false
+        hint: "Chỉ áp dụng khi Series chọn là 'TNC Community'. Khi đã có ảnh này, bài viết sẽ hiển thị dạng poster dọc tại trang danh mục và trang chủ, thay vì thẻ chuẩn. Nên dùng ảnh tỷ lệ dọc (khuyến nghị 2:3, ví dụ 800x1200px) để không bị cắt xén. Bấm vào poster vẫn dẫn tới bài viết đầy đủ như bình thường."
+
       - label: "Tác giả"
         name: author
         widget: string
