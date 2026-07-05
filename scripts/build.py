@@ -690,7 +690,7 @@ def footer():
   var root=document.querySelector('[data-slideshow]');
   if(!root)return;
   var track=root.querySelector('.hero-slideshow__track');
-  var slides=Array.prototype.slice.call(root.querySelectorAll('.hero-slide'));
+  var slides=Array.prototype.slice.call(root.querySelectorAll('.hero-full-slide'));
   var dots=Array.prototype.slice.call(root.querySelectorAll('.hero-dot'));
   var prevBtn=root.querySelector('[data-slide-prev]');
   var nextBtn=root.querySelector('[data-slide-next]');
@@ -825,9 +825,10 @@ def share_bar(a, path):
 # RENDER: INDEX
 # -----------------------------------------------------------------
 def render_hero_slideshow(slides):
-    """Khung hero trái dạng slideshow: tự động chuyển giữa các bài mới nhất,
-    kèm chấm chỉ báo và nút điều hướng tay. Nếu chỉ có 1 bài, hiển thị tĩnh
-    (không cần điều khiển slide) để tránh giao diện thừa không có tác dụng."""
+    """Khối hero toàn màn hình dạng ảnh nền, tiêu đề/mô tả/nút đè lên góc dưới trái
+    (bố cục tham chiếu Complex.com). Tự động chuyển giữa các bài mới nhất, kèm
+    chấm chỉ báo và nút điều hướng tay. Tràn viền toàn bộ chiều ngang màn hình.
+    Nếu chỉ có 1 bài, hiển thị tĩnh (không cần điều khiển slide)."""
     if not slides:
         return ""
 
@@ -835,17 +836,15 @@ def render_hero_slideshow(slides):
         a = slides[0]
         s = SERIES_BY_SLUG[a["series"]]
         return f"""
-      <article class="hero__lead">
-        <a href="{article_url(a['slug'])}">
-          <div class="media media--3-2">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
-        </a>
-        <div class="hero__body">
-          <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
-          <h1><a href="{article_url(a['slug'])}">{a['title']}</a></h1>
-          <p>{a['dek']}</p>
-          <span class="byline">{a['author']} · {a['read_time']}</span>
-        </div>
-      </article>"""
+  <section class="hero-full">
+    <div class="hero-full__media">{zoom(a)}<div class="hero-full__scrim"></div></div>
+    <div class="hero-full__content">
+      <span class="hero-full__eyebrow eyebrow{s['accent']}">{s['name']}</span>
+      <h1 class="hero-full__title"><a href="{article_url(a['slug'])}">{a['title']}</a></h1>
+      <p class="hero-full__dek">{a['dek']}</p>
+      <a href="{article_url(a['slug'])}" class="hero-full__cta">Đọc bài</a>
+    </div>
+  </section>"""
 
     slides_html = ""
     dots_html = ""
@@ -853,27 +852,25 @@ def render_hero_slideshow(slides):
         s = SERIES_BY_SLUG[a["series"]]
         active_cls = " is-active" if i == 0 else ""
         slides_html += f"""
-        <div class="hero-slide{active_cls}" data-slide-index="{i}">
-          <a href="{article_url(a['slug'])}">
-            <div class="media media--3-2">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
-          </a>
-          <div class="hero__body">
-            <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
-            <h1><a href="{article_url(a['slug'])}">{a['title']}</a></h1>
-            <p>{a['dek']}</p>
-            <span class="byline">{a['author']} · {a['read_time']}</span>
-          </div>
-        </div>"""
+      <div class="hero-full-slide{active_cls}" data-slide-index="{i}">
+        <div class="hero-full__media">{zoom(a)}<div class="hero-full__scrim"></div></div>
+        <div class="hero-full__content">
+          <span class="hero-full__eyebrow eyebrow{s['accent']}">{s['name']}</span>
+          <h1 class="hero-full__title"><a href="{article_url(a['slug'])}">{a['title']}</a></h1>
+          <p class="hero-full__dek">{a['dek']}</p>
+          <a href="{article_url(a['slug'])}" class="hero-full__cta">Đọc bài</a>
+        </div>
+      </div>"""
         dots_html += f'<button class="hero-dot{active_cls}" data-slide-goto="{i}" aria-label="Bài {i+1}"></button>'
 
     return f"""
-      <article class="hero__lead hero-slideshow" data-slideshow data-slide-interval="5000">
-        <div class="hero-slideshow__track">{slides_html}
-        </div>
-        <button class="hero-slide-nav hero-slide-nav--prev" data-slide-prev aria-label="Bài trước">‹</button>
-        <button class="hero-slide-nav hero-slide-nav--next" data-slide-next aria-label="Bài sau">›</button>
-        <div class="hero-dots">{dots_html}</div>
-      </article>"""
+  <section class="hero-full hero-slideshow" data-slideshow data-slide-interval="5000">
+    <div class="hero-slideshow__track">{slides_html}
+    </div>
+    <button class="hero-slide-nav hero-slide-nav--prev" data-slide-prev aria-label="Bài trước">‹</button>
+    <button class="hero-slide-nav hero-slide-nav--next" data-slide-next aria-label="Bài sau">›</button>
+    <div class="hero-dots">{dots_html}</div>
+  </section>"""
 
 def render_gif_hero():
     """Khung GIF lớn đầu trang chủ: ảnh động tự chạy + thumbnail/thông tin bài hát.
@@ -1073,12 +1070,11 @@ def render_index():
     html += render_gif_hero()
     html += render_spotify_block()
     html += f"""
+{render_hero_slideshow(slide_articles)}
 <main>
-  <section class="hero container">
-    <div class="hero__grid">
-      {render_hero_slideshow(slide_articles)}
-      <aside class="hero__side">{side}
-      </aside>
+  <section class="hero-side-strip container">
+    <div class="section-head"><h2>Mới cập nhật</h2></div>
+    <div class="hero-side-strip__grid">{side}
     </div>
   </section>
 
