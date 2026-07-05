@@ -599,6 +599,25 @@ a:hover .media__zoom{transform:scale(1.04);}
   .profile-hero__avatar{width:100px;height:100px;}
 }
 
+/* ==========================================================================
+   TNC PROFILES — KHỐI NỔI BẬT TRÊN TRANG CHỦ (carousel cuộn ngang)
+   ========================================================================== */
+.profiles-spotlight{margin-top:var(--s-8);padding-block:var(--s-7);border-top:1px solid var(--c-line);border-bottom:1px solid var(--c-line);}
+.profiles-spotlight__scroll{
+  overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;
+  scroll-snap-type:x proximity;padding:var(--s-2) 0 var(--s-4);margin:0 calc(var(--gutter) * -1);padding-inline:var(--gutter);
+}
+.profiles-spotlight__track{display:flex;gap:var(--s-5);width:max-content;}
+.profiles-spotlight__track .profile-card{width:210px;flex-shrink:0;scroll-snap-align:start;}
+/* Thanh cuộn tùy chỉnh, tinh tế hơn mặc định trình duyệt */
+.profiles-spotlight__scroll::-webkit-scrollbar{height:6px;}
+.profiles-spotlight__scroll::-webkit-scrollbar-track{background:var(--c-bg-subtle);}
+.profiles-spotlight__scroll::-webkit-scrollbar-thumb{background:var(--c-line-strong);border-radius:3px;}
+.profiles-spotlight__scroll::-webkit-scrollbar-thumb:hover{background:var(--c-red);}
+@media (max-width:768px){
+  .profiles-spotlight__track .profile-card{width:170px;}
+}
+
 /* ----- ARTICLE BODY ----- */
 .article-body p{margin-bottom:1.4em;}
 .article-body h2{font-size:var(--t-lg);margin:1.6em 0 0.6em;}
