@@ -335,6 +335,107 @@
 
   startAuto();
 })();
+// Marquee TNC Profiles: dải thẻ tự động trôi liên tục từ phải sang trái,
+// vòng lặp vô tận (nhờ danh sách thẻ đã được nhân đôi ở phía server).
+// Tạm dừng khi người dùng chạm/kéo; nối lại chuyển động sau khi thả ra.
+(function(){
+  var root=document.querySelector('[data-marquee]');
+  if(!root)return;
+  var track=root.querySelector('.profiles-spotlight__track');
+  if(!track)return;
+
+  var speedPxPerSec=parseFloat(root.getAttribute('data-marquee-speed'))||40;
+  var prefersReducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(prefersReducedMotion)return; // tôn trọng thiết lập giảm chuyển động: không chạy marquee, giữ cuộn tay thường
+  // halfWidth phải dựa trên giới hạn cuộn THỰC TẾ của trình duyệt
+  // (scrollWidth - clientWidth), không phải track.scrollWidth/2 đơn thuần.
+  // Lý do: phần cuối track luôn hiển thị vừa khung nhìn (clientWidth) mà
+  // không cần cuộn, nên quãng đường cuộn khả dụng của một "bộ thẻ" là
+  // (track.scrollWidth - clientWidth) / 2, không phải track.scrollWidth/2.
+  // Nếu tính sai (dùng track.scrollWidth/2), giá trị đích có thể vượt quá
+  // giới hạn cuộn vật lý tối đa mà trình duyệt cho phép, khiến scrollLeft
+  // bị ghim cứng ở mức trần trong khi thuật toán vẫn tưởng đang cuộn tiếp.
+  var halfWidth=(track.scrollWidth-root.clientWidth)/2;
+  var isPaused=false;
+  var isDragging=false,dragMoved=false,startX=0,startScroll=0;
+  var lastTs=null;
+  // scrollLeft của trình duyệt chỉ lưu số nguyên (làm tròn), nên mỗi khung
+  // hình chỉ dịch dưới 1px sẽ bị làm tròn LÊN liên tục, gây tốc độ thực tế
+  // cao hơn cấu hình nhiều lần. Dùng biến riêng lưu giá trị chính xác đầy đủ
+  // phần thập phân, chỉ ghi ra scrollLeft (làm tròn) mỗi khung hình.
+  var preciseScroll=root.scrollLeft;
+
+  function tick(ts){
+    if(lastTs===null)lastTs=ts;
+    var dt=(ts-lastTs)/1000;
+    lastTs=ts;
+    if(!isPaused && !isDragging){
+      preciseScroll+=speedPxPerSec*dt;
+      if(preciseScroll>=halfWidth){
+        preciseScroll-=halfWidth; // quay vòng liền mạch, không giật
+      }
+      root.scrollLeft=preciseScroll;
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  function dragStart(x){
+    isDragging=true;dragMoved=false;startX=x;startScroll=root.scrollLeft;
+  }
+  function dragMove(x){
+    if(!isDragging)return;
+    var dx=x-startX;
+    if(Math.abs(dx)>4)dragMoved=true;
+    root.scrollLeft=startScroll-dx;
+  }
+  function dragEnd(){
+    if(!isDragging)return;
+    isDragging=false;
+    // Chuẩn hóa lại vị trí cuộn về trong phạm vi [0, halfWidth) để chuyển
+    // động tự động tiếp tục mượt mà, tránh trôi ra ngoài vùng đã nhân đôi.
+    if(root.scrollLeft<0)root.scrollLeft+=halfWidth;
+    if(root.scrollLeft>=halfWidth)root.scrollLeft-=halfWidth;
+    // Đồng bộ lại biến chính xác theo vị trí thực tế sau khi người dùng thả
+    // tay, tránh animation tự động nhảy về vị trí cũ trước khi kéo.
+    preciseScroll=root.scrollLeft;
+  }
+
+  // Cảm ứng (di động)
+  root.addEventListener('touchstart',function(e){
+    isPaused=true;
+    dragStart(e.touches[0].clientX);
+  },{passive:true});
+  root.addEventListener('touchmove',function(e){
+    dragMove(e.touches[0].clientX);
+  },{passive:true});
+  root.addEventListener('touchend',function(){
+    dragEnd();isPaused=false;
+  });
+
+  // Chuột kéo (desktop)
+  root.addEventListener('mousedown',function(e){
+    isPaused=true;
+    dragStart(e.clientX);
+    e.preventDefault();
+  });
+  root.addEventListener('mousemove',function(e){
+    if(isDragging)dragMove(e.clientX);
+  });
+  window.addEventListener('mouseup',function(){
+    if(isDragging){dragEnd();isPaused=false;}
+  });
+
+  // Dừng chuyển động khi con trỏ đang ở trong khu vực (kể cả không kéo)
+  root.addEventListener('mouseenter',function(){isPaused=true;});
+  root.addEventListener('mouseleave',function(){if(!isDragging)isPaused=false;});
+
+  // Chặn click phát sinh ngay sau một thao tác kéo có di chuyển thực sự,
+  // tránh vô tình mở trang hồ sơ khi người dùng chỉ có ý định lướt thẻ.
+  root.addEventListener('click',function(e){
+    if(dragMoved){e.preventDefault();e.stopPropagation();dragMoved=false;}
+  },true);
+})();
 </script>
 </body>
 </html>
