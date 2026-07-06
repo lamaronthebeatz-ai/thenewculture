@@ -4,7 +4,7 @@ series: tnc-community
 dek: |-
   This ain’t just a party.
   This is where the culture links up ⬆️
-cover: ''
+cover: /uploads/3823.jpg
 poster: /uploads/3823.jpg
 author: Lamar
 date: ''
