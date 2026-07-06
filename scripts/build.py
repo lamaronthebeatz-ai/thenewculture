@@ -275,6 +275,8 @@ def load_settings():
         "social_facebook": "", "social_instagram": "",
         "social_youtube": "", "social_tiktok": "",
         "header_bg_image": "",
+        "ad_left_vertical": "", "ad_left_horizontal": "", "ad_left_link": "",
+        "ad_right_vertical": "", "ad_right_horizontal": "", "ad_right_link": "",
     }
     if not os.path.isfile(path):
         return defaults
@@ -487,6 +489,86 @@ NAV_ITEMS = [
     ("inside-the-culture","Inside The Culture"),
     ("tnc-radar","TNC Radar"),
 ]
+
+def _is_video_file(path):
+    """Nhận diện một đường dẫn media có phải video hay không, dựa theo đuôi tệp."""
+    return path.lower().endswith((".mp4", ".webm", ".mov"))
+
+def _ad_media_tag(src):
+    """Sinh thẻ HTML hiển thị đúng loại media (ảnh tĩnh hoặc video tự động
+    phát lặp vô hạn, không nút điều khiển) dựa theo đuôi tệp."""
+    if not src:
+        return ""
+    if _is_video_file(src):
+        return (f'<video src="{src}" autoplay loop muted playsinline '
+                 f'class="ad-block__media"></video>')
+    return f'<img src="{src}" alt="Quảng cáo" loading="lazy" class="ad-block__media">'
+
+def render_ad_block(vertical_key, horizontal_key, link_key, extra_class=""):
+    """Sinh một khối quảng cáo hoàn chỉnh, áp dụng logic dự phòng: ưu tiên
+    ảnh/video DỌC nếu có (dùng cho hai bên hông desktop); nếu thiếu dọc, tự
+    động dùng bản NGANG thay thế. Nếu có link, cả khối trở thành liên kết
+    bấm được; nếu không, chỉ là khối trưng bày tĩnh. Tự ẩn hoàn toàn nếu
+    không có bất kỳ media nào được cấu hình cho vị trí này."""
+    vertical = SETTINGS.get(vertical_key, "")
+    horizontal = SETTINGS.get(horizontal_key, "")
+    link = SETTINGS.get(link_key, "")
+
+    src = vertical or horizontal
+    if not src:
+        return ""
+    orientation_cls = "ad-block--vertical" if src == vertical else "ad-block--horizontal-fallback"
+    media_html = _ad_media_tag(src)
+
+    if link:
+        return (f'<a href="{link}" target="_blank" rel="noopener sponsored" '
+                 f'class="ad-block {orientation_cls} {extra_class}">{media_html}</a>')
+    return f'<div class="ad-block {orientation_cls} {extra_class}">{media_html}</div>'
+
+def render_ad_block_horizontal_only(horizontal_key, link_key, extra_class=""):
+    """Sinh khối quảng cáo NGANG thuần túy — dùng cho trang chủ và mọi vị
+    trí trên di động, luôn ưu tiên bản ngang bất kể có bản dọc hay không."""
+    horizontal = SETTINGS.get(horizontal_key, "")
+    link = SETTINGS.get(link_key, "")
+    if not horizontal:
+        return ""
+    media_html = _ad_media_tag(horizontal)
+    if link:
+        return (f'<a href="{link}" target="_blank" rel="noopener sponsored" '
+                 f'class="ad-block ad-block--horizontal {extra_class}">{media_html}</a>')
+    return f'<div class="ad-block ad-block--horizontal {extra_class}">{media_html}</div>'
+
+def render_sticky_ads_sidebar():
+    """Hai khối quảng cáo sticky hai bên hông trang bài viết. Chỉ hiển thị
+    trên màn hình đủ rộng (kiểm soát bằng CSS media query); mỗi bên tự ẩn
+    độc lập nếu chưa cấu hình media cho vị trí đó."""
+    left = render_ad_block("ad_left_vertical", "ad_left_horizontal", "ad_left_link", "ad-block--sidebar-left")
+    right = render_ad_block("ad_right_vertical", "ad_right_horizontal", "ad_right_link", "ad-block--sidebar-right")
+    if not left and not right:
+        return ""
+    return f"""
+  <div class="ad-sidebar ad-sidebar--left">{left}</div>
+  <div class="ad-sidebar ad-sidebar--right">{right}</div>
+"""
+
+def render_homepage_ad_block():
+    """Khối quảng cáo ngang trên trang chủ, đặt giữa 'Câu chuyện nổi bật'
+    và 'Video'. Ưu tiên gộp cả hai vị trí trái/phải thành một dải ngang duy
+    nhất (dùng bản ngang của cả hai, xếp cạnh nhau) nếu cả hai đã cấu hình;
+    nếu chỉ một bên có dữ liệu, hiển thị đúng một khối. Tự ẩn hoàn toàn nếu
+    chưa cấu hình gì."""
+    left = render_ad_block_horizontal_only("ad_left_horizontal", "ad_left_link")
+    right = render_ad_block_horizontal_only("ad_right_horizontal", "ad_right_link")
+    if not left and not right:
+        return ""
+    return f"""
+  <section class="section container ad-homepage">
+    <div class="ad-homepage__row">
+      {left}
+      {right}
+    </div>
+  </section>
+"""
 
 def wordmark_html(variant="lead"):
     """Sinh logo: ảnh tùy chỉnh nếu có trong Settings, ngược lại chữ mặc định.
@@ -1265,7 +1347,7 @@ def render_index():
       </div>
     </div>
   </section>
-
+{render_homepage_ad_block()}
   <section class="section container">
     <div class="section-head"><h2>Video</h2><a class="more" href="video.html" id="video">Tất cả tập →</a></div>
     <div class="video-row">{video_html}
@@ -1759,6 +1841,7 @@ def render_article_page(a):
     html = head(a["title"], a["dek"], path=_path, image=a.get("cover",""), og_type="article") + masthead(active=a["series"])
     html += f"""
 <main>
+  {render_sticky_ads_sidebar()}
   <article>
     <div class="container" style="max-width:760px;padding-top:var(--s-6);">
       <nav class="byline" style="margin-bottom:var(--s-5);" aria-label="breadcrumb">
