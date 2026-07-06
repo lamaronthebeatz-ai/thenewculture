@@ -764,6 +764,107 @@ def footer():
 
   startAuto();
 })();
+// Marquee TNC Profiles: dải thẻ tự động trôi liên tục từ phải sang trái,
+// vòng lặp vô tận (nhờ danh sách thẻ đã được nhân đôi ở phía server).
+// Tạm dừng khi người dùng chạm/kéo; nối lại chuyển động sau khi thả ra.
+(function(){
+  var root=document.querySelector('[data-marquee]');
+  if(!root)return;
+  var track=root.querySelector('.profiles-spotlight__track');
+  if(!track)return;
+
+  var speedPxPerSec=parseFloat(root.getAttribute('data-marquee-speed'))||40;
+  var prefersReducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(prefersReducedMotion)return; // tôn trọng thiết lập giảm chuyển động: không chạy marquee, giữ cuộn tay thường
+  // halfWidth phải dựa trên giới hạn cuộn THỰC TẾ của trình duyệt
+  // (scrollWidth - clientWidth), không phải track.scrollWidth/2 đơn thuần.
+  // Lý do: phần cuối track luôn hiển thị vừa khung nhìn (clientWidth) mà
+  // không cần cuộn, nên quãng đường cuộn khả dụng của một "bộ thẻ" là
+  // (track.scrollWidth - clientWidth) / 2, không phải track.scrollWidth/2.
+  // Nếu tính sai (dùng track.scrollWidth/2), giá trị đích có thể vượt quá
+  // giới hạn cuộn vật lý tối đa mà trình duyệt cho phép, khiến scrollLeft
+  // bị ghim cứng ở mức trần trong khi thuật toán vẫn tưởng đang cuộn tiếp.
+  var halfWidth=(track.scrollWidth-root.clientWidth)/2;
+  var isPaused=false;
+  var isDragging=false,dragMoved=false,startX=0,startScroll=0;
+  var lastTs=null;
+  // scrollLeft của trình duyệt chỉ lưu số nguyên (làm tròn), nên mỗi khung
+  // hình chỉ dịch dưới 1px sẽ bị làm tròn LÊN liên tục, gây tốc độ thực tế
+  // cao hơn cấu hình nhiều lần. Dùng biến riêng lưu giá trị chính xác đầy đủ
+  // phần thập phân, chỉ ghi ra scrollLeft (làm tròn) mỗi khung hình.
+  var preciseScroll=root.scrollLeft;
+
+  function tick(ts){
+    if(lastTs===null)lastTs=ts;
+    var dt=(ts-lastTs)/1000;
+    lastTs=ts;
+    if(!isPaused && !isDragging){
+      preciseScroll+=speedPxPerSec*dt;
+      if(preciseScroll>=halfWidth){
+        preciseScroll-=halfWidth; // quay vòng liền mạch, không giật
+      }
+      root.scrollLeft=preciseScroll;
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  function dragStart(x){
+    isDragging=true;dragMoved=false;startX=x;startScroll=root.scrollLeft;
+  }
+  function dragMove(x){
+    if(!isDragging)return;
+    var dx=x-startX;
+    if(Math.abs(dx)>4)dragMoved=true;
+    root.scrollLeft=startScroll-dx;
+  }
+  function dragEnd(){
+    if(!isDragging)return;
+    isDragging=false;
+    // Chuẩn hóa lại vị trí cuộn về trong phạm vi [0, halfWidth) để chuyển
+    // động tự động tiếp tục mượt mà, tránh trôi ra ngoài vùng đã nhân đôi.
+    if(root.scrollLeft<0)root.scrollLeft+=halfWidth;
+    if(root.scrollLeft>=halfWidth)root.scrollLeft-=halfWidth;
+    // Đồng bộ lại biến chính xác theo vị trí thực tế sau khi người dùng thả
+    // tay, tránh animation tự động nhảy về vị trí cũ trước khi kéo.
+    preciseScroll=root.scrollLeft;
+  }
+
+  // Cảm ứng (di động)
+  root.addEventListener('touchstart',function(e){
+    isPaused=true;
+    dragStart(e.touches[0].clientX);
+  },{passive:true});
+  root.addEventListener('touchmove',function(e){
+    dragMove(e.touches[0].clientX);
+  },{passive:true});
+  root.addEventListener('touchend',function(){
+    dragEnd();isPaused=false;
+  });
+
+  // Chuột kéo (desktop)
+  root.addEventListener('mousedown',function(e){
+    isPaused=true;
+    dragStart(e.clientX);
+    e.preventDefault();
+  });
+  root.addEventListener('mousemove',function(e){
+    if(isDragging)dragMove(e.clientX);
+  });
+  window.addEventListener('mouseup',function(){
+    if(isDragging){dragEnd();isPaused=false;}
+  });
+
+  // Dừng chuyển động khi con trỏ đang ở trong khu vực (kể cả không kéo)
+  root.addEventListener('mouseenter',function(){isPaused=true;});
+  root.addEventListener('mouseleave',function(){if(!isDragging)isPaused=false;});
+
+  // Chặn click phát sinh ngay sau một thao tác kéo có di chuyển thực sự,
+  // tránh vô tình mở trang hồ sơ khi người dùng chỉ có ý định lướt thẻ.
+  root.addEventListener('click',function(e){
+    if(dragMoved){e.preventDefault();e.stopPropagation();dragMoved=false;}
+  },true);
+})();
 </script>
 </body>
 </html>"""
@@ -1234,22 +1335,27 @@ def render_community_homepage_block():
 """
 
 def render_profiles_homepage_block():
-    """Khối 'TNC Profiles' cố định trên trang chủ: carousel cuộn ngang
-    hiển thị tối đa 10 hồ sơ có độ ảnh hưởng cao nhất (từ cấp Nổi bật
-    trở lên). Tự ẩn hoàn toàn nếu không có hồ sơ nào đủ điều kiện."""
+    """Khối 'TNC Profiles' cố định trên trang chủ: dải thẻ tự động trôi liên
+    tục từ phải sang trái (marquee), vòng lặp vô tận. Người dùng có thể vuốt
+    (di động) hoặc kéo chuột (desktop) để chủ động lướt nhanh/chậm; chuyển
+    động tự động tạm dừng khi đang chạm/kéo. Hiển thị tối đa 10 hồ sơ có độ
+    ảnh hưởng cao nhất (từ cấp Nổi bật trở lên). Tự ẩn hoàn toàn nếu không
+    có hồ sơ nào đủ điều kiện."""
     top_profiles = top_profiles_for_homepage(limit=10)
     if not top_profiles:
         return ""
-    cards_html = "".join(render_profile_card(p) for p in top_profiles)
+    # Nhân đôi danh sách thẻ: khi bản sao đầu trôi hết, bản sao thứ hai đã
+    # nối liền ngay sau, tạo cảm giác trôi vô tận không đứt đoạn.
+    single_set_html = "".join(render_profile_card(p) for p in top_profiles)
+    cards_html = single_set_html + single_set_html
     return f"""
-  <section class="profiles-spotlight">
+  <section class="profiles-spotlight profiles-spotlight--marquee">
     <div class="container">
       <div class="section-head">
         <h2>TNC Profiles</h2>
         <a class="more" href="series-tnc-profiles.html">Xem toàn bộ hồ sơ →</a>
       </div>
-      <div class="profiles-spotlight__scroll">
-        <div class="profiles-spotlight__track">{cards_html}
+      <div class="profiles-spotlight__scroll" data-marquee data-marquee-speed="40">        <div class="profiles-spotlight__track">{cards_html}
         </div>
       </div>
     </div>

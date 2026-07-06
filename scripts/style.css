@@ -635,6 +635,20 @@ a:hover .media__zoom{transform:scale(1.04);}
   .profiles-spotlight__track .profile-card{width:170px;}
 }
 
+/* ----- Biến thể marquee: dải thẻ tự động trôi liên tục (chỉ TNC Profiles) */
+.profiles-spotlight--marquee .profiles-spotlight__scroll{
+  scroll-snap-type:none;scroll-behavior:auto;
+  cursor:grab;touch-action:pan-y;user-select:none;
+}
+.profiles-spotlight--marquee .profiles-spotlight__scroll:active{cursor:grabbing;}
+.profiles-spotlight--marquee .profiles-spotlight__track .profile-card{scroll-snap-align:none;}
+/* Ẩn thanh cuộn cho biến thể marquee — chuyển động tự động thay thế vai trò
+   định hướng bằng thanh cuộn, giữ giao diện gọn hơn */
+.profiles-spotlight--marquee .profiles-spotlight__scroll::-webkit-scrollbar{height:0;}
+@media (prefers-reduced-motion:reduce){
+  .profiles-spotlight--marquee .profiles-spotlight__scroll{scroll-snap-type:x proximity;}
+}
+
 /* ==========================================================================
    HỆ THỐNG BADGE THÀNH TÍCH (7 loại — GOAT, HOT, RISING, TALENT, VERIFIED,
    VETERAN, UNDERRATED) — mỗi badge có màu sắc và hiệu ứng riêng theo mức
