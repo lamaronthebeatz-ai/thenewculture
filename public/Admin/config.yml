@@ -203,6 +203,42 @@ collections:
             required: false
             hint: "Ảnh hoặc GIF động hiển thị làm nền cho khung chứa logo và nút Theo dõi. Chấp nhận định dạng .jpg, .png, .gif. Để trống sẽ giữ nền trắng mặc định."
 
+          - label: "Quảng cáo trái — Ảnh/Clip dọc"
+            name: ad_left_vertical
+            widget: file
+            required: false
+            hint: "Dùng cho khối quảng cáo bên trái trang bài viết (chỉ hiện trên màn hình rộng). Nhận ảnh (.jpg, .png) hoặc video ngắn (.mp4 — sẽ tự động phát lặp lại liên tục, không có nút điều khiển). Khuyến nghị tỷ lệ dọc 9:16."
+
+          - label: "Quảng cáo trái — Ảnh/Clip ngang"
+            name: ad_left_horizontal
+            widget: file
+            required: false
+            hint: "Dùng cho trang chủ và mọi thiết bị di động, đồng thời là phương án thay thế cho vị trí bên trái nếu chưa có ảnh dọc. Khuyến nghị tỷ lệ ngang 16:9."
+
+          - label: "Quảng cáo trái — Link đính kèm"
+            name: ad_left_link
+            widget: string
+            required: false
+            hint: "Để trống nếu chỉ muốn hiển thị hình/clip, không cho bấm vào. Nếu điền, cả khối quảng cáo trái sẽ dẫn tới đường dẫn này khi bấm."
+
+          - label: "Quảng cáo phải — Ảnh/Clip dọc"
+            name: ad_right_vertical
+            widget: file
+            required: false
+            hint: "Dùng cho khối quảng cáo bên phải trang bài viết (chỉ hiện trên màn hình rộng). Nhận ảnh (.jpg, .png) hoặc video ngắn (.mp4 — tự động phát lặp lại liên tục). Khuyến nghị tỷ lệ dọc 9:16."
+
+          - label: "Quảng cáo phải — Ảnh/Clip ngang"
+            name: ad_right_horizontal
+            widget: file
+            required: false
+            hint: "Dùng cho trang chủ và mọi thiết bị di động, đồng thời là phương án thay thế cho vị trí bên phải nếu chưa có ảnh dọc. Khuyến nghị tỷ lệ ngang 16:9."
+
+          - label: "Quảng cáo phải — Link đính kèm"
+            name: ad_right_link
+            widget: string
+            required: false
+            hint: "Để trống nếu chỉ muốn hiển thị hình/clip, không cho bấm vào. Nếu điền, cả khối quảng cáo phải sẽ dẫn tới đường dẫn này khi bấm."
+
   # ============================================================
   # HỒ SƠ BIÊN TẬP VIÊN — mỗi bản ghi tạo 1 trang tác giả riêng
   # LƯU Ý QUAN TRỌNG: trường "Tên" bên dưới phải khớp CHÍNH XÁC
