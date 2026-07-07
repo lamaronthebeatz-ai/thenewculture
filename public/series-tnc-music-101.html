@@ -7,6 +7,7 @@
 <meta name="description" content="Chia sẻ kiến thức về rap, hip hop, sản xuất âm nhạc và công nghiệp âm nhạc theo cách dễ tiếp cận.">
 <link rel="canonical" href="https://thenewculture.pages.dev/">
 <meta name="theme-color" content="#E11D0F">
+<link rel="manifest" href="manifest.json">
 <!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="The New Culture">
@@ -22,6 +23,7 @@
 <meta name="twitter:image" content="https://thenewculture.pages.dev/og-default.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"><meta name="view-transition" content="same-origin">
 <link rel="stylesheet" href="style.css">
+
 </head>
 <body>
 
@@ -106,12 +108,13 @@
       </div>
     </div>
 
-    <div class="grid" style="grid-template-columns:1fr;gap:var(--s-6);">
+    <div class="grid js-infinite-list" style="grid-template-columns:1fr;gap:var(--s-6);">
       <div style="grid-column:1/-1;padding:var(--s-8);text-align:center;border:1px dashed var(--c-line);">
         <p style="font-family:var(--f-mono);font-size:var(--t-sm);color:var(--c-ink-3);text-transform:uppercase;letter-spacing:0.06em;">Chưa có bài viết xuất bản</p>
         <p style="color:var(--c-ink-3);margin-top:var(--s-2);font-size:var(--t-sm);">Nội dung đầu tiên của tuyến này đang được biên tập.</p>
       </div>
     </div>
+    <div class="js-infinite-sentinel" style="height:1px;"></div>
   </section>
 
   <section class="series-band" style="margin-top:var(--s-9);">
@@ -497,6 +500,54 @@
     var y=window.scrollY;
     if(y<window.innerHeight){media.style.transform='translateY('+(y*0.25)+'px)';}
   },{passive:true});
+})();
+
+// PWA: đăng ký service worker
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+
+// 6. Web Share API — ưu tiên share sheet gốc trên thiết bị hỗ trợ
+(function(){
+  if(!navigator.share)return;
+  document.querySelectorAll('.share-native').forEach(function(btn){
+    btn.hidden=false;
+    btn.addEventListener('click',function(){
+      navigator.share({title:btn.getAttribute('data-title'),url:btn.getAttribute('data-url')}).catch(function(){});
+    });
+  });
+})();
+
+// 5. Infinite scroll cho trang series — hiện thêm 8 bài mỗi lần cuộn tới cuối
+(function(){
+  var sentinel=document.querySelector('.js-infinite-sentinel');
+  if(!sentinel)return;
+  var hidden=document.querySelectorAll('.js-infinite-item[style*="display: none"]');
+  if(!hidden.length)return;
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){
+        var next=document.querySelectorAll('.js-infinite-item[style*="display: none"]');
+        for(var i=0;i<Math.min(8,next.length);i++){next[i].style.display='';}
+        if(document.querySelectorAll('.js-infinite-item[style*="display: none"]').length===0){
+          io.unobserve(sentinel);
+        }
+      }
+    });
+  },{rootMargin:'200px'});
+  io.observe(sentinel);
+})();
+
+// 7. Reader Mode — ẩn header/sidebar quảng cáo, chỉ hiện nội dung
+(function(){
+  var btn=document.querySelector('.reader-mode-toggle');
+  if(!btn)return;
+  btn.addEventListener('click',function(){
+    document.body.classList.toggle('reader-mode');
+    btn.textContent=document.body.classList.contains('reader-mode')?'Thoát chế độ đọc':'Chế độ đọc';
+  });
 })();
 </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "6b80305f19b5403ea2a03d427a03dcb7"}'></script><!-- End Cloudflare Web Analytics -->"}'></script>

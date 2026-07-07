@@ -7,6 +7,7 @@
 <meta name="description" content="BẢNG XẾP HẠNG TUẦN NÀY 3/7/2026">
 <link rel="canonical" href="https://thenewculture.pages.dev/article-tnc-selects-tuần-này.html">
 <meta name="theme-color" content="#E11D0F">
+<link rel="manifest" href="manifest.json">
 <!-- Open Graph -->
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="The New Culture">
@@ -22,6 +23,7 @@
 <meta name="twitter:image" content="https://thenewculture.pages.dev/uploads/3746.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"><meta name="view-transition" content="same-origin">
 <link rel="stylesheet" href="style.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "TNC SELECTS TUẦN NÀY", "description": "BẢNG XẾP HẠNG TUẦN NÀY 3/7/2026", "image": ["https://thenewculture.pages.dev/uploads/3746.png"], "datePublished": "7 Tháng 7, 2026", "author": {"@type": "Person", "name": "TNC SELECTAS"}, "publisher": {"@type": "Organization", "name": "The New Culture", "logo": {"@type": "ImageObject", "url": "https://thenewculture.pages.dev/uploads/3727.png"}}, "mainEntityOfPage": {"@type": "WebPage", "@id": "https://thenewculture.pages.dev/article-tnc-selects-tuần-này.html"}, "articleSection": "TNC Selects", "keywords": "#TNCSELECTS"}</script>
 </head>
 <body>
 
@@ -100,6 +102,7 @@
     <div class="container" style="max-width:760px;padding-top:var(--s-6);">
       <nav class="byline" style="margin-bottom:var(--s-5);" aria-label="breadcrumb">
         <a href="index.html">Trang chủ</a> / <a href="series-tnc-selects.html">TNC Selects</a>
+        <button class="reader-mode-toggle" type="button" aria-label="Chế độ đọc" title="Chế độ đọc">Chế độ đọc</button>
       </nav>
       <span class="eyebrow eyebrow--amber" style="font-size:var(--t-sm);">TNC Selects · TNC·TNC·001</span>
       <h1 style="font-size:var(--t-3xl);margin:var(--s-4) 0;">TNC SELECTS TUẦN NÀY</h1>
@@ -171,6 +174,7 @@
     <div class="container" style="max-width:680px;">
     <div class="share-bar" aria-label="Chia sẻ bài viết">
       <span class="share-bar__label">Chia sẻ</span>
+      <button class="share-btn share-native" data-url="https://thenewculture.pages.dev/article-tnc-selects-tuần-này.html" data-title="TNC SELECTS TUẦN NÀY" type="button" hidden>Chia sẻ...</button>
       <a class="share-btn" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fthenewculture.pages.dev%2Farticle-tnc-selects-tu%E1%BA%A7n-n%C3%A0y.html" target="_blank" rel="noopener" aria-label="Chia sẻ Facebook">Facebook</a>
       <a class="share-btn" href="https://twitter.com/intent/tweet?url=https%3A%2F%2Fthenewculture.pages.dev%2Farticle-tnc-selects-tu%E1%BA%A7n-n%C3%A0y.html&text=TNC%20SELECTS%20TU%E1%BA%A6N%20N%C3%80Y" target="_blank" rel="noopener" aria-label="Chia sẻ X">X</a>
       <button class="share-btn share-copy" data-url="https://thenewculture.pages.dev/article-tnc-selects-tuần-này.html" type="button">Sao chép link</button>
@@ -537,6 +541,54 @@
     var y=window.scrollY;
     if(y<window.innerHeight){media.style.transform='translateY('+(y*0.25)+'px)';}
   },{passive:true});
+})();
+
+// PWA: đăng ký service worker
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+
+// 6. Web Share API — ưu tiên share sheet gốc trên thiết bị hỗ trợ
+(function(){
+  if(!navigator.share)return;
+  document.querySelectorAll('.share-native').forEach(function(btn){
+    btn.hidden=false;
+    btn.addEventListener('click',function(){
+      navigator.share({title:btn.getAttribute('data-title'),url:btn.getAttribute('data-url')}).catch(function(){});
+    });
+  });
+})();
+
+// 5. Infinite scroll cho trang series — hiện thêm 8 bài mỗi lần cuộn tới cuối
+(function(){
+  var sentinel=document.querySelector('.js-infinite-sentinel');
+  if(!sentinel)return;
+  var hidden=document.querySelectorAll('.js-infinite-item[style*="display: none"]');
+  if(!hidden.length)return;
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){
+        var next=document.querySelectorAll('.js-infinite-item[style*="display: none"]');
+        for(var i=0;i<Math.min(8,next.length);i++){next[i].style.display='';}
+        if(document.querySelectorAll('.js-infinite-item[style*="display: none"]').length===0){
+          io.unobserve(sentinel);
+        }
+      }
+    });
+  },{rootMargin:'200px'});
+  io.observe(sentinel);
+})();
+
+// 7. Reader Mode — ẩn header/sidebar quảng cáo, chỉ hiện nội dung
+(function(){
+  var btn=document.querySelector('.reader-mode-toggle');
+  if(!btn)return;
+  btn.addEventListener('click',function(){
+    document.body.classList.toggle('reader-mode');
+    btn.textContent=document.body.classList.contains('reader-mode')?'Thoát chế độ đọc':'Chế độ đọc';
+  });
 })();
 </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "6b80305f19b5403ea2a03d427a03dcb7"}'></script><!-- End Cloudflare Web Analytics -->"}'></script>

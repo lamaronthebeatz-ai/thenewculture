@@ -8,6 +8,7 @@
 This is where the culture links up ⬆️">
 <link rel="canonical" href="https://thenewculture.pages.dev/article-back-2-da-culture-🚀.html">
 <meta name="theme-color" content="#E11D0F">
+<link rel="manifest" href="manifest.json">
 <!-- Open Graph -->
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="The New Culture">
@@ -25,6 +26,7 @@ This is where the culture links up ⬆️">
 <meta name="twitter:image" content="https://thenewculture.pages.dev/uploads/3823.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"><meta name="view-transition" content="same-origin">
 <link rel="stylesheet" href="style.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "BACK 2 DA CULTURE 🚀", "description": "This ain’t just a party.\nThis is where the culture links up ⬆️", "image": ["https://thenewculture.pages.dev/uploads/3823.jpg"], "datePublished": "7 Tháng 7, 2026", "author": {"@type": "Person", "name": "Lamar"}, "publisher": {"@type": "Organization", "name": "The New Culture", "logo": {"@type": "ImageObject", "url": "https://thenewculture.pages.dev/uploads/3727.png"}}, "mainEntityOfPage": {"@type": "WebPage", "@id": "https://thenewculture.pages.dev/article-back-2-da-culture-🚀.html"}, "articleSection": "TNC Community", "keywords": "#Back2daculture, #TNCCommunity, #TNC, #Evnets"}</script>
 </head>
 <body>
 
@@ -103,6 +105,7 @@ This is where the culture links up ⬆️">
     <div class="container" style="max-width:760px;padding-top:var(--s-6);">
       <nav class="byline" style="margin-bottom:var(--s-5);" aria-label="breadcrumb">
         <a href="index.html">Trang chủ</a> / <a href="series-tnc-community.html">TNC Community</a>
+        <button class="reader-mode-toggle" type="button" aria-label="Chế độ đọc" title="Chế độ đọc">Chế độ đọc</button>
       </nav>
       <span class="eyebrow eyebrow" style="font-size:var(--t-sm);">TNC Community · TNC·TNC·002</span>
       <h1 style="font-size:var(--t-3xl);margin:var(--s-4) 0;">BACK 2 DA CULTURE 🚀</h1>
@@ -163,6 +166,7 @@ This is where the culture links up ⬆️</p>
     <div class="container" style="max-width:680px;">
     <div class="share-bar" aria-label="Chia sẻ bài viết">
       <span class="share-bar__label">Chia sẻ</span>
+      <button class="share-btn share-native" data-url="https://thenewculture.pages.dev/article-back-2-da-culture-🚀.html" data-title="BACK 2 DA CULTURE 🚀" type="button" hidden>Chia sẻ...</button>
       <a class="share-btn" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fthenewculture.pages.dev%2Farticle-back-2-da-culture-%F0%9F%9A%80.html" target="_blank" rel="noopener" aria-label="Chia sẻ Facebook">Facebook</a>
       <a class="share-btn" href="https://twitter.com/intent/tweet?url=https%3A%2F%2Fthenewculture.pages.dev%2Farticle-back-2-da-culture-%F0%9F%9A%80.html&text=BACK%202%20DA%20CULTURE%20%F0%9F%9A%80" target="_blank" rel="noopener" aria-label="Chia sẻ X">X</a>
       <button class="share-btn share-copy" data-url="https://thenewculture.pages.dev/article-back-2-da-culture-🚀.html" type="button">Sao chép link</button>
@@ -539,6 +543,54 @@ This is where the culture links up ⬆️</p>
     var y=window.scrollY;
     if(y<window.innerHeight){media.style.transform='translateY('+(y*0.25)+'px)';}
   },{passive:true});
+})();
+
+// PWA: đăng ký service worker
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+
+// 6. Web Share API — ưu tiên share sheet gốc trên thiết bị hỗ trợ
+(function(){
+  if(!navigator.share)return;
+  document.querySelectorAll('.share-native').forEach(function(btn){
+    btn.hidden=false;
+    btn.addEventListener('click',function(){
+      navigator.share({title:btn.getAttribute('data-title'),url:btn.getAttribute('data-url')}).catch(function(){});
+    });
+  });
+})();
+
+// 5. Infinite scroll cho trang series — hiện thêm 8 bài mỗi lần cuộn tới cuối
+(function(){
+  var sentinel=document.querySelector('.js-infinite-sentinel');
+  if(!sentinel)return;
+  var hidden=document.querySelectorAll('.js-infinite-item[style*="display: none"]');
+  if(!hidden.length)return;
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){
+        var next=document.querySelectorAll('.js-infinite-item[style*="display: none"]');
+        for(var i=0;i<Math.min(8,next.length);i++){next[i].style.display='';}
+        if(document.querySelectorAll('.js-infinite-item[style*="display: none"]').length===0){
+          io.unobserve(sentinel);
+        }
+      }
+    });
+  },{rootMargin:'200px'});
+  io.observe(sentinel);
+})();
+
+// 7. Reader Mode — ẩn header/sidebar quảng cáo, chỉ hiện nội dung
+(function(){
+  var btn=document.querySelector('.reader-mode-toggle');
+  if(!btn)return;
+  btn.addEventListener('click',function(){
+    document.body.classList.toggle('reader-mode');
+    btn.textContent=document.body.classList.contains('reader-mode')?'Thoát chế độ đọc':'Chế độ đọc';
+  });
 })();
 </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "6b80305f19b5403ea2a03d427a03dcb7"}'></script><!-- End Cloudflare Web Analytics -->"}'></script>
