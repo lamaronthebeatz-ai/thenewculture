@@ -840,6 +840,13 @@ a:hover .media__zoom{transform:scale(1.04);}
   .ad-sidebar--right{right:32px;}
 }
 
+/* Khối ngang thay thế cho mobile/màn hẹp — hiện khi sidebar bị ẩn */
+.ad-inline-mobile{display:flex;flex-direction:column;gap:var(--s-4);margin:var(--s-7) auto;max-width:680px;}
+.ad-inline-mobile .ad-block{aspect-ratio:16/9;}
+@media (min-width:1400px){
+  .ad-inline-mobile{display:none;}
+}
+
 /* ----- Khối quảng cáo ngang trên trang chủ ------------------------------- */
 .ad-homepage{margin-top:var(--s-8);}
 .ad-homepage__row{display:flex;gap:var(--s-5);justify-content:center;flex-wrap:wrap;}
