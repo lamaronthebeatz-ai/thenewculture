@@ -277,6 +277,7 @@ def load_settings():
         "header_bg_image": "",
         "ad_left_vertical": "", "ad_left_horizontal": "", "ad_left_link": "",
         "ad_right_vertical": "", "ad_right_horizontal": "", "ad_right_link": "",
+        "cloudflare_analytics_token": "",
     }
     if not os.path.isfile(path):
         return defaults
@@ -709,6 +710,14 @@ def newsletter():
 </section>
 """
 
+def analytics_script_tag():
+    """Cloudflare Web Analytics — chỉ render khi đã cấu hình token qua CMS."""
+    token = SETTINGS.get("cloudflare_analytics_token", "")
+    if not token:
+        return ""
+    return (f'<script defer src="https://static.cloudflareinsights.com/beacon.min.js" '
+            f'data-cf-beacon=\'{{"token": "{token}"}}\'></script>')
+
 def footer():
     socials = active_socials()
     icon_map = {"Facebook": "Fb", "Instagram": "Ig", "YouTube": "Yt", "TikTok": "Tt"}
@@ -961,6 +970,7 @@ def footer():
   },true);
 })();
 </script>
+""" + analytics_script_tag() + """
 </body>
 </html>"""
 
