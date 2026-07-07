@@ -196,9 +196,17 @@ def _estimate_read_time(md):
     minutes = max(1, round(words / 200))
     return f"{minutes} phút đọc"
 
+def slugify(text):
+    """Chuẩn hóa chuỗi thành slug an toàn cho URL: bỏ dấu, chỉ giữ chữ/số/gạch ngang."""
+    import unicodedata
+    s = unicodedata.normalize('NFD', text).encode('ascii', 'ignore').decode('ascii')
+    s = re.sub(r'[^a-zA-Z0-9]+', '-', s).strip('-').lower()
+    return s or "bai-viet"
+
 def load_articles():
     """Đọc tất cả file .md, trả về list article dict, sắp theo 'order' rồi 'date'."""
     articles = []
+    seen_slugs = set()
     files = sorted(glob.glob(os.path.join(ARTICLES_DIR, "*.md")))
     for path in files:
         with open(path, encoding="utf-8") as f:
@@ -207,7 +215,14 @@ def load_articles():
         if not meta.get("title") or not meta.get("series"):
             print(f"  ! Bỏ qua {os.path.basename(path)} (thiếu title/series)")
             continue
-        slug = os.path.splitext(os.path.basename(path))[0]
+        slug = slugify(os.path.splitext(os.path.basename(path))[0])
+        if slug in seen_slugs:
+            print(f"  ! CẢNH BÁO: slug '{slug}' trùng lặp (từ {os.path.basename(path)}), tự thêm hậu tố")
+            base_slug, i = slug, 2
+            while slug in seen_slugs:
+                slug = f"{base_slug}-{i}"
+                i += 1
+        seen_slugs.add(slug)
         # Thời gian đọc: ưu tiên giá trị nhập tay, nếu trống thì tự ước tính
         read_time = meta.get("read_time") or _estimate_read_time(body_md)
         # Ngày đăng: ưu tiên giá trị nhập tay; nếu trống, tự sinh theo ngày sửa file
@@ -2498,12 +2513,32 @@ def main():
     with open(os.path.join(OUT, "manifest.json"), "w", encoding="utf-8") as f:
         import json as _json
         _json.dump(manifest, f, ensure_ascii=False)
+    import time as _time
+    build_ts = str(int(_time.time()))
     with open(os.path.join(OUT, "sw.js"), "w", encoding="utf-8") as f:
-        f.write("""const CACHE='tnc-v1';
+        f.write("""const CACHE='tnc-""" + build_ts + """';
 self.addEventListener('install',e=>self.skipWaiting());
-self.addEventListener('activate',e=>self.clients.claim());
+self.addEventListener('activate',e=>{
+  e.waitUntil(
+    caches.keys().then(keys=>Promise.all(
+      keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))
+    )).then(()=>self.clients.claim())
+  );
+});
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;
+  // Điều hướng trang (HTML) — luôn ưu tiên bản mới nhất từ mạng, tránh
+  // hiển thị bản cache cũ khi đã có nội dung mới trên server.
+  if(e.request.mode==='navigate'){
+    e.respondWith(
+      fetch(e.request).then(res=>{
+        caches.open(CACHE).then(c=>c.put(e.request,res.clone()));
+        return res;
+      }).catch(()=>caches.match(e.request))
+    );
+    return;
+  }
+  // Tài nguyên tĩnh (ảnh, CSS) — cache-first cho tốc độ, vẫn cập nhật nền.
   e.respondWith(
     caches.match(e.request).then(cached=>{
       const fetchPromise=fetch(e.request).then(res=>{
