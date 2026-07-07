@@ -855,6 +855,49 @@ a:hover .media__zoom{transform:scale(1.04);}
   .ad-homepage__row .ad-block{flex:1 1 100%;}
 }
 
+/* ==========================================================================
+   V5 — MODERN UX (scroll-reveal, skeleton, cursor, progress bar, parallax)
+   ========================================================================== */
+
+/* 1. Scroll-reveal — chỉ áp class .js-reveal (gắn thủ công, không đụng
+   marquee/profile-card vốn cần opacity:1 cố định) */
+.js-reveal{opacity:0;transform:translateY(20px);transition:opacity .6s var(--ease),transform .6s var(--ease);}
+.js-reveal.is-visible{opacity:1;transform:translateY(0);}
+@media (prefers-reduced-motion:reduce){.js-reveal{opacity:1;transform:none;transition:none;}}
+
+/* 3. Skeleton shimmer cho ảnh đang tải */
+img[loading="lazy"]{background:linear-gradient(100deg,var(--c-bg-subtle) 30%,#ECECE8 50%,var(--c-bg-subtle) 70%);background-size:200% 100%;animation:skeletonShimmer 1.3s ease-in-out infinite;}
+img[loading="lazy"].img-loaded{animation:none;background:none;}
+@keyframes skeletonShimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+@media (prefers-reduced-motion:reduce){img[loading="lazy"]{animation:none;}}
+
+/* 4. Cursor tùy chỉnh khi hover phần tử tương tác */
+a,button,.card,.profile-card,.poster-card{cursor:pointer;}
+@media (hover:hover){
+  .cursor-dot{
+    position:fixed;top:0;left:0;width:10px;height:10px;border-radius:50%;
+    background:var(--c-red);pointer-events:none;z-index:9999;
+    transform:translate(-50%,-50%);transition:width .18s var(--ease),height .18s var(--ease),opacity .18s;
+    mix-blend-mode:difference;opacity:0;
+  }
+  .cursor-dot.is-active{opacity:1;}
+  .cursor-dot.is-hover{width:32px;height:32px;}
+}
+
+/* 5. Progress bar đọc bài */
+.read-progress{position:fixed;top:0;left:0;height:3px;background:var(--c-red);z-index:9998;width:0%;transition:width .1s linear;}
+
+/* 8. Parallax nhẹ cho ảnh hero */
+.hero-full__media img,.hero-full__media .media__zoom{will-change:transform;}
+
+/* 2. View Transitions — mượt khi chuyển trang (trình duyệt không hỗ trợ tự bỏ qua) */
+@supports (view-transition-name: none){
+  ::view-transition-old(root){animation:vtFadeOut .25s ease forwards;}
+  ::view-transition-new(root){animation:vtFadeIn .3s ease forwards;}
+  @keyframes vtFadeOut{to{opacity:0;}}
+  @keyframes vtFadeIn{from{opacity:0;}}
+}
+
 /* ----- ARTICLE BODY ----- */
 .article-body p{margin-bottom:1.4em;}
 .article-body h2{font-size:var(--t-lg);margin:1.6em 0 0.6em;}

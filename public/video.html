@@ -20,7 +20,7 @@
 <meta name="twitter:title" content="Video — The New Culture">
 <meta name="twitter:description" content="Toàn bộ video của The New Culture">
 <meta name="twitter:image" content="https://thenewculture.pages.dev/og-default.png">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"><meta name="view-transition" content="same-origin">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -385,6 +385,82 @@
   root.addEventListener('click',function(e){
     if(dragMoved){e.preventDefault();e.stopPropagation();dragMoved=false;}
   },true);
+})();
+
+// 1. Scroll-reveal cho .js-reveal
+(function(){
+  var els=document.querySelectorAll('.js-reveal');
+  if(!els.length)return;
+  if(!('IntersectionObserver' in window)){els.forEach(function(el){el.classList.add('is-visible');});return;}
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){en.target.classList.add('is-visible');io.unobserve(en.target);}
+    });
+  },{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
+  els.forEach(function(el){io.observe(el);});
+})();
+
+// 3. Tắt skeleton shimmer khi ảnh tải xong
+(function(){
+  document.querySelectorAll('img[loading="lazy"]').forEach(function(img){
+    if(img.complete){img.classList.add('img-loaded');return;}
+    img.addEventListener('load',function(){img.classList.add('img-loaded');});
+    img.addEventListener('error',function(){img.classList.add('img-loaded');});
+  });
+})();
+
+// 4. Cursor tùy chỉnh (chỉ thiết bị có chuột thật)
+(function(){
+  if(!window.matchMedia('(hover:hover)').matches)return;
+  var dot=document.createElement('div');
+  dot.className='cursor-dot';
+  document.body.appendChild(dot);
+  document.addEventListener('mousemove',function(e){
+    dot.style.left=e.clientX+'px';dot.style.top=e.clientY+'px';dot.classList.add('is-active');
+  });
+  document.addEventListener('mouseleave',function(){dot.classList.remove('is-active');});
+  document.querySelectorAll('a,button,.card,.profile-card,.poster-card').forEach(function(el){
+    el.addEventListener('mouseenter',function(){dot.classList.add('is-hover');});
+    el.addEventListener('mouseleave',function(){dot.classList.remove('is-hover');});
+  });
+})();
+
+// 5. Progress bar đọc bài (chỉ hiện trên trang có .article-body)
+(function(){
+  var article=document.querySelector('.article-body');
+  if(!article)return;
+  var bar=document.createElement('div');
+  bar.className='read-progress';
+  document.body.appendChild(bar);
+  function update(){
+    var docH=document.documentElement.scrollHeight-window.innerHeight;
+    var scrolled=window.scrollY;
+    var pct=docH>0?(scrolled/docH*100):0;
+    bar.style.width=Math.min(Math.max(pct,0),100)+'%';
+  }
+  window.addEventListener('scroll',update,{passive:true});
+  window.addEventListener('resize',update);
+  update();
+})();
+
+// 6. Command palette (Ctrl/Cmd+K) — điều hướng nhanh tới tìm kiếm
+(function(){
+  document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){
+      e.preventDefault();
+      window.location.href='search.html';
+    }
+  });
+})();
+
+// 8. Parallax nhẹ cho ảnh hero khi cuộn
+(function(){
+  var media=document.querySelector('.hero-full__media img, .hero-full__media .media__zoom');
+  if(!media||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  window.addEventListener('scroll',function(){
+    var y=window.scrollY;
+    if(y<window.innerHeight){media.style.transform='translateY('+(y*0.25)+'px)';}
+  },{passive:true});
 })();
 </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "6b80305f19b5403ea2a03d427a03dcb7"}'></script><!-- End Cloudflare Web Analytics -->"}'></script>
