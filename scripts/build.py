@@ -539,9 +539,8 @@ def render_ad_block_horizontal_only(horizontal_key, link_key, extra_class=""):
     return f'<div class="ad-block ad-block--horizontal {extra_class}">{media_html}</div>'
 
 def render_sticky_ads_sidebar():
-    """Hai khối quảng cáo sticky hai bên hông trang bài viết. Chỉ hiển thị
-    trên màn hình đủ rộng (kiểm soát bằng CSS media query); mỗi bên tự ẩn
-    độc lập nếu chưa cấu hình media cho vị trí đó."""
+    """Hai khối quảng cáo sticky hai bên hông (desktop rộng, từ 1400px).
+    Tự ẩn độc lập nếu chưa cấu hình media cho vị trí đó."""
     left = render_ad_block("ad_left_vertical", "ad_left_horizontal", "ad_left_link", "ad-block--sidebar-left")
     right = render_ad_block("ad_right_vertical", "ad_right_horizontal", "ad_right_link", "ad-block--sidebar-right")
     if not left and not right:
@@ -549,6 +548,20 @@ def render_sticky_ads_sidebar():
     return f"""
   <div class="ad-sidebar ad-sidebar--left">{left}</div>
   <div class="ad-sidebar ad-sidebar--right">{right}</div>
+"""
+
+def render_inline_ad_mobile():
+    """Khối quảng cáo ngang thay thế cho mobile/màn hẹp (dưới 1400px), nơi
+    sidebar bị ẩn. Chèn trong nội dung bài viết, dùng ảnh ngang."""
+    left = render_ad_block_horizontal_only("ad_left_horizontal", "ad_left_link")
+    right = render_ad_block_horizontal_only("ad_right_horizontal", "ad_right_link")
+    if not left and not right:
+        return ""
+    return f"""
+  <div class="container ad-inline-mobile">
+    {left}
+    {right}
+  </div>
 """
 
 def render_homepage_ad_block():
@@ -1875,6 +1888,7 @@ def render_article_page(a):
     <div class="container" style="max-width:680px;">{share_bar(a, _path)}
     </div>
 {author_bio_box_html(a['author'])}
+{render_inline_ad_mobile()}
   </article>
 
   <section class="section container">
