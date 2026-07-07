@@ -435,7 +435,7 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          'family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">'
          '<meta name="view-transition" content="same-origin">')
 
-def head(title, desc=None, path="", image="", og_type="website", append_site_name=True):
+def head(title, desc=None, path="", image="", og_type="website", append_site_name=True, schema_json=""):
     """Sinh <head> đầy đủ SEO + Open Graph.
     path: đường dẫn tương đối của trang (vd 'article-abc.html') để tạo canonical/og:url.
     image: đường dẫn ảnh đại diện (tương đối hoặc tuyệt đối).
@@ -462,6 +462,7 @@ def head(title, desc=None, path="", image="", og_type="website", append_site_nam
 <meta name="description" content="{d}">
 <link rel="canonical" href="{canonical}">
 <meta name="theme-color" content="#E11D0F">
+<link rel="manifest" href="manifest.json">
 <!-- Open Graph -->
 <meta property="og:type" content="{og_type}">
 <meta property="og:site_name" content="{SITE_NAME}">
@@ -477,6 +478,7 @@ def head(title, desc=None, path="", image="", og_type="website", append_site_nam
 <meta name="twitter:image" content="{og_image}">
 {FONTS}
 <link rel="stylesheet" href="style.css">
+{schema_json}
 </head>
 <body>
 """
@@ -1046,6 +1048,54 @@ def footer():
     if(y<window.innerHeight){media.style.transform='translateY('+(y*0.25)+'px)';}
   },{passive:true});
 })();
+
+// PWA: đăng ký service worker
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+
+// 6. Web Share API — ưu tiên share sheet gốc trên thiết bị hỗ trợ
+(function(){
+  if(!navigator.share)return;
+  document.querySelectorAll('.share-native').forEach(function(btn){
+    btn.hidden=false;
+    btn.addEventListener('click',function(){
+      navigator.share({title:btn.getAttribute('data-title'),url:btn.getAttribute('data-url')}).catch(function(){});
+    });
+  });
+})();
+
+// 5. Infinite scroll cho trang series — hiện thêm 8 bài mỗi lần cuộn tới cuối
+(function(){
+  var sentinel=document.querySelector('.js-infinite-sentinel');
+  if(!sentinel)return;
+  var hidden=document.querySelectorAll('.js-infinite-item[style*="display: none"]');
+  if(!hidden.length)return;
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){
+        var next=document.querySelectorAll('.js-infinite-item[style*="display: none"]');
+        for(var i=0;i<Math.min(8,next.length);i++){next[i].style.display='';}
+        if(document.querySelectorAll('.js-infinite-item[style*="display: none"]').length===0){
+          io.unobserve(sentinel);
+        }
+      }
+    });
+  },{rootMargin:'200px'});
+  io.observe(sentinel);
+})();
+
+// 7. Reader Mode — ẩn header/sidebar quảng cáo, chỉ hiện nội dung
+(function(){
+  var btn=document.querySelector('.reader-mode-toggle');
+  if(!btn)return;
+  btn.addEventListener('click',function(){
+    document.body.classList.toggle('reader-mode');
+    btn.textContent=document.body.classList.contains('reader-mode')?'Thoát chế độ đọc':'Chế độ đọc';
+  });
+})();
 </script>
 """ + analytics_script_tag() + """
 </body>
@@ -1083,11 +1133,13 @@ def render_poster_card(a):
         </div>
       </a>"""
 
-def zoom(article):
-    """Trả về lớp media bên trong: ảnh bìa nếu có, ngược lại placeholder gradient."""
+def zoom(article, eager=False):
+    """Trả về lớp media bên trong: ảnh bìa nếu có, ngược lại placeholder gradient.
+    eager=True: bỏ lazy-load, dùng cho ảnh LCP (hero) để cải thiện tốc độ tải."""
     cover = article.get("cover") if article else ""
     if cover:
-        return f'<img class="media__zoom" src="{cover}" alt="" loading="lazy">'
+        loading_attr = 'fetchpriority="high"' if eager else 'loading="lazy"'
+        return f'<img class="media__zoom" src="{cover}" alt="" {loading_attr}>'
     return '<div class="media__zoom"></div>'
 
 def author_slug(name):
@@ -1155,6 +1207,7 @@ def share_bar(a, path):
     return f"""
     <div class="share-bar" aria-label="Chia sẻ bài viết">
       <span class="share-bar__label">Chia sẻ</span>
+      <button class="share-btn share-native" data-url="{url}" data-title="{a['title']}" type="button" hidden>Chia sẻ...</button>
       <a class="share-btn" href="{fb}" target="_blank" rel="noopener" aria-label="Chia sẻ Facebook">Facebook</a>
       <a class="share-btn" href="{x}" target="_blank" rel="noopener" aria-label="Chia sẻ X">X</a>
       <button class="share-btn share-copy" data-url="{url}" type="button">Sao chép link</button>
@@ -1178,7 +1231,7 @@ def render_hero_slideshow(slides):
         s = SERIES_BY_SLUG[a["series"]]
         return f"""
   <section class="hero-full">
-    <div class="hero-full__media">{zoom(a)}<div class="hero-full__scrim"></div></div>
+    <div class="hero-full__media">{zoom(a, eager=True)}<div class="hero-full__scrim"></div></div>
     <div class="hero-full__content">
       <span class="hero-full__eyebrow eyebrow{s['accent']}">{s['name']}</span>
       <h1 class="hero-full__title"><a href="{article_url(a['slug'])}">{a['title']}</a></h1>
@@ -1193,7 +1246,7 @@ def render_hero_slideshow(slides):
         active_cls = " is-active" if i == 0 else ""
         slides_html += f"""
       <div class="hero-full-slide{active_cls}" data-slide-index="{i}">
-        <div class="hero-full__media">{zoom(a)}<div class="hero-full__scrim"></div></div>
+        <div class="hero-full__media">{zoom(a, eager=(i==0))}<div class="hero-full__scrim"></div></div>
         <div class="hero-full__content">
           <span class="hero-full__eyebrow eyebrow{s['accent']}">{s['name']}</span>
           <h1 class="hero-full__title"><a href="{article_url(a['slug'])}">{a['title']}</a></h1>
@@ -1785,9 +1838,10 @@ def render_series_page(s):
     arts = ARTICLES_BY_SERIES.get(s["slug"], [])
     rows = ""
     if arts:
-        for a in arts:
+        for idx, a in enumerate(arts):
+            hidden_attr = ' style="display:none;"' if idx >= 8 else ""
             rows += f"""
-      <a class="card" href="{article_url(a['slug'])}" style="flex-direction:row;gap:var(--s-5);align-items:center;">
+      <a class="card js-infinite-item" data-idx="{idx}"{hidden_attr} href="{article_url(a['slug'])}" style="flex-direction:row;gap:var(--s-5);align-items:center;">
         <div class="media media--3-2" style="flex:0 0 260px;">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
         <div>
           <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
@@ -1829,8 +1883,9 @@ def render_series_page(s):
       </div>
     </div>
 
-    <div class="grid" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
+    <div class="grid js-infinite-list" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
     </div>
+    <div class="js-infinite-sentinel" style="height:1px;"></div>
   </section>
 
   <section class="series-band" style="margin-top:var(--s-9);">
@@ -1916,14 +1971,38 @@ def render_body_blocks(blocks):
             )
     return "\n".join(out)
 
+def article_schema_json(a, s, path):
+    """JSON-LD Article schema cho SEO rich snippet."""
+    import html as _html, json as _json
+    img = a.get("cover", "")
+    img_url = img if img.startswith("http") else f"{SITE_URL}/{img.lstrip('/')}" if img else f"{SITE_URL}/og-default.png"
+    data = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": a["title"],
+        "description": a["dek"],
+        "image": [img_url],
+        "datePublished": a["date"],
+        "author": {"@type": "Person", "name": a["author"]},
+        "publisher": {"@type": "Organization", "name": SITE_NAME,
+                       "logo": {"@type": "ImageObject", "url": f"{SITE_URL}/uploads/3727.png"}},
+        "mainEntityOfPage": {"@type": "WebPage", "@id": f"{SITE_URL}/{path}"},
+        "articleSection": s["name"],
+        "keywords": ", ".join(a.get("tags", [])),
+    }
+    return f'<script type="application/ld+json">{_json.dumps(data, ensure_ascii=False)}</script>'
+
 def render_article_page(a):
     s = SERIES_BY_SLUG[a["series"]]
     body = render_body_blocks(a["body"])
 
-    # related
-    same = [x for x in ARTICLES if x["series"]==a["series"] and x["slug"]!=a["slug"]]
-    other = [x for x in ARTICLES if x["series"]!=a["series"] and x["slug"]!=a["slug"]]
-    related = (same+other)[:3]
+    # related — chấm điểm theo số tag trùng, ưu tiên cùng series khi hòa điểm
+    def _score(x):
+        shared = len(set(x["tags"]) & set(a["tags"]))
+        same_series = 1 if x["series"] == a["series"] else 0
+        return (shared, same_series)
+    candidates = [x for x in ARTICLES if x["slug"] != a["slug"]]
+    related = sorted(candidates, key=_score, reverse=True)[:3]
     rel = ""
     for r in related:
         rs = SERIES_BY_SLUG[r["series"]]
@@ -1938,7 +2017,8 @@ def render_article_page(a):
     tags = "".join(f'<a href="all-series.html" class="btn btn--ghost" style="text-transform:none;font-family:var(--f-mono);">{t}</a>' for t in a["tags"])
 
     _path = article_url(a["slug"])
-    html = head(a["title"], a["dek"], path=_path, image=a.get("cover",""), og_type="article") + masthead(active=a["series"])
+    schema = article_schema_json(a, s, _path)
+    html = head(a["title"], a["dek"], path=_path, image=a.get("cover",""), og_type="article", schema_json=schema) + masthead(active=a["series"])
     html += f"""
 <main>
   {render_sticky_ads_sidebar()}
@@ -1946,6 +2026,7 @@ def render_article_page(a):
     <div class="container" style="max-width:760px;padding-top:var(--s-6);">
       <nav class="byline" style="margin-bottom:var(--s-5);" aria-label="breadcrumb">
         <a href="index.html">Trang chủ</a> / <a href="{series_url(s['slug'])}">{s['name']}</a>
+        <button class="reader-mode-toggle" type="button" aria-label="Chế độ đọc" title="Chế độ đọc">Chế độ đọc</button>
       </nav>
       <span class="eyebrow eyebrow{s['accent']}" style="font-size:var(--t-sm);">{s['name']} · {art_code(a)}</span>
       <h1 style="font-size:var(--t-3xl);margin:var(--s-4) 0;">{a['title']}</h1>
@@ -2406,6 +2487,33 @@ def main():
     shutil.copy(src_css, dst_css)
     with open(dst_css, "a", encoding="utf-8") as f:
         f.write(ARTICLE_CSS)
+
+    # PWA: manifest.json + service worker cơ bản (cache-first cho tài nguyên tĩnh)
+    manifest = {
+        "name": SITE_NAME, "short_name": "TNC",
+        "start_url": "/", "display": "standalone",
+        "background_color": "#FFFFFF", "theme_color": "#E11D0F",
+        "icons": [{"src": "/uploads/3727.png", "sizes": "512x512", "type": "image/png"}],
+    }
+    with open(os.path.join(OUT, "manifest.json"), "w", encoding="utf-8") as f:
+        import json as _json
+        _json.dump(manifest, f, ensure_ascii=False)
+    with open(os.path.join(OUT, "sw.js"), "w", encoding="utf-8") as f:
+        f.write("""const CACHE='tnc-v1';
+self.addEventListener('install',e=>self.skipWaiting());
+self.addEventListener('activate',e=>self.clients.claim());
+self.addEventListener('fetch',e=>{
+  if(e.request.method!=='GET')return;
+  e.respondWith(
+    caches.match(e.request).then(cached=>{
+      const fetchPromise=fetch(e.request).then(res=>{
+        if(res.ok)caches.open(CACHE).then(c=>c.put(e.request,res.clone()));
+        return res;
+      }).catch(()=>cached);
+      return cached||fetchPromise;
+    })
+  );
+});""")
 
     # Copy giao diện quản trị (admin) vào public để Cloudflare phục vụ
     admin_src = os.path.join(REPO_ROOT, "admin")

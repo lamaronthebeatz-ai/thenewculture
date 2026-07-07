@@ -897,3 +897,20 @@ a,button,.card,.profile-card,.poster-card{cursor:pointer;}
   @keyframes vtFadeOut{to{opacity:0;}}
   @keyframes vtFadeIn{from{opacity:0;}}
 }
+
+/* 7. Reader Mode — ẩn header/quảng cáo/footer, chỉ hiện nội dung bài viết */
+.reader-mode-toggle{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:0.04em;
+  padding:4px 10px;border:1px solid var(--c-line-strong);border-radius:20px;
+  background:var(--c-bg);color:var(--c-ink);cursor:pointer;margin-left:var(--s-3);
+}
+.reader-mode-toggle:hover{background:var(--c-ink);color:var(--c-bg);}
+body.reader-mode .masthead,
+body.reader-mode .ad-sidebar,
+body.reader-mode .ad-inline-mobile,
+body.reader-mode .footer,
+body.reader-mode .newsletter,
+body.reader-mode .series-band,
+body.reader-mode .read-progress{display:none !important;}
+body.reader-mode .article-body{max-width:640px;font-size:1.15rem;line-height:1.9;}
+body.reader-mode{background:var(--c-bg);}
