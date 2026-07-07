@@ -1,42 +1,48 @@
 /* ==========================================================================
-   THE NEW CULTURE — Design System v3
-   Ngôn ngữ thị giác: editorial media (theo chuẩn Complex)
+   THE NEW CULTURE — Design System v4 (Dark Editorial)
+   Ngôn ngữ thị giác: underground energy, tối, bồi, gu Complex/Pitchfork
    Kiến trúc: token → base → layout → components → utilities → responsive
    ========================================================================== */
 
 /* ----- 1. DESIGN TOKENS ------------------------------------------------- */
 :root{
-  /* Màu nền & mực */
-  --c-bg:            #FFFFFF;
-  --c-bg-subtle:     #F5F5F3;
-  --c-bg-invert:     #0B0B0B;
-  --c-ink:           #0B0B0B;
-  --c-ink-2:         #4A4A48;
-  --c-ink-3:         #8A8A86;
-  --c-line:          #E4E4E0;
-  --c-line-strong:   #0B0B0B;
+  /* Màu nền & mực — đảo dark */
+  --c-bg:            #0A0A0B;
+  --c-bg-subtle:     #141416;
+  --c-bg-invert:     #FFFFFF;
+  --c-ink:           #F2F2F0;
+  --c-ink-2:         #A8A8A4;
+  --c-ink-3:         #6E6E6A;
+  --c-line:          #232326;
+  --c-line-strong:   #F2F2F0;
 
-  /* Accent chuyên mục (dùng cho eyebrow/label) */
-  --c-red:           #E11D0F;
-  --c-blue:          #1D4ED8;
-  --c-green:         #157F4B;
-  --c-purple:        #6D28D9;
-  --c-amber:         #B45309;
+  /* Accent chuyên mục — bão hòa hơn để nổi trên nền tối */
+  --c-red:           #FF3B1F;
+  --c-blue:          #3B82F6;
+  --c-green:         #22C55E;
+  --c-purple:        #A855F7;
+  --c-amber:         #F59E0B;
+
+  /* Glow / glass — hiệu ứng mới */
+  --glow-red: 0 0 24px rgba(255,59,31,0.35);
+  --glass-bg: rgba(20,20,22,0.6);
+  --glass-border: rgba(255,255,255,0.08);
+  --glass-blur: blur(16px);
 
   /* Typography */
   --f-display: 'Archivo', -apple-system, BlinkMacSystemFont, sans-serif;
   --f-body:    'Archivo', -apple-system, BlinkMacSystemFont, sans-serif;
   --f-mono:    'IBM Plex Mono', ui-monospace, monospace;
 
-  /* Type scale (fluid) */
+  /* Type scale (fluid, oversized cho hero) */
   --t-xs:   0.75rem;
   --t-sm:   0.8125rem;
   --t-base: 0.9375rem;
   --t-md:   1.0625rem;
   --t-lg:   1.375rem;
-  --t-xl:   clamp(1.5rem, 2.4vw, 2rem);
-  --t-2xl:  clamp(2rem, 4vw, 3rem);
-  --t-3xl:  clamp(2.5rem, 6vw, 4.25rem);
+  --t-xl:   clamp(1.5rem, 2.6vw, 2.1rem);
+  --t-2xl:  clamp(2.1rem, 4.6vw, 3.4rem);
+  --t-3xl:  clamp(2.75rem, 7.5vw, 5.5rem);
 
   /* Spacing scale */
   --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
@@ -183,7 +189,7 @@ a:hover .media__zoom{transform:scale(1.04);}
 .masthead__main--has-bg{background-size:cover;background-position:center;background-repeat:no-repeat;}
 .masthead__main--has-bg::before{
   content:"";position:absolute;inset:0;z-index:1;
-  background:rgba(255,255,255,0.45);
+  background:rgba(10,10,11,0.55);backdrop-filter:var(--glass-blur);
 }
 .wordmark{font-family:var(--f-display);font-weight:900;font-size:1.5rem;letter-spacing:-0.03em;display:flex;align-items:center;gap:2px;}
 .wordmark__title{font-family:var(--f-display);font-weight:900;letter-spacing:-0.03em;line-height:1;}
@@ -854,3 +860,28 @@ a:hover .media__zoom{transform:scale(1.04);}
 @media (max-width:600px){
   .ad-homepage__row .ad-block{flex:1 1 100%;}
 }
+
+/* ==========================================================================
+   V4 — MOTION & GLOW (redesign underground/Complex)
+   ========================================================================== */
+/* Scroll reveal — fade-in up khi phần tử vào viewport (điều khiển bằng JS,
+   tự động áp dụng cho card/section chính, không cần sửa markup Python) */
+.reveal,
+.trending__grid > *,
+.series-grid > *{opacity:0;transform:translateY(24px);transition:opacity .6s var(--ease),transform .6s var(--ease);}
+.reveal.is-visible,
+.trending__grid > *.is-visible,
+.series-grid > *.is-visible{opacity:1;transform:translateY(0);}
+@media (prefers-reduced-motion:reduce){
+  .reveal,.trending__grid > *,.series-grid > *{opacity:1;transform:none;transition:none;}
+}
+
+/* Hover glow cho thẻ/card — thay thế bóng nhạt bằng viền phát sáng đỏ nhẹ */
+.card,.profile-card,.poster-card{transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease),border-color var(--dur);}
+.card:hover,.poster-card:hover{transform:translateY(-4px);box-shadow:var(--glow-red);border-color:rgba(255,59,31,0.4);}
+
+/* Oversized display cho H1 hero — kéo mạnh theo trend 2026 */
+.hero-full__title{letter-spacing:-0.02em;}
+
+/* Glass panel — dùng cho các khối overlay nổi (nếu cần) */
+.glass{background:var(--glass-bg);backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);}
