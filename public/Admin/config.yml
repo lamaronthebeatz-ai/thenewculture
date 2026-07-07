@@ -239,6 +239,12 @@ collections:
             required: false
             hint: "Để trống nếu chỉ muốn hiển thị hình/clip, không cho bấm vào. Nếu điền, cả khối quảng cáo phải sẽ dẫn tới đường dẫn này khi bấm."
 
+          - label: "Cloudflare Analytics Token"
+            name: cloudflare_analytics_token
+            widget: string
+            required: false
+            hint: "Lấy tại dashboard Cloudflare → Analytics → Web Analytics → Add site → copy 'token' trong đoạn mã. Để trống sẽ không theo dõi lượt truy cập."
+
   # ============================================================
   # HỒ SƠ BIÊN TẬP VIÊN — mỗi bản ghi tạo 1 trang tác giả riêng
   # LƯU Ý QUAN TRỌNG: trường "Tên" bên dưới phải khớp CHÍNH XÁC
