@@ -30,7 +30,7 @@
 <header class="masthead">
   <div class="masthead__util">
     <div class="container">
-      <span>Thứ Ba · 07.07.2026 · Sài Gòn</span>
+      <span>Thứ Tư · 08.07.2026 · Sài Gòn</span>
       <div class="u-links">
         <a href="all-series.html">Series</a>
         <a href="tnc-sessions.html">TNC Sessions</a>
@@ -115,7 +115,7 @@
           <span class="eyebrow eyebrow--amber">TNC Breakdown</span>
           <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">5BER1: Góc khác trong thế giới của Lăng LD</h3>
           <p style="color:var(--c-ink-2);font-size:var(--t-sm);margin-bottom:var(--s-2);">Điều làm nên sức hút của 5BER1 không nằm ở việc sử dụng ngôn từ mạnh hay hình tượng giang hồ. Giá trị của dự án nằm ở khả năng biến những câu chuyện rất đời thường thành những lát cắt mang tính phản chiếu.</p>
-          <span class="byline">TNC Editorial · 7 Tháng 7, 2026 · 4 phút đọc</span>
+          <span class="byline">TNC Editorial · 8 Tháng 7, 2026 · 4 phút đọc</span>
         </div>
       </a>
     </div>
@@ -553,6 +553,88 @@ if('serviceWorker' in navigator){
     document.body.classList.toggle('reader-mode');
     btn.textContent=document.body.classList.contains('reader-mode')?'Thoát chế độ đọc':'Chế độ đọc';
   });
+})();
+
+// 2. Text scramble cho tiêu đề hero — chỉ chạy 1 lần khi tải trang
+(function(){
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var CHARS='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  document.querySelectorAll('.js-scramble').forEach(function(h1){
+    var link=h1.querySelector('a');
+    var target=link?link:h1;
+    var finalText=target.textContent;
+    var len=finalText.length;
+    var frame=0;
+    var totalFrames=Math.min(len*2,40);
+    function tick(){
+      var out='';
+      for(var i=0;i<len;i++){
+        var charProgress=frame-i*1.2;
+        if(charProgress>=totalFrames*0.4){out+=finalText[i];}
+        else if(finalText[i]===' '){out+=' ';}
+        else{out+=CHARS[Math.floor(Math.random()*CHARS.length)];}
+      }
+      target.textContent=out;
+      frame++;
+      if(frame<totalFrames+len*1.2){requestAnimationFrame(tick);}
+      else{target.textContent=finalText;}
+    }
+    requestAnimationFrame(tick);
+  });
+})();
+
+// 1. Magnetic hover — chỉ thiết bị có chuột thật, cường độ nhẹ
+(function(){
+  if(!window.matchMedia('(hover:hover)').matches)return;
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var STRENGTH=0.25;
+  document.querySelectorAll('.btn--solid, .hero-full__cta').forEach(function(el){
+    el.classList.add('magnetic');
+    el.addEventListener('mousemove',function(e){
+      var r=el.getBoundingClientRect();
+      var x=(e.clientX-r.left-r.width/2)*STRENGTH;
+      var y=(e.clientY-r.top-r.height/2)*STRENGTH;
+      el.style.transform='translate('+x+'px,'+y+'px)';
+    });
+    el.addEventListener('mouseleave',function(){el.style.transform='';});
+  });
+})();
+
+// 4. Count-up cho số liệu — loại trừ phần tử trong marquee (đã nhân đôi
+// DOM để loop vô hạn), chỉ áp dụng ở lưới tĩnh (trang danh mục, hero riêng)
+(function(){
+  var els=document.querySelectorAll('.js-count');
+  if(!els.length)return;
+  var targets=[],staticEls=[];
+  els.forEach(function(el){
+    if(el.closest('.profiles-spotlight--marquee')){staticEls.push(el);}
+    else{targets.push(el);}
+  });
+  // Phần tử trong marquee: hiện số thật ngay lập tức, không animate
+  // (đã nhân đôi DOM để loop vô hạn, animate riêng lẻ sẽ gây lệch hình).
+  staticEls.forEach(function(el){el.textContent=el.getAttribute('data-count');});
+  if(!targets.length)return;
+  function animate(el){
+    var target=parseInt(el.getAttribute('data-count'),10)||0;
+    var dur=900,start=null;
+    function step(ts){
+      if(start===null)start=ts;
+      var p=Math.min((ts-start)/dur,1);
+      el.textContent=Math.round(target*(1-Math.pow(1-p,3)));
+      if(p<1)requestAnimationFrame(step);else el.textContent=target;
+    }
+    requestAnimationFrame(step);
+  }
+  if(!('IntersectionObserver' in window)){
+    targets.forEach(function(el){el.textContent=el.getAttribute('data-count');});
+    return;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){animate(en.target);io.unobserve(en.target);}
+    });
+  },{threshold:0.3});
+  targets.forEach(function(el){io.observe(el);});
 })();
 </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "6b80305f19b5403ea2a03d427a03dcb7"}'></script><!-- End Cloudflare Web Analytics -->"}'></script>
