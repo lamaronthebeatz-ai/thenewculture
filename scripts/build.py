@@ -2152,7 +2152,7 @@ def render_article_page(a):
         <span class="byline">{rs['name']} · {r['date']}</span>
       </a>"""
 
-    tags = "".join(f'<a href="all-series.html" class="btn btn--ghost" style="text-transform:none;font-family:var(--f-mono);">{t}</a>' for t in a["tags"])
+    tags = "".join(f'<a href="all-series.html" class="tag">{t}</a>' for t in a["tags"])
 
     _path = article_url(a["slug"])
     schema = article_schema_json(a, s, _path)
