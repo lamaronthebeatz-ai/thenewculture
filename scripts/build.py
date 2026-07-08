@@ -478,6 +478,9 @@ def head(title, desc=None, path="", image="", og_type="website", append_site_nam
 <link rel="canonical" href="{canonical}">
 <meta name="theme-color" content="#E11D0F">
 <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="/uploads/3727.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- Open Graph -->
 <meta property="og:type" content="{og_type}">
 <meta property="og:site_name" content="{SITE_NAME}">
@@ -2636,7 +2639,11 @@ def main():
         "name": SITE_NAME, "short_name": "TNC",
         "start_url": "/", "display": "standalone",
         "background_color": "#FFFFFF", "theme_color": "#E11D0F",
-        "icons": [{"src": "/uploads/3727.png", "sizes": "512x512", "type": "image/png"}],
+        "icons": [
+            {"src": "/uploads/3727.png", "sizes": "192x192", "type": "image/png"},
+            {"src": "/uploads/3727.png", "sizes": "512x512", "type": "image/png"},
+            {"src": "/uploads/3727.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+        ],
     }
     with open(os.path.join(OUT, "manifest.json"), "w", encoding="utf-8") as f:
         import json as _json
