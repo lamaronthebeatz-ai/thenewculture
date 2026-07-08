@@ -732,9 +732,17 @@ def newsletter():
 """
 
 def analytics_script_tag():
-    """Cloudflare Web Analytics — chỉ render khi đã cấu hình token qua CMS."""
-    token = SETTINGS.get("cloudflare_analytics_token", "")
-    if not token:
+    """Cloudflare Web Analytics — chỉ render khi đã cấu hình token qua CMS.
+    Phòng trường hợp người dùng dán nhầm cả đoạn <script> mẫu từ dashboard
+    Cloudflare (thay vì chỉ token bên trong): tự trích token ra, tránh sinh
+    thẻ <script> lồng nhau làm hỏng cấu trúc HTML trên toàn bộ trang."""
+    raw = SETTINGS.get("cloudflare_analytics_token", "")
+    if not raw:
+        return ""
+    m = re.search(r'"token"\s*:\s*"([a-f0-9]+)"', raw)
+    token = m.group(1) if m else raw.strip()
+    if not re.fullmatch(r'[a-f0-9]{16,64}', token):
+        print(f"  ! Cloudflare Analytics Token không hợp lệ, bỏ qua: {raw[:40]}")
         return ""
     return (f'<script defer src="https://static.cloudflareinsights.com/beacon.min.js" '
             f'data-cf-beacon=\'{{"token": "{token}"}}\'></script>')
