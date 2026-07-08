@@ -4,9 +4,9 @@ hero_gif_song_title: ''
 hero_gif_song_artist: ''
 spotify_embed_url: ''
 social_facebook: https://www.facebook.com/share/1Ax4Jzy3kM/?mibextid=wwXIfr
-social_instagram: https://www.facebook.com/share/1Ax4Jzy3kM/?mibextid=wwXIfr
-social_youtube: https://www.facebook.com/share/1Ax4Jzy3kM/?mibextid=wwXIfr
-social_tiktok: https://www.facebook.com/share/1Ax4Jzy3kM/?mibextid=wwXIfr
+social_instagram: ''
+social_youtube: ''
+social_tiktok: ''
 header_bg_image: /uploads/3862.gif
 ad_left_vertical: /uploads/cf9462627f0c7e9736d84fd1e0e4f4a7.mp4
 ad_left_horizontal: /uploads/cf9462627f0c7e9736d84fd1e0e4f4a7.mp4
@@ -14,4 +14,4 @@ ad_left_link: ''
 ad_right_vertical: ''
 ad_right_horizontal: ''
 ad_right_link: ''
-cloudflare_analytics_token: '<!-- Cloudflare Web Analytics --><script defer src=''https://static.cloudflareinsights.com/beacon.min.js'' data-cf-beacon=''{"token": "6b80305f19b5403ea2a03d427a03dcb7"}''></script><!-- End Cloudflare Web Analytics -->'
+cloudflare_analytics_token: 6b80305f19b5403ea2a03d427a03dcb7
