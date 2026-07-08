@@ -15,6 +15,12 @@
   --c-ink-3:         #8A8A86;
   --c-line:          #E4E4E0;
   --c-line-strong:   #0B0B0B;
+  /* --c-ink-3 (#8A8A86) chỉ đạt contrast 3.47:1 trên nền trắng — an toàn
+     cho text >=18px nhưng KHÔNG đạt AA cho text nhỏ (dùng làm border/icon
+     thì không sao). Token dưới đây dùng riêng cho typography nhỏ (caption,
+     metadata, footnote) để đảm bảo WCAG AA — không đổi --c-ink-3 gốc vì
+     nó đang dùng rộng rãi làm màu trang trí, không chỉ text. */
+  --c-ink-3-accessible: #707066; /* contrast 5.0:1 trên nền trắng, đạt AA */
 
   /* Accent chuyên mục (dùng cho eyebrow/label) */
   --c-red:           #E11D0F;
@@ -22,6 +28,35 @@
   --c-green:         #157F4B;
   --c-purple:        #6D28D9;
   --c-amber:         #B45309;
+
+  /* Accent mở rộng — badge/tier hệ thống (trước đây hard-code rải rác) */
+  --c-gold:          #D4AF37;
+  --c-gold-strong:   #E8B923;
+  --c-legendary:     #FFD700;
+  --c-fire-start:    #B8140A;
+  --c-fire-mid:      #FF3B1F;
+  --c-fire-end:      #FF8C00;
+  --c-hot:           #FF6B35;
+  --c-hot-strong:    #E8332A;
+  --c-rising:        #0E8A4B;
+  --c-talent:        #7B3FE4;
+  --c-talent-strong: #5B2BAF;
+  --c-veteran-bg:    #5C4425;
+  --c-veteran-ink:   #E8D5A8;
+  --c-veteran-line:  #8A6B3D;
+  --c-underrated:    #5A6B78;
+  --c-underrated-line:#8A9BA8;
+
+  /* Overlay/scrim — thang opacity đen chuẩn hóa (trước đây rgba(0,0,0,X) rải rác) */
+  --overlay-05: rgba(11,11,11,0.05);
+  --overlay-12: rgba(11,11,11,0.12);
+  --overlay-16: rgba(11,11,11,0.16);
+  --overlay-32: rgba(11,11,11,0.32);
+  --overlay-35: rgba(11,11,11,0.35);
+  --overlay-65: rgba(11,11,11,0.65);
+  --overlay-72: rgba(11,11,11,0.72);
+  --overlay-85: rgba(11,11,11,0.85);
+  --overlay-88: rgba(11,11,11,0.88);
 
   /* Typography */
   --f-display: 'Archivo', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -41,15 +76,72 @@
   /* Spacing scale */
   --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
   --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 64px; --s-9: 96px;
+  /* Spacing phụ — các mốc nhỏ lặp lại nhiều nơi nhưng không khớp thang s-1..9 */
+  --s-05: 2px;  --s-15: 6px;  --s-25: 10px; --s-35: 14px; --s-45: 18px; --s-55: 22px;
 
-  /* Layout */
-  --maxw: 1280px;
-  --gutter: clamp(16px, 3vw, 40px);
+  /* Border radius scale (trước đây: 2/3/4/6/8/12/20px/50% rải rác) */
+  --r-xs: 2px;   /* nút, thẻ nhỏ, archive-code */
+  --r-sm: 3px;   /* thanh cuộn, progress */
+  --r-md: 4px;   /* card, media container */
+  --r-lg: 8px;   /* khối lớn: profile-hero avatar */
+  --r-xl: 12px;  /* khối nổi bật */
+  --r-pill: 20px;/* filter button, badge pill */
+  --r-full: 50%; /* avatar tròn, dot */
+
+  /* Border width */
+  --bw-hairline: 1px;
+  --bw-strong: 2px;
+  --bw-heavy: 3px;
+
+  /* Shadow — elevation scale (trước đây 19 box-shadow unique, không tái sử dụng) */
+  --shadow-sm: 0 2px 6px var(--overlay-12);
+  --shadow-md: 0 10px 24px var(--overlay-12);
+  --shadow-lg: 0 10px 24px var(--overlay-16);
+  --shadow-glow-brand: 0 0 24px rgba(225,29,15,0.35);
+
+  /* Opacity scale */
+  --op-disabled: 0.4;
+  --op-muted: 0.6;
+  --op-hover-bg: 0.72;
+  --op-scrim: 0.88;
 
   /* Motion */
   --ease: cubic-bezier(0.2, 0.6, 0.2, 1);
-  --dur: 0.28s;
+  --dur-fast: 0.18s;   /* micro-interaction: icon, dot */
+  --dur: 0.28s;        /* mặc định: hover màu, transform nhẹ */
+  --dur-slow: 0.6s;    /* reveal, fade lớn */
+  --dur-deco: 1.8s;    /* animation trang trí lặp vô hạn (badge pulse) */
+
+  /* Z-index layers (trước đây 0,1,2,10,50,200,9998,9999 rải rác không phân lớp) */
+  --z-base: 0;
+  --z-media-overlay: 1;   /* scrim trên ảnh */
+  --z-content: 2;         /* nội dung trên scrim */
+  --z-sticky: 10;         /* sidebar sticky, nav con */
+  --z-header: 50;         /* masthead */
+  --z-overlay: 200;       /* menu overlay toàn màn hình */
+  --z-toast: 9998;        /* progress bar đọc bài */
+  --z-cursor: 9999;       /* cursor tùy chỉnh, luôn trên cùng */
+
+  /* Container & reading width */
+  --maxw: 1280px;          /* layout width — toàn trang */
+  --maxw-reading: 680px;   /* reading width — thân bài viết, tối ưu ~75 ký tự/dòng */
+  --maxw-narrow: 560px;    /* form, khối hẹp (newsletter, 404) */
+  --gutter: clamp(16px, 3vw, 40px);
+
+  /* Grid — số cột chuẩn theo breakpoint (tránh lặp repeat(N,1fr) thủ công) */
+  --grid-cols-desktop: 4;
+  --grid-cols-tablet: 3;
+  --grid-cols-mobile: 2;
 }
+
+/* Breakpoint tham chiếu (dùng trong comment vì CSS chưa hỗ trợ biến trong
+   @media; đây là NGUỒN SỰ THẬT DUY NHẤT cho mọi @media trong file này —
+   trước đây có 7 mốc rải rác 480/520/560/600/768/1024/1400/1600, giờ
+   chuẩn hóa còn 4 mốc chính, các mốc lẻ chỉ giữ khi có lý do cụ thể):
+   --bp-mobile:  480px  (điện thoại nhỏ)
+   --bp-tablet:  768px  (tablet dọc / điện thoại lớn)
+   --bp-desktop: 1024px (tablet ngang / desktop nhỏ)
+   --bp-wide:    1400px (desktop rộng — kích hoạt sidebar quảng cáo) */
 
 /* ----- 2. BASE / RESET -------------------------------------------------- */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -69,6 +161,25 @@ a{color:inherit;text-decoration:none;}
 button{font:inherit;cursor:pointer;}
 h1,h2,h3,h4{font-family:var(--f-display);line-height:1.08;font-weight:800;letter-spacing:-0.015em;}
 
+/* ----- 2b. TYPOGRAPHY SCALE (utility) -----------------------------------
+   13 cấp chuẩn hóa. Áp dụng qua class .type-*, KHÔNG thay đổi các thẻ
+   heading mặc định (h1..h4) hay class hiện có (.hero-full__title, .feature
+   h2...) để tránh phá vỡ layout đang chạy. Dùng cho trang/component mới. */
+.type-display{font-family:var(--f-display);font-weight:900;font-size:var(--t-3xl);line-height:0.95;letter-spacing:-0.02em;}
+.type-h1{font-family:var(--f-display);font-weight:800;font-size:var(--t-2xl);line-height:1.08;letter-spacing:-0.015em;}
+.type-h2{font-family:var(--f-display);font-weight:800;font-size:var(--t-xl);line-height:1.15;letter-spacing:-0.01em;}
+.type-h3{font-family:var(--f-display);font-weight:700;font-size:var(--t-lg);line-height:1.2;}
+.type-h4{font-family:var(--f-display);font-weight:700;font-size:var(--t-md);line-height:1.25;}
+.type-body-lg{font-family:var(--f-body);font-weight:400;font-size:var(--t-md);line-height:1.65;max-width:70ch;}
+.type-body{font-family:var(--f-body);font-weight:400;font-size:var(--t-base);line-height:1.6;max-width:68ch;}
+.type-body-sm{font-family:var(--f-body);font-weight:400;font-size:var(--t-sm);line-height:1.55;max-width:62ch;}
+.type-caption{font-family:var(--f-mono);font-weight:500;font-size:var(--t-xs);line-height:1.4;color:var(--c-ink-3-accessible);}
+.type-overline{font-family:var(--f-mono);font-weight:600;font-size:var(--t-xs);letter-spacing:0.08em;text-transform:uppercase;}
+.type-metadata{font-family:var(--f-mono);font-weight:400;font-size:var(--t-xs);letter-spacing:0.02em;color:var(--c-ink-3-accessible);}
+.type-quote{font-family:var(--f-display);font-weight:500;font-style:italic;font-size:var(--t-lg);line-height:1.4;max-width:52ch;}
+.type-code{font-family:var(--f-mono);font-size:0.85em;background:var(--c-bg-subtle);padding:2px 6px;border-radius:var(--r-sm);}
+.type-footnote{font-family:var(--f-body);font-weight:400;font-size:var(--t-xs);line-height:1.5;color:var(--c-ink-3-accessible);}
+
 ::selection{background:var(--c-ink);color:var(--c-bg);}
 :focus-visible{outline:2px solid var(--c-red);outline-offset:3px;}
 
@@ -78,11 +189,44 @@ h1,h2,h3,h4{font-family:var(--f-display);line-height:1.08;font-weight:800;letter
 .divider{height:1px;background:var(--c-line);border:0;margin-block:var(--s-8);}
 .divider--strong{height:2px;background:var(--c-line-strong);}
 
+/* ----- Tag / Chip (trước đây mượn tạm .btn--ghost + inline style ghi đè
+   text-transform/font-family — nay có component riêng đúng chuẩn) ----- */
+.tag{
+  display:inline-flex;align-items:center;font-family:var(--f-mono);
+  font-size:var(--t-xs);padding:6px 12px;border:var(--bw-hairline) solid var(--c-line-strong);
+  border-radius:var(--r-pill);color:var(--c-ink);transition:background var(--dur),color var(--dur);
+}
+.tag:hover{background:var(--c-ink);color:var(--c-bg);}
+.chip{
+  display:inline-flex;align-items:center;gap:var(--s-1);font-family:var(--f-mono);
+  font-size:var(--t-xs);padding:4px 10px;border-radius:var(--r-pill);
+  background:var(--c-bg-subtle);color:var(--c-ink-2);
+}
+
+/* ----- Figure / Caption (chuẩn hóa từ .article-body .body-figure) ----- */
+.figure{margin:2em 0;}
+.figure img{width:100%;height:auto;display:block;border:var(--bw-hairline) solid var(--c-line);}
+.figure figcaption{font-family:var(--f-mono);font-size:var(--t-xs);color:var(--c-ink-3);margin-top:var(--s-2);text-align:center;}
+
+/* ----- Reading Time (trước đây gộp chung trong .byline, không style
+   độc lập được) ----- */
+.reading-time{font-family:var(--f-mono);font-size:var(--t-xs);color:var(--c-ink-3);}
+.reading-time::before{content:"·";margin-right:var(--s-2);}
+.reading-time:first-child::before{content:none;margin-right:0;}
+
 /* Grid helpers */
 .grid{display:grid;gap:var(--s-6);}
 .grid-3{grid-template-columns:repeat(3,1fr);}
 .grid-4{grid-template-columns:repeat(4,1fr);}
 .grid-2-1{grid-template-columns:2fr 1fr;}
+/* Vertical rhythm chuẩn cho section: xem .section{margin-top:var(--s-9)}
+   bên dưới — NGUỒN SỰ THẬT DUY NHẤT cho khoảng cách giữa section. */
+@media (max-width:1024px){
+  .grid-4{grid-template-columns:repeat(var(--grid-cols-tablet),1fr);}
+}
+/* Breakpoint 768px/520px cho .grid-3/.grid-4 đã định nghĩa ở phần
+   RESPONSIVE phía dưới file — không lặp lại ở đây để tránh 2 rule cùng
+   selector cùng breakpoint (duplicate CSS rule). */
 
 /* ----- 4. COMPONENTS ---------------------------------------------------- */
 
@@ -108,30 +252,34 @@ h1,h2,h3,h4{font-family:var(--f-display);line-height:1.08;font-weight:800;letter
 /* 4.3 Media frame (thay ảnh thật bằng placeholder có kết cấu) */
 .media{position:relative;overflow:hidden;background:#1a1a1a;display:block;}
 .media::before{
-  content:"";position:absolute;inset:0;z-index:0;
+  content:"";position:absolute;inset:0;z-index:var(--z-base);
   background:
     radial-gradient(120% 80% at 20% 15%, rgba(225,29,15,0.22), transparent 55%),
     radial-gradient(100% 100% at 85% 90%, rgba(29,78,216,0.20), transparent 60%),
     linear-gradient(135deg, #232323, #0e0e0e);
 }
 .media::after{
-  content:"";position:absolute;inset:0;z-index:1;
+  content:"";position:absolute;inset:0;z-index:var(--z-media-overlay);
   background:
     repeating-linear-gradient(58deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 9px),
     linear-gradient(0deg, rgba(0,0,0,0.32), transparent 60%);
   mix-blend-mode:screen;
 }
-.media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;}
+.media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:var(--z-content);}
 .media--16-9{aspect-ratio:16/9;}
 .media--4-3{aspect-ratio:4/3;}
 .media--3-2{aspect-ratio:3/2;}
 .media--1-1{aspect-ratio:1/1;}
+.media--16-10{aspect-ratio:16/10;}  /* Cover Story / feature */
+.media--3-4{aspect-ratio:3/4;}      /* profile-card portrait */
+.media--2-3{aspect-ratio:2/3;}      /* poster-card */
+.media--9-16{aspect-ratio:9/16;}    /* ad sidebar dọc */
 .media__zoom{transition:transform var(--dur) var(--ease);}
 a:hover .media__zoom{transform:scale(1.04);}
 
 /* code hồ sơ lưu trữ dạng mono, đặt trên ảnh */
 .archive-code{
-  position:absolute;top:var(--s-3);left:var(--s-3);z-index:2;
+  position:absolute;top:var(--s-3);left:var(--s-3);z-index:var(--z-content);
   font-family:var(--f-mono);font-size:10px;font-weight:500;letter-spacing:0.1em;
   color:#fff;background:rgba(11,11,11,0.72);backdrop-filter:blur(4px);
   padding:4px 8px;border-radius:2px;
@@ -170,7 +318,7 @@ a:hover .media__zoom{transform:scale(1.04);}
 .btn--ghost:hover{background:var(--c-ink);color:var(--c-bg);}
 
 /* ----- 5. HEADER -------------------------------------------------------- */
-.masthead{position:sticky;top:0;z-index:50;background:var(--c-bg);border-bottom:1px solid var(--c-line);}
+.masthead{position:sticky;top:0;z-index:var(--z-header);background:var(--c-bg);border-bottom:1px solid var(--c-line);}
 .masthead__util{border-bottom:1px solid var(--c-line);}
 .masthead__util .container{display:flex;justify-content:space-between;align-items:center;height:34px;}
 .masthead__util span,.masthead__util a{font-family:var(--f-mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--c-ink-3);}
@@ -178,11 +326,11 @@ a:hover .media__zoom{transform:scale(1.04);}
 .masthead__util .u-links{display:flex;gap:var(--s-5);}
 
 .masthead__main{position:relative;background-color:var(--c-bg);}
-.masthead__main .container{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;height:88px;}
+.masthead__main .container{position:relative;z-index:var(--z-content);display:flex;align-items:center;justify-content:space-between;height:88px;}
 /* Ảnh/GIF nền phủ toàn bộ khung header, không bị giới hạn bởi container */
 .masthead__main--has-bg{background-size:cover;background-position:center;background-repeat:no-repeat;}
 .masthead__main--has-bg::before{
-  content:"";position:absolute;inset:0;z-index:1;
+  content:"";position:absolute;inset:0;z-index:var(--z-media-overlay);
   background:rgba(255,255,255,0.45);
 }
 .wordmark{font-family:var(--f-display);font-weight:900;font-size:1.5rem;letter-spacing:-0.03em;display:flex;align-items:center;gap:2px;}
@@ -227,14 +375,14 @@ a:hover .media__zoom{transform:scale(1.04);}
   position:relative;width:100vw;margin-left:calc(50% - 50vw);
   aspect-ratio:16/9;max-height:760px;min-height:460px;overflow:hidden;background:#0a0a0a;
 }
-.hero-full__media{position:absolute;inset:0;z-index:0;}
+.hero-full__media{position:absolute;inset:0;z-index:var(--z-base);}
 .hero-full__media img,.hero-full__media .media__zoom{width:100%;height:100%;object-fit:cover;display:block;}
 .hero-full__scrim{
-  position:absolute;inset:0;z-index:1;
+  position:absolute;inset:0;z-index:var(--z-media-overlay);
   background:linear-gradient(0deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.05) 70%);
 }
 .hero-full__content{
-  position:absolute;left:0;bottom:0;z-index:2;max-width:720px;
+  position:absolute;left:0;bottom:0;z-index:var(--z-content);max-width:720px;
   padding:var(--s-8) var(--gutter) var(--s-9);color:#fff;
 }
 .hero-full__eyebrow{
@@ -312,11 +460,11 @@ a:hover .media__zoom{transform:scale(1.04);}
 /* ----- 10. VIDEO -------------------------------------------------------- */
 .video-row{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-6);}
 .video-card .media{aspect-ratio:16/9;margin-bottom:var(--s-3);}
-.video-card .play{position:absolute;inset:0;z-index:2;display:grid;place-items:center;}
+.video-card .play{position:absolute;inset:0;z-index:var(--z-content);display:grid;place-items:center;}
 .video-card .play span{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.92);display:grid;place-items:center;transition:transform var(--dur) var(--ease);}
 .video-card:hover .play span{transform:scale(1.08);background:#fff;}
 .video-card .play span::after{content:"";border-left:15px solid var(--c-ink);border-top:9px solid transparent;border-bottom:9px solid transparent;margin-left:4px;}
-.video-card .dur{position:absolute;bottom:var(--s-3);right:var(--s-3);z-index:2;font-family:var(--f-mono);font-size:10px;color:#fff;background:rgba(11,11,11,0.8);padding:3px 7px;border-radius:2px;}
+.video-card .dur{position:absolute;bottom:var(--s-3);right:var(--s-3);z-index:var(--z-content);font-family:var(--f-mono);font-size:10px;color:#fff;background:rgba(11,11,11,0.8);padding:3px 7px;border-radius:2px;}
 .video-card .eyebrow{margin-bottom:var(--s-1);}
 .video-card h3{font-size:var(--t-base);line-height:1.24;transition:color var(--dur);}
 .video-card:hover h3{color:var(--c-red);}
@@ -328,7 +476,7 @@ a:hover .media__zoom{transform:scale(1.04);}
 .newsletter p{color:var(--c-ink-2);font-size:var(--t-sm);margin-top:var(--s-2);max-width:44ch;}
 .newsletter form{display:flex;}
 .newsletter input{border:1px solid var(--c-line-strong);border-right:0;padding:12px 14px;font-size:var(--t-sm);min-width:240px;font-family:var(--f-body);}
-.newsletter input:focus{outline:none;}
+.newsletter input:focus{outline:2px solid var(--c-red);outline-offset:-2px;}
 .newsletter button{border:1px solid var(--c-ink);}
 
 /* ----- 12. FOOTER ------------------------------------------------------- */
@@ -391,7 +539,7 @@ a:hover .media__zoom{transform:scale(1.04);}
 /* ==========================================================================
    MENU OVERLAY
    ========================================================================== */
-.menu-overlay{position:fixed;inset:0;z-index:200;background:var(--c-bg);opacity:0;transition:opacity var(--dur) var(--ease);overflow-y:auto;}
+.menu-overlay{position:fixed;inset:0;z-index:var(--z-overlay);background:var(--c-bg);opacity:0;transition:opacity var(--dur) var(--ease);overflow-y:auto;}
 .menu-overlay.is-open{opacity:1;}
 .menu-overlay__bar{border-bottom:1px solid var(--c-line);position:sticky;top:0;background:var(--c-bg);}
 .menu-overlay__bar .container{display:flex;align-items:center;justify-content:space-between;height:68px;}
@@ -460,7 +608,7 @@ a:hover .media__zoom{transform:scale(1.04);}
 .gif-hero{position:relative;width:100vw;margin-left:calc(50% - 50vw);aspect-ratio:16/7;max-height:640px;min-height:320px;overflow:hidden;background:#0a0a0a;display:block;}
 .gif-hero__img{width:100%;height:100%;object-fit:cover;display:block;}
 .gif-hero__info{
-  position:absolute;left:0;right:0;bottom:0;z-index:2;padding:var(--s-6) var(--gutter);
+  position:absolute;left:0;right:0;bottom:0;z-index:var(--z-content);padding:var(--s-6) var(--gutter);
   background:linear-gradient(0deg, rgba(0,0,0,0.85) 10%, transparent 100%);
   display:flex;flex-direction:column;gap:2px;color:#fff;
 }
@@ -595,7 +743,7 @@ a:hover .media__zoom{transform:scale(1.04);}
 .profile-card__media img{width:100%;height:100%;object-fit:cover;display:block;}
 .profile-card__ph{position:absolute;inset:0;background:linear-gradient(145deg,#232323,#0e0e0e);}
 .profile-card__type{
-  position:absolute;top:var(--s-3);left:var(--s-3);z-index:2;
+  position:absolute;top:var(--s-3);left:var(--s-3);z-index:var(--z-content);
   background:rgba(255,255,255,0.94);padding:3px 10px;border-radius:12px;font-size:10px;
 }
 .profile-card__body{padding:var(--s-4);border-top:2px solid var(--c-ink);}
@@ -794,7 +942,7 @@ a:hover .media__zoom{transform:scale(1.04);}
 .poster-card__media{position:relative;aspect-ratio:2/3;background:var(--c-bg-subtle);overflow:hidden;}
 .poster-card__media img{width:100%;height:100%;object-fit:cover;display:block;}
 .poster-card__archive{
-  position:absolute;top:var(--s-3);left:var(--s-3);z-index:2;
+  position:absolute;top:var(--s-3);left:var(--s-3);z-index:var(--z-content);
   font-family:var(--f-mono);font-size:10px;font-weight:500;letter-spacing:0.08em;
   color:#fff;background:rgba(11,11,11,0.72);backdrop-filter:blur(4px);
   padding:3px 8px;border-radius:2px;
@@ -828,7 +976,7 @@ a:hover .media__zoom{transform:scale(1.04);}
 @media (min-width:1400px){
   .ad-sidebar{
     display:block;position:fixed;top:50%;transform:translateY(-50%);
-    width:180px;z-index:10;
+    width:180px;z-index:var(--z-sticky);
   }
   .ad-sidebar--left{left:20px;}
   .ad-sidebar--right{right:20px;}
@@ -879,7 +1027,7 @@ a,button,.card,.profile-card,.poster-card{cursor:pointer;}
 @media (hover:hover){
   .cursor-dot{
     position:fixed;top:0;left:0;width:10px;height:10px;border-radius:50%;
-    background:var(--c-red);pointer-events:none;z-index:9999;
+    background:var(--c-red);pointer-events:none;z-index:var(--z-cursor);
     transform:translate(-50%,-50%);transition:width .18s var(--ease),height .18s var(--ease),opacity .18s;
     mix-blend-mode:difference;opacity:0;
   }
@@ -888,7 +1036,7 @@ a,button,.card,.profile-card,.poster-card{cursor:pointer;}
 }
 
 /* 5. Progress bar đọc bài */
-.read-progress{position:fixed;top:0;left:0;height:3px;background:var(--c-red);z-index:9998;width:0%;transition:width .1s linear;}
+.read-progress{position:fixed;top:0;left:0;height:3px;background:var(--c-red);z-index:var(--z-toast);width:0%;transition:width .1s linear;}
 
 /* 8. Parallax nhẹ cho ảnh hero */
 .hero-full__media img,.hero-full__media .media__zoom{will-change:transform;}
