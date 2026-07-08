@@ -1111,6 +1111,88 @@ if('serviceWorker' in navigator){
     btn.textContent=document.body.classList.contains('reader-mode')?'Thoát chế độ đọc':'Chế độ đọc';
   });
 })();
+
+// 2. Text scramble cho tiêu đề hero — chỉ chạy 1 lần khi tải trang
+(function(){
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var CHARS='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  document.querySelectorAll('.js-scramble').forEach(function(h1){
+    var link=h1.querySelector('a');
+    var target=link?link:h1;
+    var finalText=target.textContent;
+    var len=finalText.length;
+    var frame=0;
+    var totalFrames=Math.min(len*2,40);
+    function tick(){
+      var out='';
+      for(var i=0;i<len;i++){
+        var charProgress=frame-i*1.2;
+        if(charProgress>=totalFrames*0.4){out+=finalText[i];}
+        else if(finalText[i]===' '){out+=' ';}
+        else{out+=CHARS[Math.floor(Math.random()*CHARS.length)];}
+      }
+      target.textContent=out;
+      frame++;
+      if(frame<totalFrames+len*1.2){requestAnimationFrame(tick);}
+      else{target.textContent=finalText;}
+    }
+    requestAnimationFrame(tick);
+  });
+})();
+
+// 1. Magnetic hover — chỉ thiết bị có chuột thật, cường độ nhẹ
+(function(){
+  if(!window.matchMedia('(hover:hover)').matches)return;
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var STRENGTH=0.25;
+  document.querySelectorAll('.btn--solid, .hero-full__cta').forEach(function(el){
+    el.classList.add('magnetic');
+    el.addEventListener('mousemove',function(e){
+      var r=el.getBoundingClientRect();
+      var x=(e.clientX-r.left-r.width/2)*STRENGTH;
+      var y=(e.clientY-r.top-r.height/2)*STRENGTH;
+      el.style.transform='translate('+x+'px,'+y+'px)';
+    });
+    el.addEventListener('mouseleave',function(){el.style.transform='';});
+  });
+})();
+
+// 4. Count-up cho số liệu — loại trừ phần tử trong marquee (đã nhân đôi
+// DOM để loop vô hạn), chỉ áp dụng ở lưới tĩnh (trang danh mục, hero riêng)
+(function(){
+  var els=document.querySelectorAll('.js-count');
+  if(!els.length)return;
+  var targets=[],staticEls=[];
+  els.forEach(function(el){
+    if(el.closest('.profiles-spotlight--marquee')){staticEls.push(el);}
+    else{targets.push(el);}
+  });
+  // Phần tử trong marquee: hiện số thật ngay lập tức, không animate
+  // (đã nhân đôi DOM để loop vô hạn, animate riêng lẻ sẽ gây lệch hình).
+  staticEls.forEach(function(el){el.textContent=el.getAttribute('data-count');});
+  if(!targets.length)return;
+  function animate(el){
+    var target=parseInt(el.getAttribute('data-count'),10)||0;
+    var dur=900,start=null;
+    function step(ts){
+      if(start===null)start=ts;
+      var p=Math.min((ts-start)/dur,1);
+      el.textContent=Math.round(target*(1-Math.pow(1-p,3)));
+      if(p<1)requestAnimationFrame(step);else el.textContent=target;
+    }
+    requestAnimationFrame(step);
+  }
+  if(!('IntersectionObserver' in window)){
+    targets.forEach(function(el){el.textContent=el.getAttribute('data-count');});
+    return;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){animate(en.target);io.unobserve(en.target);}
+    });
+  },{threshold:0.3});
+  targets.forEach(function(el){io.observe(el);});
+})();
 </script>
 """ + analytics_script_tag() + """
 </body>
@@ -1249,7 +1331,7 @@ def render_hero_slideshow(slides):
     <div class="hero-full__media">{zoom(a, eager=True)}<div class="hero-full__scrim"></div></div>
     <div class="hero-full__content">
       <span class="hero-full__eyebrow eyebrow{s['accent']}">{s['name']}</span>
-      <h1 class="hero-full__title"><a href="{article_url(a['slug'])}">{a['title']}</a></h1>
+      <h1 class="hero-full__title js-scramble"><a href="{article_url(a['slug'])}">{a['title']}</a></h1>
       <p class="hero-full__dek">{a['dek']}</p>
       <a href="{article_url(a['slug'])}" class="hero-full__cta">Đọc bài</a>
     </div>
@@ -1259,12 +1341,13 @@ def render_hero_slideshow(slides):
     for i, a in enumerate(slides):
         s = SERIES_BY_SLUG[a["series"]]
         active_cls = " is-active" if i == 0 else ""
+        scramble_cls = " js-scramble" if i == 0 else ""
         slides_html += f"""
       <div class="hero-full-slide{active_cls}" data-slide-index="{i}">
         <div class="hero-full__media">{zoom(a, eager=(i==0))}<div class="hero-full__scrim"></div></div>
         <div class="hero-full__content">
           <span class="hero-full__eyebrow eyebrow{s['accent']}">{s['name']}</span>
-          <h1 class="hero-full__title"><a href="{article_url(a['slug'])}">{a['title']}</a></h1>
+          <h1 class="hero-full__title{scramble_cls}"><a href="{article_url(a['slug'])}">{a['title']}</a></h1>
           <p class="hero-full__dek">{a['dek']}</p>
           <a href="{article_url(a['slug'])}" class="hero-full__cta">Đọc bài</a>
         </div>
@@ -1654,7 +1737,7 @@ def render_profile_card(p):
           {badges_html}
           <div class="profile-card__influence">
             <div class="profile-card__influence-bar"><span style="width:{p['influence']}%"></span></div>
-            <span class="profile-card__influence-num">{p['influence']}</span>
+            <span class="profile-card__influence-num js-count" data-count="{p['influence']}">0</span>
           </div>
         </div>
       </a>"""
@@ -1720,15 +1803,45 @@ def render_profiles_series_page(s):
 (function(){{
   var buttons=document.querySelectorAll('.profile-filter');
   var cards=document.querySelectorAll('.profile-card');
+  var reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   buttons.forEach(function(btn){{
     btn.addEventListener('click',function(){{
       buttons.forEach(function(b){{b.classList.remove('is-active');}});
       btn.classList.add('is-active');
       var type=btn.getAttribute('data-filter-type');
+
+      if(reduceMotion){{
+        cards.forEach(function(card){{
+          var match=(type==='all')||(card.getAttribute('data-type')===type);
+          card.style.display=match?'':'none';
+        }});
+        return;
+      }}
+
+      // FLIP: ghi vị trí First, đổi trạng thái Last, tính Invert, rồi Play
+      var first=new Map();
       cards.forEach(function(card){{
-        var cardType=card.querySelector('.profile-card__type').textContent.trim();
+        if(card.style.display!=='none')first.set(card,card.getBoundingClientRect());
+      }});
+
+      cards.forEach(function(card){{
         var match=(type==='all')||(card.getAttribute('data-type')===type);
         card.style.display=match?'':'none';
+      }});
+
+      cards.forEach(function(card){{
+        if(card.style.display==='none')return;
+        var last=card.getBoundingClientRect();
+        var prev=first.get(card);
+        if(!prev)return;
+        var dx=prev.left-last.left,dy=prev.top-last.top;
+        if(dx===0&&dy===0)return;
+        card.style.transform='translate('+dx+'px,'+dy+'px)';
+        card.style.transition='none';
+        requestAnimationFrame(function(){{
+          card.style.transition='transform .35s cubic-bezier(0.2,0.6,0.2,1)';
+          card.style.transform='';
+        }});
       }});
     }});
   }});
@@ -1766,7 +1879,7 @@ def render_profile_page(p):
         <div class="profile-hero__influence">
           <span class="profile-hero__influence-label">Độ ảnh hưởng</span>
           <div class="profile-card__influence-bar profile-hero__bar"><span style="width:{p['influence']}%"></span></div>
-          <span class="profile-card__influence-num">{p['influence']}</span>
+          <span class="profile-card__influence-num js-count" data-count="{p['influence']}">0</span>
         </div>
       </div>
     </div>
@@ -2502,6 +2615,21 @@ def main():
     shutil.copy(src_css, dst_css)
     with open(dst_css, "a", encoding="utf-8") as f:
         f.write(ARTICLE_CSS)
+
+    # Trang 404 tùy chỉnh
+    page_404 = head("Không tìm thấy trang", "Trang bạn tìm không tồn tại hoặc đã bị di chuyển.", path="404.html", append_site_name=True) + masthead()
+    page_404 += """
+<main>
+  <section class="container page-404">
+    <div class="page-404__code">404</div>
+    <h1 class="page-404__title">Trang này đã lạc trong underground.</h1>
+    <p class="page-404__desc">Đường dẫn không tồn tại hoặc đã bị gỡ. Quay lại trang chủ để tiếp tục khám phá.</p>
+    <a href="/" class="btn btn--solid">Về trang chủ</a>
+  </section>
+</main>
+""" + footer()
+    with open(os.path.join(OUT, "404.html"), "w", encoding="utf-8") as f:
+        f.write(page_404)
 
     # PWA: manifest.json + service worker cơ bản (cache-first cho tài nguyên tĩnh)
     manifest = {

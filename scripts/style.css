@@ -914,3 +914,18 @@ body.reader-mode .series-band,
 body.reader-mode .read-progress{display:none !important;}
 body.reader-mode .article-body{max-width:640px;font-size:1.15rem;line-height:1.9;}
 body.reader-mode{background:var(--c-bg);}
+
+/* 6. Trang 404 */
+.page-404{text-align:center;padding:var(--s-9) var(--gutter);max-width:600px;margin:0 auto;}
+.page-404__code{
+  font-family:var(--f-display);font-weight:900;font-size:clamp(4rem,14vw,9rem);
+  line-height:1;color:var(--c-red);letter-spacing:-0.03em;cursor:default;
+  transition:transform .3s var(--ease);
+}
+.page-404__code:hover{transform:scale(1.05) rotate(-1deg);}
+.page-404__title{font-size:var(--t-2xl);margin:var(--s-5) 0 var(--s-3);}
+.page-404__desc{color:var(--c-ink-2);margin-bottom:var(--s-6);}
+
+/* 1. Magnetic hover */
+.magnetic{transition:transform .2s var(--ease);will-change:transform;}
+@media (prefers-reduced-motion:reduce){.magnetic{transition:none;}}
