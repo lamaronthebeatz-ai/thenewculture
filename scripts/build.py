@@ -1512,7 +1512,7 @@ def render_index():
         <span class="trending__num">{i:02d}</span>
         <div>
           <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
-          <h4>{a['title']}</h4>
+          <h3>{a['title']}</h3>
         </div>
       </a>"""
 
@@ -1572,7 +1572,7 @@ def render_index():
   <section class="section container cover-story">
     <div class="section-head"><h2>Câu chuyện nổi bật</h2></div>
     <div class="feature">
-      <a href="{article_url(feat['slug'])}">
+      <a href="{article_url(feat['slug'])}" aria-hidden="true" tabindex="-1">
         <div class="media media--16-9">{zoom(feat)}<span class="archive-code">{art_code(feat)}</span></div>
       </a>
       <div>
@@ -1688,9 +1688,11 @@ def render_profiles_homepage_block():
     if not top_profiles:
         return ""
     # Nhân đôi danh sách thẻ: khi bản sao đầu trôi hết, bản sao thứ hai đã
-    # nối liền ngay sau, tạo cảm giác trôi vô tận không đứt đoạn.
+    # nối liền ngay sau, tạo cảm giác trôi vô tận không đứt đoạn. Bản sao thứ
+    # hai chỉ phục vụ hiệu ứng thị giác nên bị ẩn khỏi trình đọc màn hình và
+    # thứ tự Tab (inert) để không đọc/lặp lại 10 hồ sơ hai lần.
     single_set_html = "".join(render_profile_card(p) for p in top_profiles)
-    cards_html = single_set_html + single_set_html
+    cards_html = single_set_html + f'<div class="profiles-spotlight__dup" aria-hidden="true" inert>{single_set_html}</div>'
     return f"""
   <section class="profiles-spotlight profiles-spotlight--marquee">
     <div class="container">

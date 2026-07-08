@@ -432,8 +432,8 @@ a:hover .media__zoom{transform:scale(1.04);}
 .trending__item{display:grid;grid-template-columns:auto 1fr;gap:var(--s-4);padding:var(--s-4) 0;border-bottom:1px solid var(--c-line);align-items:baseline;}
 .trending__num{font-family:var(--f-display);font-size:1.5rem;font-weight:800;color:var(--c-ink-3);min-width:1.6em;}
 .trending__item .eyebrow{font-size:10px;display:block;margin-bottom:2px;}
-.trending__item h4{font-size:var(--t-md);line-height:1.25;font-weight:700;font-family:var(--f-body);transition:color var(--dur);}
-.trending__item:hover h4{color:var(--c-red);}
+.trending__item h3{font-size:var(--t-md);line-height:1.25;font-weight:700;font-family:var(--f-body);transition:color var(--dur);}
+.trending__item:hover h3{color:var(--c-red);}
 @media (max-width:1024px){.trending__grid{grid-template-columns:1fr;gap:0;}}
 
 /* ----- 8. TOP STORY (feature ngang lớn) -------------------------------- */
@@ -777,6 +777,9 @@ a:hover .media__zoom{transform:scale(1.04);}
 }
 .profiles-spotlight__track{display:flex;gap:var(--s-5);width:max-content;}
 .profiles-spotlight__track .profile-card{width:210px;flex-shrink:0;scroll-snap-align:start;}
+/* Bản sao thẻ thứ hai (marquee vô tận) — display:contents giữ nguyên các thẻ
+   con là flex item trực tiếp của track, chỉ dùng div làm điểm neo aria-hidden/inert. */
+.profiles-spotlight__dup{display:contents;}
 /* Thanh cuộn tùy chỉnh, tinh tế hơn mặc định trình duyệt */
 .profiles-spotlight__scroll::-webkit-scrollbar{height:6px;}
 .profiles-spotlight__scroll::-webkit-scrollbar-track{background:var(--c-bg-subtle);}
