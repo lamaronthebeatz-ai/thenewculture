@@ -390,7 +390,7 @@ a:hover .media__zoom{transform:scale(1.04);}
   letter-spacing:0.08em;text-transform:uppercase;color:#fff;
   background:var(--c-red);padding:5px 12px;border-radius:2px;margin-bottom:var(--s-4);
 }
-.hero-full__title{font-family:var(--f-display);font-weight:900;font-size:clamp(1.75rem,4.5vw,3.25rem);line-height:1.05;margin-bottom:var(--s-4);max-width:20ch;}
+.hero-full__title{font-family:var(--f-display);font-weight:900;font-size:clamp(1.75rem,4.5vw,3.25rem);line-height:1.05;margin-bottom:var(--s-4);}
 .hero-full__title a{color:#fff;}
 .hero-full__dek{font-size:var(--t-md);color:rgba(255,255,255,0.85);max-width:56ch;margin-bottom:var(--s-5);line-height:1.5;}
 .hero-full__cta{
@@ -413,6 +413,9 @@ a:hover .media__zoom{transform:scale(1.04);}
 @media (max-width:768px){
   .hero-full{aspect-ratio:3/4;max-height:640px;min-height:520px;}
   .hero-full__content{padding:var(--s-6) var(--gutter) var(--s-7);max-width:100%;}
+  /* Ở màn hẹp, container đã đủ hẹp để tự ngắt dòng cân đối — giữ lại giới
+     hạn ký tự/dòng như bản gốc để tránh ngắt dòng giữa từ ghép. */
+  .hero-full__title{max-width:20ch;}
 }
 
 /* ----- Khối "Mới cập nhật" — 5 bài viết, tách riêng ngay dưới hero ------ */
@@ -437,9 +440,11 @@ a:hover .media__zoom{transform:scale(1.04);}
 @media (max-width:1024px){.trending__grid{grid-template-columns:1fr;gap:0;}}
 
 /* ----- 8. TOP STORY (feature ngang lớn) -------------------------------- */
-.feature{display:grid;grid-template-columns:1.4fr 1fr;gap:var(--s-7);align-items:center;}
+.feature{display:grid;grid-template-columns:1.4fr 1fr;gap:var(--s-7);align-items:start;}
 .feature .media{aspect-ratio:16/10;}
-.feature h2{font-size:var(--t-2xl);margin:var(--s-3) 0;}
+/* Nhỏ hơn hero (--t-3xl) để giữ đúng thứ bậc: Hero (bài #1) luôn nổi bật hơn
+   Cover Story (bài #2) rõ ràng, tránh hai tiêu đề đọc gần như cùng cỡ. */
+.feature h2{font-size:clamp(1.75rem,3vw,2.5rem);margin:var(--s-3) 0;}
 .feature p{font-size:var(--t-md);color:var(--c-ink-2);margin-bottom:var(--s-4);max-width:46ch;}
 .cover-story{margin-top:var(--s-7);margin-bottom:var(--s-9);padding-bottom:var(--s-8);border-bottom:1px solid var(--c-line);}
 .cover-story .section-head{margin-bottom:var(--s-6);}
