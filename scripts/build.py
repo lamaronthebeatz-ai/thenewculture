@@ -1345,12 +1345,13 @@ def render_hero_slideshow(slides):
         s = SERIES_BY_SLUG[a["series"]]
         active_cls = " is-active" if i == 0 else ""
         scramble_cls = " js-scramble" if i == 0 else ""
+        title_tag = "h1" if i == 0 else "p"
         slides_html += f"""
       <div class="hero-full-slide{active_cls}" data-slide-index="{i}">
         <div class="hero-full__media">{zoom(a, eager=(i==0))}<div class="hero-full__scrim"></div></div>
         <div class="hero-full__content">
           <span class="hero-full__eyebrow eyebrow{s['accent']}">{s['name']}</span>
-          <h1 class="hero-full__title{scramble_cls}"><a href="{article_url(a['slug'])}">{a['title']}</a></h1>
+          <{title_tag} class="hero-full__title{scramble_cls}"><a href="{article_url(a['slug'])}">{a['title']}</a></{title_tag}>
           <p class="hero-full__dek">{a['dek']}</p>
           <a href="{article_url(a['slug'])}" class="hero-full__cta">Đọc bài</a>
         </div>
@@ -1525,9 +1526,14 @@ def render_index():
         <p>{s['desc']}</p>
       </a>"""
 
-    # latest grid (6 bài)
+    # latest grid (6 bài, loại trừ bài đã dùng làm Cover Story để không trùng lặp)
     latest = ""
-    for a in ARTICLES[:6]:
+    latest_count = 0
+    for a in ARTICLES:
+        if feat and a["slug"] == feat["slug"]:
+            continue
+        if latest_count >= 6:
+            break
         s = SERIES_BY_SLUG[a["series"]]
         latest += f"""
       <a class="card" href="{article_url(a['slug'])}">
@@ -1536,6 +1542,7 @@ def render_index():
         <h3>{a['title']}</h3>
         <span class="byline">{a['author']} · {a['date']}</span>
       </a>"""
+        latest_count += 1
 
     # video (tối đa 3, an toàn khi ít bài)
     _durs = ["38:12", "24:50", "45:03"]
@@ -1562,6 +1569,21 @@ def render_index():
     html += f"""
 {render_hero_slideshow(slide_articles)}
 <main>
+  <section class="section container cover-story">
+    <div class="section-head"><h2>Câu chuyện nổi bật</h2></div>
+    <div class="feature">
+      <a href="{article_url(feat['slug'])}">
+        <div class="media media--16-9">{zoom(feat)}<span class="archive-code">{art_code(feat)}</span></div>
+      </a>
+      <div>
+        <span class="eyebrow eyebrow{fs['accent']}">{fs['name']}</span>
+        <h2><a href="{article_url(feat['slug'])}">{feat['title']}</a></h2>
+        <p>{feat['dek']}</p>
+        <a class="btn btn--ghost" href="{article_url(feat['slug'])}">Đọc bài</a>
+      </div>
+    </div>
+  </section>
+
   <section class="hero-side-strip container">
     <div class="section-head"><h2>Mới cập nhật</h2></div>
     <div class="hero-side-strip__grid">{side}
@@ -1583,21 +1605,6 @@ def render_index():
         <a class="more" href="all-series.html">16 tuyến nội dung — bản đồ tri thức TNC</a>
       </div>
       <div class="series-grid">{cells}
-      </div>
-    </div>
-  </section>
-
-  <section class="section container">
-    <div class="section-head"><h2>Câu chuyện nổi bật</h2></div>
-    <div class="feature">
-      <a href="{article_url(feat['slug'])}">
-        <div class="media media--16-9">{zoom(feat)}<span class="archive-code">{art_code(feat)}</span></div>
-      </a>
-      <div>
-        <span class="eyebrow eyebrow{fs['accent']}">{fs['name']}</span>
-        <h2><a href="{article_url(feat['slug'])}">{feat['title']}</a></h2>
-        <p>{feat['dek']}</p>
-        <a class="btn btn--ghost" href="{article_url(feat['slug'])}">Đọc bài</a>
       </div>
     </div>
   </section>
