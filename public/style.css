@@ -284,14 +284,17 @@ a:hover .media__zoom{transform:scale(1.04);}
 .trending__item{display:grid;grid-template-columns:auto 1fr;gap:var(--s-4);padding:var(--s-4) 0;border-bottom:1px solid var(--c-line);align-items:baseline;}
 .trending__num{font-family:var(--f-display);font-size:1.5rem;font-weight:800;color:var(--c-ink-3);min-width:1.6em;}
 .trending__item .eyebrow{font-size:10px;display:block;margin-bottom:2px;}
-.trending__item h4{font-size:var(--t-base);line-height:1.25;font-weight:700;font-family:var(--f-body);transition:color var(--dur);}
+.trending__item h4{font-size:var(--t-md);line-height:1.25;font-weight:700;font-family:var(--f-body);transition:color var(--dur);}
 .trending__item:hover h4{color:var(--c-red);}
+@media (max-width:1024px){.trending__grid{grid-template-columns:1fr;gap:0;}}
 
 /* ----- 8. TOP STORY (feature ngang lớn) -------------------------------- */
 .feature{display:grid;grid-template-columns:1.4fr 1fr;gap:var(--s-7);align-items:center;}
 .feature .media{aspect-ratio:16/10;}
 .feature h2{font-size:var(--t-2xl);margin:var(--s-3) 0;}
 .feature p{font-size:var(--t-md);color:var(--c-ink-2);margin-bottom:var(--s-4);max-width:46ch;}
+.cover-story{margin-top:var(--s-7);margin-bottom:var(--s-9);padding-bottom:var(--s-8);border-bottom:1px solid var(--c-line);}
+.cover-story .section-head{margin-bottom:var(--s-6);}
 
 /* ----- 9. SERIES INDEX (khối bản đồ tri thức) -------------------------- */
 .series-band{background:var(--c-bg-invert);color:#fff;margin-top:var(--s-9);padding-block:var(--s-8);}
