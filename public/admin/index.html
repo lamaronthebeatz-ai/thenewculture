@@ -10,8 +10,12 @@
        dấu / cuối — rất dễ xảy ra khi gõ tay URL hoặc mở từ bookmark cũ),
        việc suy luận tương đối sẽ tính nhầm config.yml nằm ở gốc domain
        thay vì trong /admin/, gây lỗi "configuration file could not be
-       retrieved". Đường dẫn tuyệt đối loại bỏ hoàn toàn rủi ro này. -->
-  <link rel="cms-config-url" href="/admin/config.yml">
+       retrieved". Đường dẫn tuyệt đối loại bỏ hoàn toàn rủi ro này.
+       BẮT BUỘC phải có type="application/yaml": thuộc tính DOM "type" của
+       thẻ <link> khi thiếu sẽ trả về chuỗi rỗng "" (không phải undefined),
+       khiến Sveltia CMS coi định dạng file là "không hỗ trợ" và báo lỗi
+       "configuration file could not be parsed" dù nội dung YAML hợp lệ. -->
+  <link rel="cms-config-url" href="/admin/config.yml" type="application/yaml">
 </head>
 <body>
   <!-- Sveltia CMS: nạp từ CDN, luôn lấy bản mới nhất -->
