@@ -223,6 +223,29 @@ def _estimate_read_time(md):
     minutes = max(1, round(words / 200))
     return f"{minutes} phút đọc"
 
+def _auto_excerpt(md, limit=160):
+    """Tự sinh tóm tắt (dek) từ đoạn văn xuôi đầu tiên của bài, chỉ dùng khi
+    biên tập viên để trống trường Tóm tắt. Bỏ qua tiêu đề phụ/trích dẫn/
+    danh sách/ảnh/video đứng trước, và bỏ ký hiệu định dạng markdown thô để
+    ra chữ thuần (dùng được cả trong thẻ <meta description>)."""
+    for para in re.split(r'\n\s*\n', md.strip()):
+        para = para.strip()
+        if not para:
+            continue
+        if para.startswith(('## ', '### ', '> ', '- ', '* ', '![')):
+            continue
+        if re.match(r'^https?://\S+$', para) or re.match(r'^\d+[.)]\s+', para):
+            continue
+        text = " ".join(line.strip() for line in para.split('\n'))
+        text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
+        text = re.sub(r'(?<!\*)\*(?!\*)([^*]+)\*(?!\*)', r'\1', text)
+        text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+        text = re.sub(r'`([^`]+)`', r'\1', text)
+        if len(text) > limit:
+            text = text[:limit].rsplit(' ', 1)[0] + "…"
+        return text
+    return ""
+
 def slugify(text):
     """Chuẩn hóa chuỗi thành slug an toàn cho URL: bỏ dấu, chỉ giữ chữ/số/gạch ngang."""
     import unicodedata
@@ -259,11 +282,14 @@ def load_articles():
             mtime = datetime.datetime.fromtimestamp(os.path.getmtime(path))
             thang = mtime.month
             date_val = f"{mtime.day} Tháng {thang}, {mtime.year}"
+        # Tóm tắt (dek): ưu tiên giá trị nhập tay, nếu trống thì tự lấy đoạn
+        # văn xuôi đầu tiên của bài làm tóm tắt.
+        dek_val = (meta.get("dek") or "").strip() or _auto_excerpt(body_md)
         articles.append({
             "slug": slug,
             "series": meta["series"],
             "title": meta["title"],
-            "dek": meta.get("dek", ""),
+            "dek": dek_val,
             "author": meta.get("author", "TNC Editorial"),
             "date": date_val,
             "read_time": read_time,
