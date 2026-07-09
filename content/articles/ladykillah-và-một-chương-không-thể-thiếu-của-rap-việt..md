@@ -8,7 +8,7 @@ poster: ''
 author: Lamar
 date: ''
 read_time: ''
-featured: false
+featured: true
 order: 1
 tags:
   - '#TNC'
