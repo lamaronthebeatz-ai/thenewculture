@@ -1138,14 +1138,14 @@ if('serviceWorker' in navigator){
 (function(){
   var sentinel=document.querySelector('.js-infinite-sentinel');
   if(!sentinel)return;
-  var hidden=document.querySelectorAll('.js-infinite-item[style*="display: none"]');
+  var hidden=document.querySelectorAll('.js-infinite-item[style*="display:none"]');
   if(!hidden.length)return;
   var io=new IntersectionObserver(function(entries){
     entries.forEach(function(en){
       if(en.isIntersecting){
-        var next=document.querySelectorAll('.js-infinite-item[style*="display: none"]');
+        var next=document.querySelectorAll('.js-infinite-item[style*="display:none"]');
         for(var i=0;i<Math.min(8,next.length);i++){next[i].style.display='';}
-        if(document.querySelectorAll('.js-infinite-item[style*="display: none"]').length===0){
+        if(document.querySelectorAll('.js-infinite-item[style*="display:none"]').length===0){
           io.unobserve(sentinel);
         }
       }
@@ -1834,7 +1834,7 @@ def render_profiles_series_page(s):
 <main>
   <section class="container" style="padding-top:var(--s-6);">
     <nav class="byline" style="margin-bottom:var(--s-6);" aria-label="breadcrumb">
-      <a href="index.html">Trang chủ</a> / <a href="index.html#series">Series</a> / {s['name']}
+      <a href="index.html">Trang chủ</a> / <a href="all-series.html">Series</a> / {s['name']}
     </nav>
     <div style="border-bottom:2px solid var(--c-line-strong);padding-bottom:var(--s-6);margin-bottom:var(--s-6);">
       <span class="eyebrow eyebrow{s['accent']}" style="font-size:var(--t-sm);">{s['code']} · Series {s['num']} / 16</span>
@@ -1996,7 +1996,7 @@ def render_community_series_page(s):
 <main>
   <section class="container" style="padding-top:var(--s-6);">
     <nav class="byline" style="margin-bottom:var(--s-6);" aria-label="breadcrumb">
-      <a href="index.html">Trang chủ</a> / <a href="index.html#series">Series</a> / {s['name']}
+      <a href="index.html">Trang chủ</a> / <a href="all-series.html">Series</a> / {s['name']}
     </nav>
     <div style="border-bottom:2px solid var(--c-line-strong);padding-bottom:var(--s-6);margin-bottom:var(--s-7);">
       <span class="eyebrow eyebrow{s['accent']}" style="font-size:var(--t-sm);">{s['code']} · Series {s['num']} / 16</span>
@@ -2061,7 +2061,7 @@ def render_series_page(s):
 <main>
   <section class="container" style="padding-top:var(--s-6);">
     <nav class="byline" style="margin-bottom:var(--s-6);" aria-label="breadcrumb">
-      <a href="index.html">Trang chủ</a> / <a href="index.html#series">Series</a> / {s['name']}
+      <a href="index.html">Trang chủ</a> / <a href="all-series.html">Series</a> / {s['name']}
     </nav>
     <div style="border-bottom:2px solid var(--c-line-strong);padding-bottom:var(--s-6);margin-bottom:var(--s-7);">
       <span class="eyebrow eyebrow{s['accent']}" style="font-size:var(--t-sm);">{s['code']} · Series {s['num']} / 16</span>
