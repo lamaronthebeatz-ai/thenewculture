@@ -19,7 +19,7 @@ tags:
 ranking: []
 ---
 
-# LadyKillah: Tập thể đã thay đổi cách rap Việt được lắng nghe
+https://youtu.be/5AfSpD2ltPg?si=YojyfAuOlGLZ6yvO
 
 Trước khi rap Việt trở thành một phần của thị trường âm nhạc đại chúng, LadyKillah đã xuất hiện như một trong những tập thể đầu tiên chứng minh rằng rap và R&B hoàn toàn có thể bước ra khỏi cộng đồng underground để tiếp cận đông đảo khán giả. Trong giai đoạn đầu thập niên 2010, khi phần lớn rap vẫn gắn liền với battle, freestyle và những bản thu phát hành trên các diễn đàn, LadyKillah lựa chọn một hướng đi khác: kết hợp rap với R&B và pop để tạo nên những ca khúc dễ tiếp cận hơn nhưng vẫn giữ được tinh thần của hip hop.
 
