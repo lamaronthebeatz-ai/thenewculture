@@ -1,0 +1,10 @@
+name = "tnc-cms-auth"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# GITHUB_CLIENT_ID không phải giá trị bí mật (nó lộ ra công khai trong chính
+# URL chuyển hướng OAuth), nên đặt thẳng ở đây sau khi tạo GitHub OAuth App.
+# GITHUB_CLIENT_SECRET tuyệt đối KHÔNG đặt ở file này — set bằng:
+#   wrangler secret put GITHUB_CLIENT_SECRET
+[vars]
+GITHUB_CLIENT_ID = ""
