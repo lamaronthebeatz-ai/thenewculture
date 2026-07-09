@@ -938,6 +938,29 @@ a:hover .media__zoom{transform:scale(1.04);}
 }
 
 /* ==========================================================================
+   ĐIỀU HƯỚNG BÀI TRƯỚC/SAU TRONG SERIES — cuối mỗi bài viết
+   ========================================================================== */
+.series-pager{
+  max-width:680px;display:grid;grid-template-columns:1fr 1fr;gap:var(--s-5);
+  padding:var(--s-6) 0;margin-top:var(--s-6);border-top:1px solid var(--c-line);
+}
+.series-pager__link{display:flex;flex-direction:column;gap:var(--s-1);text-decoration:none;min-width:0;}
+.series-pager__link--next{text-align:right;align-items:flex-end;}
+.series-pager__label{
+  font-family:var(--f-mono);font-size:var(--t-xs);text-transform:uppercase;
+  letter-spacing:0.08em;color:var(--c-ink-3);
+}
+.series-pager__title{
+  font-family:var(--f-display);font-weight:700;font-size:var(--t-base);
+  color:var(--c-ink);line-height:1.3;transition:color var(--dur);
+}
+.series-pager__link:hover .series-pager__title{color:var(--c-red);}
+@media (max-width:560px){
+  .series-pager{grid-template-columns:1fr;}
+  .series-pager__link--next{text-align:left;align-items:flex-start;}
+}
+
+/* ==========================================================================
    TNC COMMUNITY — THẺ POSTER DỌC (sự kiện, hoạt động cộng đồng)
    ========================================================================== */
 
@@ -1100,6 +1123,7 @@ body.reader-mode{background:var(--c-bg);}
 .article-body code{font-family:var(--f-mono);font-size:0.85em;background:var(--c-bg-subtle);padding:2px 6px;border-radius:3px;}
 .article-body .body-list{margin:0 0 1.4em 1.2em;padding:0;}
 .article-body .body-list li{margin-bottom:0.5em;padding-left:0.3em;list-style:disc;}
+.article-body .body-list--ordered li{list-style:decimal;}
 /* Ảnh trong bài */
 .article-body .body-figure{margin:2em 0;}
 .article-body .body-figure img{width:100%;height:auto;display:block;border:1px solid var(--c-line);}
@@ -1107,6 +1131,9 @@ body.reader-mode{background:var(--c-bg);}
 /* Video nhúng YouTube (tỉ lệ 16:9 co giãn) */
 .article-body .body-video{position:relative;width:100%;aspect-ratio:16/9;margin:2em 0;background:#000;}
 .article-body .body-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+/* Nhúng Spotify/SoundCloud — chiều cao cố định theo chuẩn nhà cung cấp, không dùng tỉ lệ 16:9 */
+.article-body .body-embed{margin:2em 0;}
+.article-body .body-embed iframe{width:100%;border:0;display:block;}
 /* Ảnh bìa hiển thị đè lên placeholder */
 .media__zoom{width:100%;height:100%;object-fit:cover;}
 img.media__zoom{position:absolute;inset:0;z-index:1;}
