@@ -3,11 +3,12 @@ title: 'KTS2026: Khi Hành Or, Rocky CDE và Freaky kể câu chuyện về "khu
 series: tnc-reviews
 dek: Không chỉ đơn thuần nói về một địa điểm, "khu tao sống" trở thành biểu tượng cho nơi mỗi người lớn lên, những mối quan hệ đã hình thành nên bản thân và niềm tự hào về nguồn cội.
 cover: /uploads/3750.jpg
+cover_credit: ''
 author: Lamar
 date: ''
 read_time: ''
 featured: false
-order: 1
+order: 5
 tags:
   - '#TNC'
   - '#TNCReview'
