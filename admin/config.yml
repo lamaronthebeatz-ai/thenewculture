@@ -67,6 +67,13 @@ collections:
         required: false
         hint: "Ảnh đại diện bài viết, hiển thị ở trang chủ, trang series và đầu bài. Để trống sẽ dùng nền mặc định."
 
+      - label: "Nguồn ảnh bìa (tùy chọn)"
+        name: cover_credit
+        widget: string
+        required: false
+        default: ""
+        hint: "Ghi chú nguồn/tác giả ảnh bìa, hiển thị dưới ảnh đầu bài. Để trống sẽ dùng chú thích mặc định 'Ảnh minh họa — TNC Archive'."
+
       - label: "Ảnh Poster (chỉ dùng cho TNC Community)"
         name: poster
         widget: image
@@ -114,7 +121,7 @@ collections:
       - label: "Nội dung bài viết"
         name: body
         widget: markdown
-        hint: "Viết nội dung tại đây. Dùng ## để tạo tiêu đề phụ, > để tạo trích dẫn."
+        hint: "Viết nội dung tại đây. Dùng ## để tạo tiêu đề phụ, > để tạo trích dẫn, danh sách bắt đầu bằng '1.' hoặc '-' để tạo danh sách có/không số thứ tự. Dán link YouTube, Spotify hoặc SoundCloud đứng riêng một dòng để tự động nhúng trình phát."
 
       - label: "Bảng xếp hạng (tùy chọn)"
         name: ranking

@@ -141,9 +141,22 @@ def _youtube_id(url):
     m = re.search(r'(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([A-Za-z0-9_-]{11})', url)
     return m.group(1) if m else None
 
+def _spotify_embed(url):
+    """Trích loại nội dung + ID từ link Spotify (track/album/playlist/artist/episode/show),
+    kể cả biến thể có tiền tố ngôn ngữ 'intl-xx/'."""
+    m = re.search(r'open\.spotify\.com/(?:intl-\w+/)?(track|album|playlist|artist|episode|show)/([A-Za-z0-9]+)', url)
+    if not m:
+        return None
+    return {"kind": m.group(1), "id": m.group(2)}
+
+def _soundcloud_url(url):
+    """Nhận diện link SoundCloud đứng riêng dòng (track hoặc playlist/'sets')."""
+    return url if re.match(r'^https?://(www\.)?soundcloud\.com/\S+$', url) else None
+
 def _md_body_to_blocks(md):
     """Chuyển markdown thành list block (kind, payload) để render.
-    Hỗ trợ: h2, blockquote, ảnh, video YouTube, danh sách, đoạn văn (có định dạng inline)."""
+    Hỗ trợ: h2/h3, blockquote, ảnh, video YouTube, nhúng Spotify/SoundCloud,
+    danh sách gạch đầu dòng hoặc có số thứ tự, đoạn văn (có định dạng inline)."""
     blocks = []
     for para in re.split(r'\n\s*\n', md.strip()):
         para = para.strip()
@@ -157,11 +170,19 @@ def _md_body_to_blocks(md):
             blocks.append(("image", {"src": src, "alt": alt, "caption": alt}))
             continue
 
-        # Link YouTube đứng riêng -> nhúng video
+        # Link đứng riêng dòng -> nhúng trình phát (YouTube / Spotify / SoundCloud)
         if re.match(r'^https?://\S+$', para):
             yid = _youtube_id(para)
             if yid:
                 blocks.append(("youtube", yid))
+                continue
+            sp = _spotify_embed(para)
+            if sp:
+                blocks.append(("spotify", sp))
+                continue
+            sc = _soundcloud_url(para)
+            if sc:
+                blocks.append(("soundcloud", sc))
                 continue
 
         # Tiêu đề phụ
@@ -183,6 +204,12 @@ def _md_body_to_blocks(md):
         if all(line.strip().startswith(('- ', '* ')) for line in para.split('\n') if line.strip()):
             items = [_inline_md(line.strip()[2:].strip()) for line in para.split('\n') if line.strip()]
             blocks.append(("list", items))
+            continue
+
+        # Danh sách có số thứ tự: "1. ", "2) "...
+        if all(re.match(r'^\d+[.)]\s+', line.strip()) for line in para.split('\n') if line.strip()):
+            items = [_inline_md(re.sub(r'^\d+[.)]\s+', '', line.strip())) for line in para.split('\n') if line.strip()]
+            blocks.append(("ordered_list", items))
             continue
 
         # Đoạn văn thường
@@ -241,6 +268,7 @@ def load_articles():
             "date": date_val,
             "read_time": read_time,
             "cover": meta.get("cover", "") or "",
+            "cover_credit": (meta.get("cover_credit") or "").strip(),
             "poster": meta.get("poster", "") or "",
             "featured": bool(meta.get("featured", False)),
             "order": int(meta.get("order", 999)),
@@ -420,6 +448,7 @@ if not ARTICLES:
         "date": "",
         "read_time": "1 phút đọc",
         "cover": "",
+        "cover_credit": "",
         "poster": "",
         "featured": True,
         "order": 1,
@@ -437,6 +466,18 @@ if _featured:
 ARTICLES_BY_SERIES = {}
 for a in ARTICLES:
     ARTICLES_BY_SERIES.setdefault(a["series"], []).append(a)
+
+# Chỉ mục Tag: gom bài viết theo slug của từ khóa (không phân biệt hoa/thường,
+# có dấu/không dấu), giữ lại cách viết gốc xuất hiện đầu tiên để hiển thị.
+TAGS_BY_SLUG = {}
+for a in ARTICLES:
+    for t in a.get("tags", []):
+        t = (t or "").strip()
+        if not t:
+            continue
+        tslug = slugify(t)
+        TAGS_BY_SLUG.setdefault(tslug, {"name": t, "articles": []})
+        TAGS_BY_SLUG[tslug]["articles"].append(a)
 
 print(f"Đã nạp {len(SERIES)} series, {len(ARTICLES)} bài viết từ Markdown.")
 # =================================================================
@@ -1211,6 +1252,7 @@ if('serviceWorker' in navigator){
 
 def article_url(slug): return f"article-{slug}.html"
 def series_url(slug): return f"series-{slug}.html"
+def tag_url(slug): return f"tag-{slug}.html"
 
 def art_code(article):
     """Mã lưu trữ bài viết: TNC·ITC·001"""
@@ -2103,6 +2145,9 @@ def render_body_blocks(blocks):
         elif kind == "list":
             items = "".join(f"<li>{it}</li>" for it in payload)
             out.append(f"      <ul class=\"body-list\">{items}</ul>")
+        elif kind == "ordered_list":
+            items = "".join(f"<li>{it}</li>" for it in payload)
+            out.append(f"      <ol class=\"body-list body-list--ordered\">{items}</ol>")
         elif kind == "image":
             src = payload["src"]; alt = payload.get("alt", ""); cap = payload.get("caption", "")
             cap_html = f'<figcaption>{cap}</figcaption>' if cap else ''
@@ -2116,6 +2161,25 @@ def render_body_blocks(blocks):
                 f'title="Video" frameborder="0" loading="lazy" '
                 f'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" '
                 f'allowfullscreen></iframe></div>'
+            )
+        elif kind == "spotify":
+            sp_kind, sp_id = payload["kind"], payload["id"]
+            height = 152 if sp_kind == "track" else 352
+            out.append(
+                f'      <div class="body-embed"><iframe src="https://open.spotify.com/embed/{sp_kind}/{sp_id}" '
+                f'width="100%" height="{height}" frameborder="0" loading="lazy" '
+                f'allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" '
+                f'title="Spotify player"></iframe></div>'
+            )
+        elif kind == "soundcloud":
+            import urllib.parse as _urlparse
+            height = 300 if "/sets/" in payload else 166
+            encoded = _urlparse.quote(payload, safe='')
+            out.append(
+                f'      <div class="body-embed"><iframe src="https://w.soundcloud.com/player/?url={encoded}'
+                f'&color=%23e11d0f&auto_play=false&show_teaser=true" '
+                f'width="100%" height="{height}" frameborder="0" loading="lazy" '
+                f'title="SoundCloud player"></iframe></div>'
             )
     return "\n".join(out)
 
@@ -2140,6 +2204,32 @@ def article_schema_json(a, s, path):
     }
     return f'<script type="application/ld+json">{_json.dumps(data, ensure_ascii=False)}</script>'
 
+def render_series_pager(a):
+    """Điều hướng 'Bài trước / Bài sau' trong cùng series, theo đúng thứ tự
+    lưu trữ (order/slug) đã dùng cho toàn hệ thống. Tự ẩn nếu bài là bài
+    duy nhất của series đó."""
+    lst = ARTICLES_BY_SERIES.get(a["series"], [])
+    idx = lst.index(a)
+    prev_a = lst[idx + 1] if idx + 1 < len(lst) else None
+    next_a = lst[idx - 1] if idx - 1 >= 0 else None
+    if not prev_a and not next_a:
+        return ""
+    s = SERIES_BY_SLUG[a["series"]]
+
+    def _link(art, direction):
+        label = f"← Bài trước · {s['name']}" if direction == "prev" else f"Bài sau · {s['name']} →"
+        return (f'<a class="series-pager__link series-pager__link--{direction}" href="{article_url(art["slug"])}">'
+                f'<span class="series-pager__label">{label}</span>'
+                f'<span class="series-pager__title">{art["title"]}</span></a>')
+
+    prev_html = _link(prev_a, "prev") if prev_a else '<span class="series-pager__link series-pager__link--empty"></span>'
+    next_html = _link(next_a, "next") if next_a else '<span class="series-pager__link series-pager__link--empty"></span>'
+    return f"""
+    <nav class="container series-pager" aria-label="Điều hướng bài viết trong series {s['name']}">
+      {prev_html}
+      {next_html}
+    </nav>"""
+
 def render_article_page(a):
     s = SERIES_BY_SLUG[a["series"]]
     body = render_body_blocks(a["body"])
@@ -2162,7 +2252,7 @@ def render_article_page(a):
         <span class="byline">{rs['name']} · {r['date']}</span>
       </a>"""
 
-    tags = "".join(f'<a href="all-series.html" class="tag">{t}</a>' for t in a["tags"])
+    tags = "".join(f'<a href="{tag_url(slugify(t))}" class="tag">{t}</a>' for t in a["tags"])
 
     _path = article_url(a["slug"])
     schema = article_schema_json(a, s, _path)
@@ -2187,7 +2277,7 @@ def render_article_page(a):
 
     <div class="container" style="max-width:1100px;margin-block:var(--s-6);">
       <div class="media media--16-9">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
-      <p class="byline" style="text-align:right;margin-top:var(--s-2);">Ảnh minh họa — TNC Archive</p>
+      <p class="byline" style="text-align:right;margin-top:var(--s-2);">{a.get('cover_credit') or 'Ảnh minh họa — TNC Archive'}</p>
     </div>
 
     <div class="container article-body" style="max-width:680px;font-size:var(--t-md);line-height:1.8;">
@@ -2204,6 +2294,7 @@ def render_article_page(a):
     <div class="container" style="max-width:680px;">{share_bar(a, _path)}
     </div>
 {author_bio_box_html(a['author'])}
+{render_series_pager(a)}
 {render_inline_ad_mobile()}
   </article>
 
@@ -2232,6 +2323,7 @@ ARTICLE_CSS = """
 .article-body code{font-family:var(--f-mono);font-size:0.85em;background:var(--c-bg-subtle);padding:2px 6px;border-radius:3px;}
 .article-body .body-list{margin:0 0 1.4em 1.2em;padding:0;}
 .article-body .body-list li{margin-bottom:0.5em;padding-left:0.3em;list-style:disc;}
+.article-body .body-list--ordered li{list-style:decimal;}
 /* Ảnh trong bài */
 .article-body .body-figure{margin:2em 0;}
 .article-body .body-figure img{width:100%;height:auto;display:block;border:1px solid var(--c-line);}
@@ -2239,6 +2331,9 @@ ARTICLE_CSS = """
 /* Video nhúng YouTube (tỉ lệ 16:9 co giãn) */
 .article-body .body-video{position:relative;width:100%;aspect-ratio:16/9;margin:2em 0;background:#000;}
 .article-body .body-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+/* Nhúng Spotify/SoundCloud — chiều cao cố định theo chuẩn nhà cung cấp, không dùng tỉ lệ 16:9 */
+.article-body .body-embed{margin:2em 0;}
+.article-body .body-embed iframe{width:100%;border:0;display:block;}
 /* Ảnh bìa hiển thị đè lên placeholder */
 .media__zoom{width:100%;height:100%;object-fit:cover;}
 img.media__zoom{position:absolute;inset:0;z-index:1;}
@@ -2335,6 +2430,8 @@ def build_sitemap():
         urls.append(f"{SITE_URL}/{series_url(s['slug'])}")
     for a in ARTICLES:
         urls.append(f"{SITE_URL}/{article_url(a['slug'])}")
+    for tslug in TAGS_BY_SLUG:
+        urls.append(f"{SITE_URL}/{tag_url(tslug)}")
     for extra in ["all-series.html","video.html","search.html","su-kien.html",
                   "ve-tnc.html","lien-he.html","hop-tac.html","tuyen-dung.html","tnc-sessions.html"]:
         urls.append(f"{SITE_URL}/{extra}")
@@ -2383,6 +2480,41 @@ def render_author_page(name, arts):
   </section>
 """
     return page_wrap(name, bio or f"Các bài viết của {name} trên The New Culture.", inner, path=author_url(name))
+
+def render_tag_page(tslug, tag_name, arts):
+    """Trang lọc theo từ khóa: liệt kê mọi bài viết gắn thẻ này, không giới hạn
+    trong một series. Tái sử dụng nguyên khuôn card + page_wrap của trang tác giả."""
+    # Chuẩn hoá hiển thị "#tag": tag trong content đã có sẵn dấu # (quy ước
+    # hiện tại của CMS) — tránh nhân đôi thành "##tag" nếu dữ liệu có/không có #.
+    display_tag = "#" + tag_name.lstrip("#")
+    rows = ""
+    for a in arts:
+        s = SERIES_BY_SLUG[a["series"]]
+        rows += f"""
+      <a class="card" href="{article_url(a['slug'])}" style="flex-direction:row;gap:var(--s-5);align-items:center;">
+        <div class="media media--3-2" style="flex:0 0 220px;">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
+        <div>
+          <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
+          <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{a['title']}</h3>
+          <p style="color:var(--c-ink-2);font-size:var(--t-sm);margin-bottom:var(--s-2);">{a['dek']}</p>
+          <span class="byline">{a['author']} · {a['date']} · {a['read_time']}</span>
+        </div>
+      </a>"""
+    inner = f"""
+  <section class="container" style="padding-top:var(--s-6);">
+    <nav class="byline" style="margin-bottom:var(--s-6);" aria-label="breadcrumb">
+      <a href="index.html">Trang chủ</a> / Tag
+    </nav>
+    <div style="border-bottom:2px solid var(--c-line-strong);padding-bottom:var(--s-6);margin-bottom:var(--s-7);">
+      <span class="eyebrow" style="font-size:var(--t-sm);">{display_tag}</span>
+      <h1 style="font-size:var(--t-3xl);margin:var(--s-3) 0;">Chủ đề: {display_tag}</h1>
+      <p style="font-size:var(--t-md);color:var(--c-ink-2);">{len(arts)} bài viết được gắn thẻ "{display_tag}".</p>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
+    </div>
+  </section>
+"""
+    return page_wrap(display_tag, f'Tất cả bài viết về chủ đề "{display_tag}" trên The New Culture.', inner, path=tag_url(tslug))
 
 def render_all_series():
     cells = ""
@@ -2766,6 +2898,11 @@ self.addEventListener('fetch',e=>{
     if skipped_authors:
         print(f"  (Chưa có trang tác giả cho: {', '.join(skipped_authors)} — thiếu hồ sơ trong content/editors/)")
 
+    # Trang lọc theo Tag — mỗi từ khóa xuất hiện ở ít nhất 1 bài viết
+    for tslug, data in TAGS_BY_SLUG.items():
+        with open(os.path.join(OUT, tag_url(tslug)),"w",encoding="utf-8") as f:
+            f.write(render_tag_page(tslug, data["name"], data["articles"]))
+
     # Chỉ mục tìm kiếm + sitemap + robots
     with open(os.path.join(OUT,"search-index.json"),"w",encoding="utf-8") as f:
         f.write(build_search_index())
@@ -2775,7 +2912,7 @@ self.addEventListener('fetch',e=>{
         f.write(f"User-agent: *\nAllow: /\nSitemap: {SITE_URL}/sitemap.xml\n")
 
     generated_authors = len(authors) - len(skipped_authors)
-    print(f"Build v3 xong: 1 index + {len(SERIES)} series + {len(ARTICLES)} article + {len(extra)} trang phụ + {generated_authors} trang tác giả")
+    print(f"Build v3 xong: 1 index + {len(SERIES)} series + {len(ARTICLES)} article + {len(extra)} trang phụ + {generated_authors} trang tác giả + {len(TAGS_BY_SLUG)} trang tag")
     print(f"Output: {OUT}")
 
 if __name__ == "__main__":
