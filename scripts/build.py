@@ -739,6 +739,8 @@ def masthead(active=None):
     <div class="menu-col">
       <h4>Khám phá</h4>
       <a href="all-series.html">Tất cả Series</a>
+      <a href="archive.html">Toàn bộ bài viết</a>
+      <a href="all-tags.html">Tất cả chủ đề</a>
       <a href="video.html">Video</a>
       <a href="su-kien.html">Sự kiện</a>
       <a href="tnc-sessions.html">TNC Sessions</a>
@@ -812,6 +814,7 @@ def footer():
       </div>
       <div class="footer__col"><h4>Khám phá</h4><ul>
         <li><a href="all-series.html">Toàn bộ Series</a></li>
+        <li><a href="archive.html">Toàn bộ bài viết</a></li>
         <li><a href="video.html">Video</a></li>
         <li><a href="su-kien.html">Sự kiện</a></li>
         <li><a href="newsletter.html">Newsletter</a></li>
@@ -2393,12 +2396,13 @@ def render_search_page():
       q=(q||'').trim().toLowerCase();
       if(!q){results.innerHTML='';meta.textContent='';return;}
       var hits=DATA.filter(function(a){
-        return (a.title+' '+a.dek+' '+a.series_name+' '+(a.tags||[]).join(' ')).toLowerCase().indexOf(q)>-1;
+        return (a.title+' '+a.dek+' '+a.series_name+' '+(a.author||'')+' '+(a.tags||[]).join(' ')).toLowerCase().indexOf(q)>-1;
       });
       meta.textContent=hits.length+' kết quả cho "'+q+'"';
       results.innerHTML=hits.map(function(a){
+        var media=a.cover?'<img class="media__zoom" src="'+esc(a.cover)+'" alt="" loading="lazy">':'<div class="media__zoom"></div>';
         return '<a class="card" href="'+a.url+'" style="flex-direction:row;gap:24px;align-items:center;">'+
-          '<div class="media media--3-2" style="flex:0 0 200px;"><div class="media__zoom"></div></div>'+
+          '<div class="media media--3-2" style="flex:0 0 200px;">'+media+'</div>'+
           '<div><span class="eyebrow">'+esc(a.series_name)+'</span>'+
           '<h3 style="font-size:1.375rem;margin:8px 0;">'+esc(a.title)+'</h3>'+
           '<p style="color:var(--c-ink-2);font-size:0.8125rem;">'+esc(a.dek)+'</p></div></a>';
@@ -2419,6 +2423,7 @@ def build_search_index():
         data.append({
             "title": a["title"], "dek": a["dek"],
             "series_name": s["name"], "tags": a.get("tags", []),
+            "author": a["author"], "cover": a.get("cover", ""),
             "url": article_url(a["slug"]),
         })
     return json.dumps(data, ensure_ascii=False)
@@ -2432,14 +2437,11 @@ def build_sitemap():
         urls.append(f"{SITE_URL}/{article_url(a['slug'])}")
     for tslug in TAGS_BY_SLUG:
         urls.append(f"{SITE_URL}/{tag_url(tslug)}")
-    for extra in ["all-series.html","video.html","search.html","su-kien.html",
+    for extra in ["all-series.html","all-tags.html","archive.html","video.html","search.html","su-kien.html",
                   "ve-tnc.html","lien-he.html","hop-tac.html","tuyen-dung.html","tnc-sessions.html"]:
         urls.append(f"{SITE_URL}/{extra}")
     items = "\n".join(f"  <url><loc>{u}</loc></url>" for u in urls)
     return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{items}\n</urlset>'
-
-def render_search_page_alias():
-    return render_search_page()
 
 def render_author_page(name, arts):
     """Trang hồ sơ tác giả: ảnh, tiểu sử (từ content/editors/) + toàn bộ bài viết của họ.
@@ -2503,7 +2505,7 @@ def render_tag_page(tslug, tag_name, arts):
     inner = f"""
   <section class="container" style="padding-top:var(--s-6);">
     <nav class="byline" style="margin-bottom:var(--s-6);" aria-label="breadcrumb">
-      <a href="index.html">Trang chủ</a> / Tag
+      <a href="index.html">Trang chủ</a> / <a href="all-tags.html">Chủ đề</a>
     </nav>
     <div style="border-bottom:2px solid var(--c-line-strong);padding-bottom:var(--s-6);margin-bottom:var(--s-7);">
       <span class="eyebrow" style="font-size:var(--t-sm);">{display_tag}</span>
@@ -2515,6 +2517,36 @@ def render_tag_page(tslug, tag_name, arts):
   </section>
 """
     return page_wrap(display_tag, f'Tất cả bài viết về chủ đề "{display_tag}" trên The New Culture.', inner, path=tag_url(tslug))
+
+def render_all_tags():
+    """Trang hub liệt kê toàn bộ chủ đề (tag) đang có bài viết — điểm vào để
+    duyệt Tag, tái dùng nguyên khuôn .page-hero/.series-band/.series-cell
+    của render_all_series(), không tạo component mới."""
+    cells = ""
+    for tslug in sorted(TAGS_BY_SLUG, key=lambda k: TAGS_BY_SLUG[k]["name"].lower()):
+        data = TAGS_BY_SLUG[tslug]
+        display = "#" + data["name"].lstrip("#")
+        cells += f"""
+      <a class="series-cell" href="{tag_url(tslug)}">
+        <h3>{display}</h3>
+        <span class="series-cell__code" style="margin-top:var(--s-3);color:var(--c-red);">{len(data['articles'])} bài viết →</span>
+      </a>"""
+    inner = f"""
+  <section class="container">
+    <div class="page-hero">
+      <span class="eyebrow eyebrow--blue">Khám phá theo chủ đề</span>
+      <h1>Tất cả chủ đề</h1>
+      <p>Duyệt toàn bộ từ khóa (tag) đang được gắn trên các bài viết của The New Culture.</p>
+    </div>
+  </section>
+  <section class="series-band" style="margin-top:0;">
+    <div class="container">
+      <div class="series-grid">{cells}
+      </div>
+    </div>
+  </section>
+"""
+    return page_wrap("Tất cả chủ đề", "Duyệt tất cả tag/chủ đề trên The New Culture.", inner, path="all-tags.html")
 
 def render_all_series():
     cells = ""
@@ -2543,6 +2575,39 @@ def render_all_series():
   </section>
 """
     return page_wrap("Tất cả Series", "16 tuyến nội dung của The New Culture", inner)
+
+def render_archive_page():
+    """Trang hub 'Toàn bộ bài viết' — danh sách phẳng mọi bài viết, không lọc
+    theo series/tag/tác giả. Tái dùng nguyên khuôn card-list của trang series
+    (kể cả cơ chế infinite scroll .js-infinite-item/.js-infinite-sentinel đã
+    có sẵn), không tạo component hay cơ chế phân trang mới."""
+    rows = ""
+    for idx, a in enumerate(ARTICLES):
+        s = SERIES_BY_SLUG[a["series"]]
+        hidden_attr = ' style="display:none;"' if idx >= 8 else ""
+        rows += f"""
+      <a class="card js-infinite-item" data-idx="{idx}"{hidden_attr} href="{article_url(a['slug'])}" style="flex-direction:row;gap:var(--s-5);align-items:center;">
+        <div class="media media--3-2" style="flex:0 0 260px;">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
+        <div>
+          <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
+          <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{a['title']}</h3>
+          <p style="color:var(--c-ink-2);font-size:var(--t-sm);margin-bottom:var(--s-2);">{a['dek']}</p>
+          <span class="byline">{a['author']} · {a['date']} · {a['read_time']}</span>
+        </div>
+      </a>"""
+    inner = f"""
+  <section class="container">
+    <div class="page-hero">
+      <span class="eyebrow">Archive — TNCOS</span>
+      <h1>Toàn bộ bài viết</h1>
+      <p>Danh sách đầy đủ mọi bài viết đã xuất bản trên The New Culture, không giới hạn theo series hay chủ đề — xếp theo thứ tự ưu tiên/mới nhất.</p>
+    </div>
+    <div class="grid js-infinite-list" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
+    </div>
+    <div class="js-infinite-sentinel" style="height:1px;"></div>
+  </section>
+"""
+    return page_wrap("Toàn bộ bài viết", "Danh sách đầy đủ mọi bài viết đã xuất bản trên The New Culture.", inner, path="archive.html")
 
 def render_video_page():
     _d = ["38:12","24:50","45:03","31:20","18:44","52:10"]
@@ -2875,6 +2940,8 @@ self.addEventListener('fetch',e=>{
     # trang phụ
     extra = {
         "all-series.html": render_all_series(),
+        "all-tags.html": render_all_tags(),
+        "archive.html": render_archive_page(),
         "video.html": render_video_page(),
         "search.html": render_search_page(),
         "su-kien.html": render_events_page(),

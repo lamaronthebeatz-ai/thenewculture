@@ -80,6 +80,8 @@
     <div class="menu-col">
       <h4>Khám phá</h4>
       <a href="all-series.html">Tất cả Series</a>
+      <a href="archive.html">Toàn bộ bài viết</a>
+      <a href="all-tags.html">Tất cả chủ đề</a>
       <a href="video.html">Video</a>
       <a href="su-kien.html">Sự kiện</a>
       <a href="tnc-sessions.html">TNC Sessions</a>
@@ -122,12 +124,13 @@
       q=(q||'').trim().toLowerCase();
       if(!q){results.innerHTML='';meta.textContent='';return;}
       var hits=DATA.filter(function(a){
-        return (a.title+' '+a.dek+' '+a.series_name+' '+(a.tags||[]).join(' ')).toLowerCase().indexOf(q)>-1;
+        return (a.title+' '+a.dek+' '+a.series_name+' '+(a.author||'')+' '+(a.tags||[]).join(' ')).toLowerCase().indexOf(q)>-1;
       });
       meta.textContent=hits.length+' kết quả cho "'+q+'"';
       results.innerHTML=hits.map(function(a){
+        var media=a.cover?'<img class="media__zoom" src="'+esc(a.cover)+'" alt="" loading="lazy">':'<div class="media__zoom"></div>';
         return '<a class="card" href="'+a.url+'" style="flex-direction:row;gap:24px;align-items:center;">'+
-          '<div class="media media--3-2" style="flex:0 0 200px;"><div class="media__zoom"></div></div>'+
+          '<div class="media media--3-2" style="flex:0 0 200px;">'+media+'</div>'+
           '<div><span class="eyebrow">'+esc(a.series_name)+'</span>'+
           '<h3 style="font-size:1.375rem;margin:8px 0;">'+esc(a.title)+'</h3>'+
           '<p style="color:var(--c-ink-2);font-size:0.8125rem;">'+esc(a.dek)+'</p></div></a>';
@@ -164,6 +167,7 @@
       </div>
       <div class="footer__col"><h4>Khám phá</h4><ul>
         <li><a href="all-series.html">Toàn bộ Series</a></li>
+        <li><a href="archive.html">Toàn bộ bài viết</a></li>
         <li><a href="video.html">Video</a></li>
         <li><a href="su-kien.html">Sự kiện</a></li>
         <li><a href="newsletter.html">Newsletter</a></li>
