@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex" />
   <title>TNC — Quản trị nội dung</title>
+  <!-- Chỉ rõ đường dẫn tuyệt đối tới config.yml thay vì để Sveltia CMS tự
+       suy ra theo URL hiện tại. Nếu trình duyệt vào đúng "/admin" (thiếu
+       dấu / cuối — rất dễ xảy ra khi gõ tay URL hoặc mở từ bookmark cũ),
+       việc suy luận tương đối sẽ tính nhầm config.yml nằm ở gốc domain
+       thay vì trong /admin/, gây lỗi "configuration file could not be
+       retrieved". Đường dẫn tuyệt đối loại bỏ hoàn toàn rủi ro này. -->
+  <link rel="cms-config-url" href="/admin/config.yml">
 </head>
 <body>
   <!-- Sveltia CMS: nạp từ CDN, luôn lấy bản mới nhất -->
