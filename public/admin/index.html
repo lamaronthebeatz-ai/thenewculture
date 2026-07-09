@@ -20,5 +20,41 @@
 <body>
   <!-- Sveltia CMS: nạp từ CDN, luôn lấy bản mới nhất -->
   <script src="https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js"></script>
+  <!-- V2.2 Permission Layer: chỉ HIỂN THỊ vai trò biên tập nhận được từ
+       Worker sau khi đăng nhập — không can thiệp vào Sveltia CMS, không
+       tham gia bắt tay postMessage (Sveltia CMS đã tự làm việc đó), chỉ
+       lắng nghe thụ động cùng sự kiện "message" mà popup OAuth phát ra.
+       Vai trò không lưu ở đâu cả ngoài biến bộ nhớ của chính trang này —
+       mất khi tải lại trang, đúng tinh thần "không cache quyền". -->
+  <script>
+  (function () {
+    function showRoleBadge(role, login) {
+      var el = document.createElement("div");
+      el.textContent = "Vai trò: " + role + (login ? " (" + login + ")" : "");
+      el.style.cssText =
+        "position:fixed;bottom:12px;right:12px;z-index:99999;" +
+        "background:#0B0B0B;color:#fff;font:600 12px/1.4 -apple-system,sans-serif;" +
+        "padding:8px 14px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.3);" +
+        "pointer-events:none;";
+      document.body.appendChild(el);
+    }
+    window.addEventListener(
+      "message",
+      function (e) {
+        if (typeof e.data !== "string") return;
+        var m = e.data.match(/^authorization:([\w-]+):(success|error):([\s\S]*)$/);
+        if (!m || m[2] !== "success") return;
+        var payload;
+        try {
+          payload = JSON.parse(m[3]);
+        } catch (_err) {
+          return;
+        }
+        if (payload && payload.role) showRoleBadge(payload.role, payload.login);
+      },
+      false
+    );
+  })();
+  </script>
 </body>
 </html>
