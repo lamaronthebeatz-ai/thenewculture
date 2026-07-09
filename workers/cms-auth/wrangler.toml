@@ -6,5 +6,10 @@ compatibility_date = "2024-11-01"
 # URL chuyển hướng OAuth), nên đặt thẳng ở đây sau khi tạo GitHub OAuth App.
 # GITHUB_CLIENT_SECRET tuyệt đối KHÔNG đặt ở file này — set bằng:
 #   wrangler secret put GITHUB_CLIENT_SECRET
+#
+# GITHUB_OWNER/GITHUB_REPO: repo mà Worker xác minh quyền (V2.2 Permission
+# Layer) — không phải giá trị bí mật, chỉ là cấu hình repo đích.
 [vars]
 GITHUB_CLIENT_ID = ""
+GITHUB_OWNER = "lamaronthebeatz-ai"
+GITHUB_REPO = "thenewculture"
