@@ -61,10 +61,11 @@ collections:
           - { label: "TNC Selects", value: tnc-selects }
           - { label: "Behind The Culture", value: behind-the-culture }
 
-      - label: "Tóm tắt (dek)"
+      - label: "Tóm tắt (dek, tùy chọn)"
         name: dek
         widget: text
-        hint: "Đoạn tóm tắt ngắn hiển thị dưới tiêu đề và trong danh sách bài."
+        required: false
+        hint: "Đoạn tóm tắt ngắn hiển thị dưới tiêu đề và trong danh sách bài. Để trống sẽ tự lấy đoạn văn đầu tiên của bài làm tóm tắt."
 
       - label: "Ảnh bìa"
         name: cover
@@ -88,7 +89,7 @@ collections:
       - label: "Tác giả"
         name: author
         widget: string
-        default: "TNC Editorial"
+        default: "Lamar"
 
       - label: "Ngày đăng (tùy chọn)"
         name: date
@@ -113,7 +114,7 @@ collections:
       - label: "Thứ tự ưu tiên"
         name: order
         widget: number
-        default: 10
+        default: 1
         value_type: int
         hint: "Số nhỏ = ưu tiên hiển thị trước (mới hơn). Bài mới nhất nên để số nhỏ như 1, 2, 3."
 
@@ -121,6 +122,7 @@ collections:
         name: tags
         widget: list
         allow_add: true
+        default: ["#TNC"]
         hint: "Các từ khóa liên quan, hiển thị cuối bài."
 
       - label: "Nội dung bài viết"
