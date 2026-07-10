@@ -3067,6 +3067,33 @@ def render_sessions_page():
     return page_wrap("TNC Sessions", "Series phỏng vấn dài kỳ của The New Culture", inner)
 
 
+def _compute_sw_cache_version():
+    """Sinh cache version cho Service Worker từ hash nội dung nguồn, KHÔNG
+    dùng timestamp/thời gian hiện tại. Trước đây build_ts=str(int(time.time()))
+    khiến public/sw.js đổi ở MỌI lần build dù nội dung không hề thay đổi —
+    gây commit thừa và merge conflict giữa các branch chỉ vì build lại.
+    Hash tất toàn bộ content/ (bài viết, settings, editors, profiles, chiến
+    dịch quảng bá...) cộng với chính build.py và style.css (logic hiển thị/
+    giao diện cũng quyết định output, không chỉ nội dung) -> build lại trên
+    đúng cùng một nguồn luôn ra đúng 1 version giống hệt (không tạo diff),
+    nhưng vẫn tự đổi — tự invalidate cache cũ — ngay khi có bất kỳ thay đổi
+    thật sự nào. Giữ nguyên hành vi cache invalidation, không đụng logic
+    runtime của Service Worker."""
+    import hashlib
+    h = hashlib.sha256()
+    src_files = []
+    content_dir = os.path.join(REPO_ROOT, "content")
+    for root, _dirs, files in os.walk(content_dir):
+        for fn in files:
+            src_files.append(os.path.join(root, fn))
+    src_files.append(os.path.abspath(__file__))
+    src_files.append(os.path.join(os.path.dirname(__file__), "style.css"))
+    for path in sorted(src_files):
+        h.update(os.path.relpath(path, REPO_ROOT).encode("utf-8"))
+        with open(path, "rb") as f:
+            h.update(f.read())
+    return h.hexdigest()[:12]
+
 def main():
     import shutil, glob as _glob
     os.makedirs(OUT, exist_ok=True)
@@ -3114,10 +3141,9 @@ def main():
     with open(os.path.join(OUT, "manifest.json"), "w", encoding="utf-8") as f:
         import json as _json
         _json.dump(manifest, f, ensure_ascii=False)
-    import time as _time
-    build_ts = str(int(_time.time()))
+    cache_version = _compute_sw_cache_version()
     with open(os.path.join(OUT, "sw.js"), "w", encoding="utf-8") as f:
-        f.write("""const CACHE='tnc-""" + build_ts + """';
+        f.write("""const CACHE='tnc-""" + cache_version + """';
 self.addEventListener('install',e=>self.skipWaiting());
 self.addEventListener('activate',e=>{
   e.waitUntil(
