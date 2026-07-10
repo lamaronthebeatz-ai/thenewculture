@@ -281,6 +281,10 @@
     slides[current].classList.remove('is-active');
     current=(index+slides.length)%slides.length;
     slides[current].classList.add('is-active');
+    // Báo cho Hero Parallax Controller (IIFE riêng, phía dưới) biết slide
+    // active vừa đổi để tự bind sang media mới — không gọi thẳng hàm của
+    // nhau, giữ 2 cơ chế độc lập, chỉ liên lạc qua sự kiện DOM.
+    root.dispatchEvent(new CustomEvent('heroslidechange'));
   }
   function next(){goTo(current+1);}
   function prev(){goTo(current-1);}
@@ -510,14 +514,49 @@
   });
 })();
 
-// 8. Parallax nhẹ cho ảnh hero khi cuộn
+// 8. Parallax nhẹ cho ảnh hero khi cuộn — Hero Parallax Controller.
+// Áp dụng cho ĐÚNG 1 media tại một thời điểm: media của slide đang active
+// (không phải luôn slide đầu tiên như trước). Khi Hero Slideshow đổi slide
+// (sự kiện 'heroslidechange' do IIFE slideshow phía trên phát ra), tự bind
+// sang media của slide mới; slide không active không bao giờ được ghi
+// transform. Hero tĩnh (không slideshow, chỉ 1 bài) vẫn hoạt động như cũ.
 (function(){
-  var media=document.querySelector('.hero-full__media img, .hero-full__media .media__zoom');
-  if(!media||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-  window.addEventListener('scroll',function(){
+  var heroSection=document.querySelector('.hero-full');
+  if(!heroSection||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var slideshowRoot=document.querySelector('[data-slideshow]');
+  var activeMedia=null;
+
+  function findActiveMedia(){
+    var scope=slideshowRoot
+      ? slideshowRoot.querySelector('.hero-full-slide.is-active .hero-full__media')
+      : heroSection.querySelector('.hero-full__media');
+    return scope ? scope.querySelector('img,.media__zoom') : null;
+  }
+
+  var ticking=false;
+  function applyTransform(){
+    ticking=false;
+    if(!activeMedia)return;
     var y=window.scrollY;
-    if(y<window.innerHeight){media.style.transform='translateY('+(y*0.25)+'px)';}
-  },{passive:true});
+    if(y<window.innerHeight){activeMedia.style.transform='translateY('+(y*0.25)+'px)';}
+  }
+  function onScroll(){
+    if(ticking)return;
+    ticking=true;
+    requestAnimationFrame(applyTransform);
+  }
+
+  function bindActiveMedia(){
+    var next=findActiveMedia();
+    if(next===activeMedia)return;
+    if(activeMedia)activeMedia.style.transform=''; // slide rời đi: xoá transform cũ, tránh lệch hình khi quay vòng lại
+    activeMedia=next;
+    applyTransform(); // áp ngay theo vị trí cuộn hiện tại, không chờ sự kiện scroll kế tiếp
+  }
+
+  bindActiveMedia();
+  window.addEventListener('scroll',onScroll,{passive:true});
+  if(slideshowRoot)slideshowRoot.addEventListener('heroslidechange',bindActiveMedia);
 })();
 
 // PWA: đăng ký service worker
