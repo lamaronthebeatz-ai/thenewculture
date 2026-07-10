@@ -253,6 +253,35 @@ def slugify(text):
     s = re.sub(r'[^a-zA-Z0-9]+', '-', s).strip('-').lower()
     return s or "bai-viet"
 
+def _assign_date_once(path, raw, slug):
+    """Publish date phải BẤT BIẾN: front matter là nguồn sự thật duy nhất,
+    không bao giờ suy ra lại từ mtime/git date/ngày hiện tại ở các lần build
+    sau. Hàm này chỉ chạy khi front matter chưa có date (thiếu key hoặc rỗng
+    — đúng giá trị mặc định "" mà CMS ghi lúc tạo bài mới); nó sinh ngày MỘT
+    LẦN DUY NHẤT rồi ghi thẳng vào file .md để lần build kế tiếp chỉ đọc lại,
+    không bao giờ tính lại nữa."""
+    import datetime
+    now = datetime.datetime.now()
+    new_date = f"{now.day} Tháng {now.month}, {now.year}"
+    print(f"  ⚠ CẢNH BÁO: bài '{slug}' chưa có date — gán MỘT LẦN: {new_date} (đã ghi vào {os.path.basename(path)})")
+
+    def _set_date_line(fm_text):
+        if re.search(r'^date:.*$', fm_text, re.MULTILINE):
+            return re.sub(r'^date:.*$', f'date: {new_date}', fm_text, count=1, flags=re.MULTILINE)
+        return fm_text.rstrip('\n') + f"\ndate: {new_date}\n"
+
+    m = re.match(r'^(---\s*\n)(.*?)(\n---\s*\n.*)$', raw, re.DOTALL)
+    if not m:
+        print(f"  ⚠ CẢNH BÁO: không thể ghi lại date cho '{slug}' (front matter không đúng định dạng) — dùng {new_date} chỉ cho lần build này")
+        return new_date
+    new_raw = m.group(1) + _set_date_line(m.group(2)) + m.group(3)
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(new_raw)
+    except OSError as e:
+        print(f"  ⚠ CẢNH BÁO: ghi date vào '{slug}' thất bại ({e}) — dùng {new_date} chỉ cho lần build này")
+    return new_date
+
 def load_articles():
     """Đọc tất cả file .md, trả về list article dict, sắp theo 'order' rồi 'date'."""
     articles = []
@@ -275,13 +304,13 @@ def load_articles():
         seen_slugs.add(slug)
         # Thời gian đọc: ưu tiên giá trị nhập tay, nếu trống thì tự ước tính
         read_time = meta.get("read_time") or _estimate_read_time(body_md)
-        # Ngày đăng: ưu tiên giá trị nhập tay; nếu trống, tự sinh theo ngày sửa file
+        # Ngày đăng: BẤT BIẾN. Front matter là nguồn sự thật duy nhất — nếu đã
+        # có date thì luôn dùng đúng giá trị đó, không bao giờ ghi đè hay tính
+        # lại (không mtime, không git date, không ngày hiện tại). Chỉ khi
+        # THIẾU date mới gán một lần rồi ghi vào file để bất biến từ đây trở đi.
         date_val = meta.get("date")
         if not date_val:
-            import datetime
-            mtime = datetime.datetime.fromtimestamp(os.path.getmtime(path))
-            thang = mtime.month
-            date_val = f"{mtime.day} Tháng {thang}, {mtime.year}"
+            date_val = _assign_date_once(path, raw, slug)
         # Tóm tắt (dek): ưu tiên giá trị nhập tay, nếu trống thì tự lấy đoạn
         # văn xuôi đầu tiên của bài làm tóm tắt.
         dek_val = (meta.get("dek") or "").strip() or _auto_excerpt(body_md)

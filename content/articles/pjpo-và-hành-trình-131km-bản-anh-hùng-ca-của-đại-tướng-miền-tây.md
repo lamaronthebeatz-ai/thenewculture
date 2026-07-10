@@ -4,7 +4,7 @@ series: tnc-records
 dek: PJPO – 131KM không đơn thuần là một album, mà là hành trình được kể lại bằng âm nhạc, nơi mỗi kilomet đều mang theo một câu chuyện.
 cover: /uploads/3747.jpg
 author: Lamar
-date: ''
+date: 10 Tháng 7, 2026
 read_time: ''
 featured: true
 order: 2

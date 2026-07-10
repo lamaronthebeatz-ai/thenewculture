@@ -5,7 +5,7 @@ dek: Không chỉ đơn thuần nói về một địa điểm, "khu tao sống"
 cover: /uploads/3750.jpg
 cover_credit: ''
 author: Lamar
-date: ''
+date: 10 Tháng 7, 2026
 read_time: ''
 featured: false
 order: 5

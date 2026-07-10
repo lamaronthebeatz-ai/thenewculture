@@ -7,7 +7,7 @@ dek: |-
 cover: /uploads/3823.jpg
 poster: /uploads/3823.jpg
 author: Lamar
-date: ''
+date: 10 Tháng 7, 2026
 read_time: ''
 featured: false
 order: 5

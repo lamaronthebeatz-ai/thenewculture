@@ -5,7 +5,7 @@ dek: Điều làm nên sức hút của 5BER1 không nằm ở việc sử dụn
 cover: /uploads/3803.jpg
 poster: ''
 author: TNC Editorial
-date: ''
+date: 10 Tháng 7, 2026
 read_time: ''
 featured: false
 order: 1

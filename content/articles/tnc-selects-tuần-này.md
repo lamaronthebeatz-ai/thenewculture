@@ -4,7 +4,7 @@ series: tnc-selects
 dek: BẢNG XẾP HẠNG TUẦN NÀY 3/7/2026
 cover: /uploads/3746.png
 author: TNC SELECTAS
-date: ''
+date: 10 Tháng 7, 2026
 read_time: ''
 featured: false
 order: 2

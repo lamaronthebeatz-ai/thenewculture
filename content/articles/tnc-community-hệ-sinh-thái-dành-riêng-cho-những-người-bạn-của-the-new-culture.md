@@ -4,7 +4,7 @@ series: tnc-community
 dek: TNC Community là hệ sinh thái cộng đồng chính thức của The New Culture, được xây dựng trên nền tảng Discord.
 cover: /uploads/3749.png
 author: Lamar
-date: ''
+date: 10 Tháng 7, 2026
 read_time: ''
 featured: false
 order: 3

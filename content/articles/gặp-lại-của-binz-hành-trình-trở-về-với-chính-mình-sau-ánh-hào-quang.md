@@ -4,7 +4,7 @@ series: tnc-records
 dek: Trong nhiều năm, Binz là một trong những nghệ sĩ hiếm hoi liên tục thay đổi màu sắc âm nhạc. Anh từng thử nghiệm với hip hop, R&B, chất liệu bolero hiện đại, thơ ca và nhiều cách thể hiện khác nhau để mở rộng giới hạn sáng tạo của mình.
 cover: /uploads/3782.jpg
 author: Lamar
-date: ''
+date: 10 Tháng 7, 2026
 read_time: ''
 featured: false
 order: 3
