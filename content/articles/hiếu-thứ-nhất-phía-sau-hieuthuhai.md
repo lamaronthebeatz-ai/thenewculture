@@ -5,7 +5,7 @@ dek: Khi nhắc đến HIEUTHUHAI, khán giả thường nghĩ đến một tron
 cover: /uploads/3826.jpg
 poster: ''
 author: Lamar
-date: ''
+date: 10 Tháng 7, 2026
 read_time: ''
 featured: false
 order: 2

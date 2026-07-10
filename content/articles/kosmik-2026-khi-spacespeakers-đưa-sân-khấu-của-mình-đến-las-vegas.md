@@ -5,7 +5,7 @@ dek: Dàn nghệ sĩ góp mặt gần như quy tụ đầy đủ những gương
 cover: /uploads/3824.jpg
 poster: ''
 author: Lamar
-date: ''
+date: 10 Tháng 7, 2026
 read_time: ''
 featured: true
 order: 1
