@@ -118,6 +118,7 @@
   --z-content: 2;         /* nội dung trên scrim */
   --z-sticky: 10;         /* sidebar sticky, nav con */
   --z-header: 50;         /* masthead */
+  --z-promo: 60;          /* sticky bottom promo banner — trên header, dưới menu overlay toàn màn hình */
   --z-overlay: 200;       /* menu overlay toàn màn hình */
   --z-toast: 9998;        /* progress bar đọc bài */
   --z-cursor: 9999;       /* cursor tùy chỉnh, luôn trên cùng */
@@ -1038,6 +1039,39 @@ a:hover .media__zoom{transform:scale(1.04);}
 }
 
 /* ==========================================================================
+   V3.0 — PROMOTION SYSTEM (Sticky Bottom Banner, quản lý hoàn toàn qua CMS)
+   Ẩn mặc định (display:none) — JS trong footer() mới thêm class is-visible
+   sau khi kiểm tra localStorage, tránh nháy lại banner người dùng vừa đóng.
+   body.has-promo-sticky-banner (cũng do JS thêm, chỉ khi banner thật sự
+   hiện) chừa chỗ đáy trang để banner không đè lên nội dung/footer.
+   ========================================================================== */
+.promo-banner{
+  display:none;
+  position:fixed;left:0;right:0;bottom:0;z-index:var(--z-promo);
+  background:var(--c-ink);
+  box-shadow:0 -2px 12px rgba(0,0,0,.18);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.promo-banner.is-visible{display:block;}
+.promo-banner__link{display:block;}
+.promo-banner__inner{position:relative;width:100%;height:112px;overflow:hidden;}
+.promo-banner__media{display:block;width:100%;height:100%;object-fit:cover;}
+.promo-banner__close{
+  position:absolute;top:8px;right:8px;
+  width:28px;height:28px;display:grid;place-items:center;
+  background:rgba(11,11,11,.65);color:#fff;border:none;border-radius:50%;
+  font-size:20px;line-height:1;cursor:pointer;
+}
+.promo-banner__close:hover{background:rgba(11,11,11,.85);}
+body.has-promo-sticky-banner{padding-bottom:calc(112px + env(safe-area-inset-bottom,0px));}
+
+@media (max-width:768px){
+  .promo-banner__inner{height:76px;}
+  body.has-promo-sticky-banner{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px));}
+  .promo-banner__close{width:24px;height:24px;font-size:16px;top:4px;right:4px;}
+}
+
+/* ==========================================================================
    V5 — MODERN UX (scroll-reveal, skeleton, cursor, progress bar, parallax)
    ========================================================================== */
 
@@ -1093,7 +1127,9 @@ body.reader-mode .ad-inline-mobile,
 body.reader-mode .footer,
 body.reader-mode .newsletter,
 body.reader-mode .series-band,
+body.reader-mode .promo-banner,
 body.reader-mode .read-progress{display:none !important;}
+body.reader-mode.has-promo-sticky-banner{padding-bottom:0;}
 body.reader-mode .article-body{max-width:640px;font-size:1.15rem;line-height:1.9;}
 body.reader-mode{background:var(--c-bg);}
 

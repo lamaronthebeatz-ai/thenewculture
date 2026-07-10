@@ -292,6 +292,130 @@ collections:
         hint: "Tiểu sử ngắn, hiển thị ở đầu trang hồ sơ tác giả."
 
   # ============================================================
+  # TIẾP THỊ — Chiến dịch quảng bá (banner/video toàn site)
+  # Sveltia CMS không hỗ trợ nhóm lồng nhau có tiêu đề riêng trong sidebar
+  # (chỉ hỗ trợ divider dạng đường kẻ phân cách, không có chữ) — dùng
+  # divider bên dưới để tách khu vực này khỏi nội dung biên tập, và đặt
+  # tên collection kèm "(Tiếp thị)" để rõ đây thuộc nhóm nào.
+  #
+  # Mỗi bản ghi là 1 chiến dịch quảng bá độc lập. build.py chỉ lấy đúng
+  # MỘT chiến dịch để hiển thị: "Đang hoạt động" = Có, VÀ ngày build nằm
+  # trong khoảng Ngày bắt đầu -> Ngày kết thúc (để trống 1 trong 2 = không
+  # giới hạn phía đó); nếu nhiều chiến dịch cùng thỏa, chọn "Độ ưu tiên"
+  # (số lớn hơn) cao nhất. Không có chiến dịch nào thỏa -> không banner
+  # nào được render, không có banner mặc định/hardcode.
+  # ============================================================
+  - name: promo-divider
+    divider: true
+
+  - name: campaigns
+    label: "Chiến dịch quảng bá (Tiếp thị)"
+    label_singular: "Chiến dịch"
+    folder: "content/campaigns"
+    create: true
+    slug: "{{slug}}"
+    identifier_field: title
+    summary: "{{title}} — {{placement}}"
+    sortable_fields: [priority, start_date, title]
+    fields:
+      - label: "Tiêu đề"
+        name: title
+        widget: string
+        hint: "Tên nội bộ để phân biệt chiến dịch trong danh sách CMS — không hiển thị công khai trên website."
+
+      - label: "Đang hoạt động"
+        name: active
+        widget: boolean
+        default: false
+        hint: "Tắt để dừng chiến dịch ngay lập tức mà không cần xoá dữ liệu."
+
+      - label: "Vị trí hiển thị"
+        name: placement
+        widget: select
+        default: sticky_bottom
+        options:
+          - { label: "Sticky Bottom (dính đáy trang, mọi trang)", value: sticky_bottom }
+        hint: "Vị trí banner sẽ xuất hiện trên website."
+
+      - label: "Loại"
+        name: type
+        widget: select
+        default: image
+        options:
+          - { label: "Ảnh", value: image }
+          - { label: "Video", value: video }
+        hint: "Chọn 'Ảnh' để dùng Banner Desktop/Banner Mobile bên dưới. Chọn 'Video' để dùng trường Video."
+
+      - label: "Banner Desktop"
+        name: desktop_image
+        widget: image
+        required: false
+        hint: "Dùng khi Loại = Ảnh, hiển thị trên màn hình rộng. Cũng được dùng làm ảnh chờ (poster) khi Loại = Video, để tránh khung trống lúc video chưa tải xong. Khuyến nghị ảnh ngang, thấp (ví dụ 1200x120px)."
+
+      - label: "Banner Mobile"
+        name: mobile_image
+        widget: image
+        required: false
+        hint: "Dùng khi Loại = Ảnh, hiển thị trên màn hình hẹp (điện thoại). Để trống sẽ tự dùng Banner Desktop cho mọi kích thước màn hình."
+
+      - label: "Video"
+        name: video
+        widget: file
+        required: false
+        accept: "video/*"
+        hint: "Dùng khi Loại = Video. Tự động phát, tắt tiếng, lặp lại liên tục, không có nút điều khiển (giống khối quảng cáo hông trang hiện có)."
+
+      - label: "Liên kết"
+        name: destination_url
+        widget: string
+        required: false
+        hint: "Bấm vào bất kỳ đâu trên banner sẽ mở đường dẫn này. Để trống banner sẽ hiển thị nhưng không bấm được."
+
+      - label: "Mở tab mới"
+        name: open_in_new_tab
+        widget: boolean
+        default: true
+        hint: "Bật = mở Liên kết ở tab mới. Tắt = mở ngay trên tab hiện tại."
+
+      - label: "Ngày bắt đầu"
+        name: start_date
+        widget: datetime
+        type: date
+        format: "YYYY-MM-DD"
+        required: false
+        hint: "Để trống = chạy ngay khi Đang hoạt động = Có, không chờ tới ngày nào cả."
+
+      - label: "Ngày kết thúc"
+        name: end_date
+        widget: datetime
+        type: date
+        format: "YYYY-MM-DD"
+        required: false
+        hint: "Để trống = chạy vô thời hạn cho tới khi tự tay tắt Đang hoạt động."
+
+      - label: "Cho phép đóng"
+        name: dismissible
+        widget: boolean
+        default: true
+        hint: "Bật để hiện nút X cho phép người xem tự đóng banner."
+
+      - label: "Hiện lại sau (ngày)"
+        name: dismiss_days
+        widget: number
+        value_type: int
+        default: 7
+        min: 0
+        required: false
+        hint: "Số ngày ẩn banner sau khi người xem bấm đóng, hết số ngày này sẽ tự hiện lại. Chỉ có tác dụng khi 'Cho phép đóng' = Có."
+
+      - label: "Độ ưu tiên"
+        name: priority
+        widget: number
+        value_type: int
+        default: 1
+        hint: "Nếu nhiều chiến dịch cùng đang hoạt động và cùng trong thời gian chạy, chỉ chiến dịch có số Độ ưu tiên LỚN NHẤT được hiển thị. Các chiến dịch còn lại tự động ẩn cho tới khi chiến dịch ưu tiên cao hơn kết thúc."
+
+  # ============================================================
   # HỒ SƠ NHÂN VẬT/ĐƠN VỊ (TNC Profiles — "thẻ tướng")
   # Nhấn vào series TNC Profiles trên web sẽ hiện lưới thẻ bài từ đây.
   # ============================================================

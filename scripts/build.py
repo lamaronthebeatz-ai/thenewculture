@@ -417,6 +417,82 @@ def load_editors():
 EDITORS = load_editors()
 
 # -----------------------------------------------------------------
+# TIẾP THỊ — Chiến dịch quảng bá, đọc từ content/campaigns/*.md
+# Đúng NGÀY BUILD (không phải ngày người dùng xem trang) quyết định chiến
+# dịch nào đang trong khoảng chạy — đây là chủ đích của tính năng (banner
+# tự bật/tắt theo lịch), khác với publish date của bài viết vốn phải bất
+# biến tuyệt đối. Không có chiến dịch nào thỏa điều kiện -> không hardcode
+# banner mặc định, không render gì cả.
+# -----------------------------------------------------------------
+def _parse_campaign_date(raw):
+    """Đọc chuỗi ngày định dạng YYYY-MM-DD (Sveltia CMS datetime widget,
+    type: date). Chấp nhận cả dạng ISO đầy đủ (có giờ) để an toàn, chỉ lấy
+    10 ký tự đầu. Trả về None nếu trống hoặc không đọc được (không chặn
+    build, chỉ coi như không giới hạn phía đó)."""
+    if not raw:
+        return None
+    import datetime
+    try:
+        return datetime.date.fromisoformat(str(raw).strip()[:10])
+    except ValueError:
+        return None
+
+def load_campaigns():
+    campaigns_dir = os.path.join(REPO_ROOT, "content", "campaigns")
+    campaigns = []
+    if not os.path.isdir(campaigns_dir):
+        return campaigns
+    for path in sorted(glob.glob(os.path.join(campaigns_dir, "*.md"))):
+        with open(path, encoding="utf-8") as f:
+            raw = f.read()
+        meta, _ = _parse_frontmatter(raw)
+        title = (meta.get("title") or "").strip()
+        if not title:
+            print(f"  ! Bỏ qua chiến dịch {os.path.basename(path)} (thiếu tiêu đề)")
+            continue
+        campaigns.append({
+            "slug": slugify(os.path.splitext(os.path.basename(path))[0]),
+            "title": title,
+            "active": bool(meta.get("active", False)),
+            "placement": (meta.get("placement") or "sticky_bottom").strip(),
+            "type": (meta.get("type") or "image").strip(),
+            "desktop_image": (meta.get("desktop_image") or "").strip(),
+            "mobile_image": (meta.get("mobile_image") or "").strip(),
+            "video": (meta.get("video") or "").strip(),
+            "destination_url": (meta.get("destination_url") or "").strip(),
+            "open_in_new_tab": bool(meta.get("open_in_new_tab", True)),
+            "start_date": _parse_campaign_date(meta.get("start_date")),
+            "end_date": _parse_campaign_date(meta.get("end_date")),
+            "dismissible": bool(meta.get("dismissible", True)),
+            "dismiss_days": int(meta.get("dismiss_days") or 0),
+            "priority": int(meta.get("priority") or 0),
+        })
+    return campaigns
+
+def pick_active_campaign(campaigns, placement, today=None):
+    """Chọn đúng 1 chiến dịch để render cho một vị trí (placement):
+    active=True, và today nằm trong [start_date, end_date] (thiếu 1 trong
+    2 mốc = không giới hạn phía đó). Nhiều chiến dịch cùng thỏa -> lấy
+    priority LỚN NHẤT; đồng priority -> lấy slug nhỏ nhất (a-z) để kết quả
+    ổn định, không đổi ngẫu nhiên giữa các lần build."""
+    import datetime
+    today = today or datetime.date.today()
+    eligible = [
+        c for c in campaigns
+        if c["active"]
+        and c["placement"] == placement
+        and (c["start_date"] is None or c["start_date"] <= today)
+        and (c["end_date"] is None or c["end_date"] >= today)
+    ]
+    if not eligible:
+        return None
+    eligible.sort(key=lambda c: (-c["priority"], c["slug"]))
+    return eligible[0]
+
+CAMPAIGNS = load_campaigns()
+ACTIVE_STICKY_BANNER = pick_active_campaign(CAMPAIGNS, "sticky_bottom")
+
+# -----------------------------------------------------------------
 # HỒ SƠ NHÂN VẬT/ĐƠN VỊ (TNC Profiles — dạng "thẻ tướng")
 # Đọc từ content/profiles/*.md. Đây là loại dữ liệu tách biệt hoàn toàn
 # với "Bài viết" — chỉ dùng riêng cho series TNC Profiles.
@@ -845,6 +921,49 @@ def analytics_script_tag():
     return (f'<script defer src="https://static.cloudflareinsights.com/beacon.min.js" '
             f'data-cf-beacon=\'{{"token": "{token}"}}\'></script>')
 
+def render_promo_banner(campaign):
+    """Sticky Bottom Banner — V3.0 Promotion System. Chỉ nhận vào chiến
+    dịch đã được pick_active_campaign() chọn sẵn (đúng 1 hoặc None); hàm
+    này không tự quyết định chiến dịch nào được chạy, chỉ render.
+    Mặc định ẩn bằng CSS (.promo-banner không có class is-visible) — JS
+    trong footer() mới bật hiện sau khi kiểm tra localStorage, để tránh
+    nháy lại banner mà người dùng vừa đóng, và mới lúc đó mới thêm
+    padding-bottom cho <body>."""
+    if not campaign:
+        return ""
+    desktop_img = campaign["desktop_image"]
+    mobile_img = campaign["mobile_image"] or desktop_img
+    has_link = bool(campaign["destination_url"])
+    target_attrs = ' target="_blank" rel="noopener sponsored"' if campaign["open_in_new_tab"] else ""
+
+    if campaign["type"] == "video" and campaign["video"]:
+        poster_attr = f' poster="{desktop_img}"' if desktop_img else ""
+        media_html = (f'<video class="promo-banner__media" src="{campaign["video"]}"{poster_attr} '
+                      f'autoplay loop muted playsinline></video>')
+    elif desktop_img:
+        media_html = (
+            '<picture>'
+            f'<source media="(max-width:768px)" srcset="{mobile_img}">'
+            f'<img class="promo-banner__media" src="{desktop_img}" alt="" loading="lazy">'
+            '</picture>'
+        )
+    else:
+        # Thiếu cả video lẫn ảnh desktop -> không có gì để hiển thị.
+        return ""
+
+    inner = f'<div class="promo-banner__inner">{media_html}</div>'
+    content = (f'<a class="promo-banner__link" href="{campaign["destination_url"]}"{target_attrs}>{inner}</a>'
+               if has_link else inner)
+    close_btn = ('<button type="button" class="promo-banner__close" aria-label="Đóng quảng bá">&times;</button>'
+                 if campaign["dismissible"] else "")
+
+    return f"""
+<div class="promo-banner" id="promoStickyBanner" data-campaign="{campaign['slug']}" data-placement="sticky_bottom"
+     data-dismissible="{1 if campaign['dismissible'] else 0}" data-dismiss-days="{campaign['dismiss_days']}">
+  {content}
+  {close_btn}
+</div>"""
+
 def footer():
     socials = active_socials()
     icon_map = {"Facebook": "Fb", "Instagram": "Ig", "YouTube": "Yt", "TikTok": "Tt"}
@@ -896,7 +1015,8 @@ def footer():
     </div>
   </div>
 </footer>
-""" + """<script>
+""" + render_promo_banner(ACTIVE_STICKY_BANNER) + """
+<script>
 (function(){
   var open=document.getElementById('menuToggle');
   var close=document.getElementById('menuClose');
@@ -1302,6 +1422,44 @@ if('serviceWorker' in navigator){
     });
   },{threshold:0.3});
   targets.forEach(function(el){io.observe(el);});
+})();
+// Sticky Bottom Banner (V3.0 Promotion System) — mặc định ẩn bằng CSS;
+// chỉ hiện sau khi xác nhận chiến dịch này chưa bị người dùng đóng trong
+// thời hạn "Hiện lại sau". Đóng banner ghi mốc thời gian vào localStorage
+// theo đúng slug chiến dịch — đổi chiến dịch khác thì tự hiện lại ngay,
+// không cần biên tập viên phải làm gì thêm.
+(function(){
+  var el=document.getElementById('promoStickyBanner');
+  if(!el)return;
+  var STORAGE_PREFIX='tnc_promo_dismissed_';
+  var slug=el.getAttribute('data-campaign');
+  var dismissible=el.getAttribute('data-dismissible')==='1';
+  var dismissDays=parseInt(el.getAttribute('data-dismiss-days'),10)||0;
+  function reveal(){
+    el.classList.add('is-visible');
+    document.body.classList.add('has-promo-sticky-banner');
+  }
+  if(dismissible){
+    try{
+      var raw=localStorage.getItem(STORAGE_PREFIX+slug);
+      if(raw){
+        var dismissedAt=parseInt(raw,10);
+        var expiresAt=dismissedAt+dismissDays*86400000;
+        if(!isNaN(dismissedAt)&&Date.now()<expiresAt)return; // vẫn trong thời hạn ẩn, không hiện lại
+      }
+    }catch(_err){}
+  }
+  reveal();
+  var closeBtn=el.querySelector('.promo-banner__close');
+  if(closeBtn){
+    closeBtn.addEventListener('click',function(){
+      el.classList.remove('is-visible');
+      document.body.classList.remove('has-promo-sticky-banner');
+      if(dismissible){
+        try{localStorage.setItem(STORAGE_PREFIX+slug,String(Date.now()));}catch(_err){}
+      }
+    });
+  }
 })();
 </script>
 """ + analytics_script_tag() + """

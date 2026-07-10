@@ -4,6 +4,14 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # V3.0 Promotion System: chiến dịch quảng bá tự bật/tắt theo Ngày bắt
+  # đầu/Ngày kết thúc, nhưng site tĩnh chỉ cập nhật khi build chạy — nếu
+  # không ai push code đúng ngày đó, banner sẽ trễ. Chạy build hằng ngày
+  # để ngày hết hạn có hiệu lực mà không cần thao tác gì thêm. 17:00 UTC
+  # ~ 00:00 giờ Việt Nam (UTC+7). Không tạo commit/thay đổi gì nếu output
+  # không đổi (xem bước cuối bên dưới).
+  schedule:
+    - cron: "0 17 * * *"
 
 permissions:
   contents: write
