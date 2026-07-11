@@ -3,8 +3,8 @@ title: TNC Ads
 active: true
 placement: sticky_bottom
 type: image
-desktop_image: /uploads/3889.png
-mobile_image: /uploads/3889.png
+desktop_image: /uploads/3890.png
+mobile_image: /uploads/3890.png
 video: ''
 destination_url: ''
 open_in_new_tab: true
