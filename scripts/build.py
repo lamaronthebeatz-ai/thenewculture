@@ -552,6 +552,11 @@ def load_profiles():
         if invalid:
             print(f"  ! Hồ sơ {os.path.basename(path)}: badge không hợp lệ bị bỏ qua: {', '.join(invalid)}")
 
+        raw_aliases = meta.get("aliases") or []
+        if not isinstance(raw_aliases, list):
+            raw_aliases = []
+        aliases = [a.strip() for a in raw_aliases if (a or "").strip()]
+
         profiles.append({
             "slug": os.path.splitext(os.path.basename(path))[0],
             "name": name,
@@ -561,11 +566,129 @@ def load_profiles():
             "avatar": (meta.get("avatar") or "").strip(),
             "short_desc": (meta.get("short_desc") or "").strip(),
             "badges": ordered_badges,
+            "aliases": aliases,
             "body": _md_body_to_blocks(body_md),
         })
     return profiles
 
 PROFILES = load_profiles()
+
+# -----------------------------------------------------------------
+# ARTIST KNOWLEDGE GRAPH V1
+# Nối TNC Profiles với bài viết KHÔNG qua nhập tay: một bài viết "thuộc
+# về" một Profile khi 1 trong các tag của bài (đã slugify, bỏ dấu/# ) khớp
+# slug tên hoặc slug của bất kỳ alias nào của Profile đó. "match_slugs"
+# là tập hợp các slug nhận diện một Profile — dùng để gộp bài viết liên
+# quan (mục 1-2) VÀ để nhận diện tên nghệ sĩ xuất hiện trong thân bài để
+# tự sinh internal link (mục 3), không lưu trùng dữ liệu ở đâu cả, chỉ
+# tính lại mỗi lần build từ đúng 2 nguồn: content/profiles + content/articles.
+# -----------------------------------------------------------------
+def _entity_match_slugs(name, aliases):
+    slugs = set()
+    for form in [name] + list(aliases):
+        s = slugify((form or "").strip())
+        if s and s != "bai-viet":
+            slugs.add(s)
+    return slugs
+
+for _p in PROFILES:
+    _p["match_slugs"] = _entity_match_slugs(_p["name"], _p["aliases"])
+
+def _parse_vn_date(date_str):
+    """Parse chuỗi ngày 'D Tháng M, YYYY' (định dạng publish date duy nhất
+    dùng trong toàn hệ thống) thành datetime.date để so sánh/sắp xếp. Ngày
+    không đọc được (hiếm, dữ liệu lỗi) coi như cũ nhất, xếp cuối, không
+    chặn build."""
+    import datetime
+    m = re.match(r'^\s*(\d{1,2})\s*Tháng\s*(\d{1,2})\s*,\s*(\d{4})\s*$', date_str or "")
+    if not m:
+        return datetime.date.min
+    day, month, year = int(m.group(1)), int(m.group(2)), int(m.group(3))
+    try:
+        return datetime.date(year, month, day)
+    except ValueError:
+        return datetime.date.min
+
+# profile_slug -> list bài viết liên quan, mới nhất trước, không trùng lặp
+PROFILE_ARTICLES = {}
+for _p in PROFILES:
+    _matched, _seen = [], set()
+    for _a in ARTICLES:
+        _tag_slugs = {slugify(t) for t in _a.get("tags", [])}
+        if _p["match_slugs"] & _tag_slugs and _a["slug"] not in _seen:
+            _matched.append(_a)
+            _seen.add(_a["slug"])
+    _matched.sort(key=lambda a: _parse_vn_date(a["date"]), reverse=True)
+    PROFILE_ARTICLES[_p["slug"]] = _matched
+
+# Chỉ mục ngược: bề mặt chữ thật (giữ nguyên hoa/thường để hiển thị) ->
+# Profile, dùng để tự sinh internal link trong thân bài Article. Khớp
+# theo entity HOÀN CHỈNH (\b...\b, không link một phần từ), không phân
+# biệt hoa/thường khi so khớp nhưng giữ nguyên đúng chữ gốc trong bài khi
+# hiển thị link. Tên/alias trùng giữa 2 Profile khác nhau -> giữ Profile
+# nạp trước, cảnh báo rõ, không crash build.
+SURFACE_TO_PROFILE = {}
+_surface_forms = []
+for _p in PROFILES:
+    for _form in [_p["name"]] + _p["aliases"]:
+        _form = (_form or "").strip()
+        if not _form:
+            continue
+        _key = _form.lower()
+        _owner = SURFACE_TO_PROFILE.get(_key)
+        if _owner and _owner["slug"] != _p["slug"]:
+            print(f"  ! CẢNH BÁO: tên/alias '{_form}' trùng giữa hồ sơ '{_owner['name']}' và '{_p['name']}' — chỉ liên kết tới '{_owner['name']}'")
+            continue
+        SURFACE_TO_PROFILE[_key] = _p
+        _surface_forms.append(_form)
+
+ENTITY_PATTERN = None
+if _surface_forms:
+    _alt = "|".join(re.escape(f) for f in sorted(set(_surface_forms), key=len, reverse=True))
+    ENTITY_PATTERN = re.compile(r'\b(?:' + _alt + r')\b', re.IGNORECASE)
+
+_ENTITY_TAG_RE = re.compile(r'(<[^>]+>)')
+_ENTITY_SKIP_TAGS = {"a", "code", "h1", "h2", "h3", "h4", "h5", "h6"}
+
+def linkify_entities(html_fragment):
+    """Tự động chèn internal link tới TNC Profile khi tên/alias nghệ sĩ
+    xuất hiện trong HTML thân bài ĐÃ RENDER — không sửa markdown gốc, chỉ
+    sinh link ở bước build. An toàn theo thẻ HTML: bỏ qua hoàn toàn nội
+    dung bên trong <a> (không lồng link/không link lại link có sẵn),
+    <code> (không link trong code) và heading h1-h6 (không link trong
+    heading). Không đụng URL/thuộc tính vì chỉ xử lý các đoạn text NẰM
+    NGOÀI thẻ, không bao giờ chạm vào bên trong dấu <...>. Mỗi Profile chỉ
+    được link ở lần xuất hiện ĐẦU TIÊN trong bài, tránh rợp link toàn bài."""
+    if not ENTITY_PATTERN or not html_fragment:
+        return html_fragment
+    linked_slugs = set()
+    skip_depth = 0
+    out = []
+    for tok in _ENTITY_TAG_RE.split(html_fragment):
+        if not tok:
+            continue
+        if tok[0] == '<':
+            m = re.match(r'</?([a-zA-Z0-9]+)', tok)
+            tagname = m.group(1).lower() if m else ""
+            if tagname in _ENTITY_SKIP_TAGS:
+                skip_depth += -1 if tok.startswith('</') else 1
+                skip_depth = max(skip_depth, 0)
+            out.append(tok)
+            continue
+        if skip_depth > 0:
+            out.append(tok)
+            continue
+
+        def _sub(m):
+            surface = m.group(0)
+            profile = SURFACE_TO_PROFILE.get(surface.lower())
+            if not profile or profile["slug"] in linked_slugs:
+                return surface
+            linked_slugs.add(profile["slug"])
+            return f'<a href="{profile_url(profile["slug"])}">{surface}</a>'
+
+        out.append(ENTITY_PATTERN.sub(_sub, tok))
+    return "".join(out)
 
 
 # Bảo hiểm: nếu chưa có bài nào, tạo 1 bài chào mừng tạm để trang chủ không lỗi
@@ -2179,6 +2302,30 @@ def render_profile_page(p):
     name_html = render_goat_name_html(p["name"], has_goat)
     badges_html = render_badges_html(p["badges"], context="hero")
     path = profile_url(p["slug"])
+
+    # Artist Knowledge Graph V1: bài viết liên quan tự build từ tag khớp
+    # tên/alias Profile (PROFILE_ARTICLES) — không nhập tay, không trùng
+    # lặp, đã sắp xếp mới nhất trước. Ẩn hẳn khối nếu chưa có bài nào.
+    related_articles = PROFILE_ARTICLES.get(p["slug"], [])
+    related_section = ""
+    if related_articles:
+        cards = ""
+        for r in related_articles:
+            rs = SERIES_BY_SLUG[r["series"]]
+            cards += f"""
+      <a class="card" href="{article_url(r['slug'])}">
+        <div class="media media--3-2">{zoom(r)}<span class="archive-code">{art_code(r)}</span></div>
+        <span class="eyebrow eyebrow{rs['accent']}">{rs['name']}</span>
+        <h3>{r['title']}</h3>
+        <span class="byline">{rs['name']} · {r['date']}</span>
+      </a>"""
+        related_section = f"""
+  <section class="section container">
+    <div class="section-head"><h2>Bài viết liên quan</h2></div>
+    <div class="grid grid-3">{cards}
+    </div>
+  </section>"""
+
     html = head(p["name"], p["short_desc"], path=path) + masthead(active="tnc-profiles")
     html += f"""
 <main>
@@ -2204,6 +2351,7 @@ def render_profile_page(p):
 {body_html}
     </div>
   </section>
+{related_section}
 </main>
 """
     html += footer()
@@ -2487,7 +2635,10 @@ def render_series_pager(a):
 
 def render_article_page(a):
     s = SERIES_BY_SLUG[a["series"]]
-    body = render_body_blocks(a["body"])
+    # Artist Knowledge Graph V1: tự chèn internal link tới TNC Profile khi
+    # tên/alias nghệ sĩ xuất hiện trong thân bài — chỉ áp dụng cho Article,
+    # không áp dụng cho bio của chính Profile (tránh tự link tới chính nó).
+    body = linkify_entities(render_body_blocks(a["body"]))
 
     # related — chấm điểm theo số tag trùng, ưu tiên cùng series khi hòa điểm
     def _score(x):

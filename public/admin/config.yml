@@ -433,6 +433,14 @@ collections:
         widget: string
         hint: "Tên nghệ sĩ, hoặc tên đơn vị (label, studio...)."
 
+      - label: "Tên gọi khác (aliases)"
+        name: aliases
+        widget: list
+        allow_add: true
+        required: false
+        default: []
+        hint: "Các cách viết/gọi khác của cùng một người: nghệ danh viết hoa toàn bộ, tên thật, biệt danh... Ví dụ: WOWY, Wowy, Nguyễn Ngọc Minh Huy. Dùng để: (1) gộp đúng bài viết có tag khớp bất kỳ tên nào trong số này vào mục 'Bài viết liên quan', (2) tự nhận diện và gắn link tới hồ sơ này mỗi khi tên xuất hiện trong bài viết khác. Không cần nhập lại tên chính ở trường 'Tên' phía trên."
+
       - label: "Loại"
         name: type
         widget: select
