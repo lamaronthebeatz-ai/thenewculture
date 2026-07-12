@@ -497,20 +497,44 @@ a:hover .media__zoom{transform:scale(1.04);box-shadow:inset 0 -120px 90px -50px 
 .cover-story{margin-top:var(--s-7);margin-bottom:var(--s-9);padding-bottom:var(--s-8);border-bottom:1px solid var(--c-line);}
 .cover-story .section-head{margin-bottom:var(--s-6);}
 
-/* ----- TNC Magazine (Monthly Digital Magazine) — bìa + nội dung 2 cột,
-   cùng kỹ thuật grid collapse-1-cột-trên-mobile đã dùng cho .feature
-   (Cover Story trang chủ khác — không liên quan) ở trên, giữ nhất quán,
-   không phát minh kỹ thuật responsive mới. Dùng chung cho khối Trang chủ
-   (.magazine-block) và hero trang Issue (.magazine-hero). */
-.magazine-block,.magazine-hero{display:grid;grid-template-columns:320px 1fr;gap:var(--s-7);align-items:start;}
-.magazine-block .media,.magazine-hero .media{aspect-ratio:3/4;}
-.magazine-block{padding:var(--s-7);border:1px solid var(--c-line);}
-.magazine-block:hover{border-color:var(--c-line-strong);}
-.magazine-hero{padding-bottom:var(--s-7);border-bottom:2px solid var(--c-line-strong);margin-bottom:var(--s-7);}
-.magazine-block__list{list-style:none;display:flex;flex-direction:column;gap:var(--s-3);margin:var(--s-5) 0;}
-.magazine-block__list li{font-family:var(--f-display);font-weight:700;font-size:var(--t-md);line-height:1.3;}
+/* ----- TNC Magazine — hero trang Issue (bìa + tiêu đề Issue, KHÔNG liên
+   quan tới khối Trang chủ — xem .magazine-spread bên dưới cho khối đó). */
+.magazine-hero{display:grid;grid-template-columns:320px 1fr;gap:var(--s-7);align-items:start;padding-bottom:var(--s-7);border-bottom:2px solid var(--c-line-strong);margin-bottom:var(--s-7);}
+.magazine-hero .media{aspect-ratio:3/4;}
 @media (max-width:768px){
-  .magazine-block,.magazine-hero{grid-template-columns:1fr;}
+  .magazine-hero{grid-template-columns:1fr;}
+}
+
+/* ----- Khối "TNC Magazine" Trang chủ — editorial spread (như 1 cuốn tạp
+   chí đang mở ra): bìa trang trái + panel biên tập trang phải, tỉ lệ
+   40/60. KHÔNG dùng card UI (không border/box-shadow/background) — chỉ
+   typography + whitespace để phân tách các khối nội dung. Bìa luôn cao
+   bằng toàn bộ panel bên phải nhờ CSS Grid stretch mặc định (2 cột cùng
+   1 hàng); object-fit:cover giữ đúng tỉ lệ ảnh gốc, không bao giờ bóp méo
+   (chỉ crop phần dư nếu panel bên phải cao hơn tỉ lệ ảnh). */
+.magazine-spread{display:grid;grid-template-columns:2fr 3fr;gap:var(--s-9);align-items:stretch;}
+.magazine-spread__cover{display:block;height:100%;overflow:hidden;}
+.magazine-spread__cover img{width:100%;height:100%;object-fit:cover;display:block;}
+.magazine-spread__panel{display:flex;flex-direction:column;}
+.magazine-spread__month{font-family:var(--f-mono);font-size:var(--t-sm);color:var(--c-ink-3);text-transform:uppercase;letter-spacing:0.04em;margin-top:var(--s-2);}
+.magazine-spread__coverstory{margin-top:var(--s-6);}
+.magazine-spread__coverstory h3{font-family:var(--f-display);font-weight:800;font-size:var(--t-2xl);line-height:1.15;margin-top:var(--s-2);}
+.magazine-spread__coverstory h3 a{color:inherit;transition:color var(--dur) var(--ease);}
+.magazine-spread__coverstory h3 a:hover{color:var(--c-red);}
+.magazine-spread__contents{margin-top:var(--s-8);}
+.magazine-spread__contents-title{font-family:var(--f-display);font-weight:800;font-size:var(--t-lg);margin-bottom:var(--s-5);}
+.magazine-spread__group{margin-bottom:var(--s-6);}
+.magazine-spread__group:last-child{margin-bottom:0;}
+.magazine-spread__group-label{display:block;font-family:var(--f-mono);font-size:var(--t-xs);text-transform:uppercase;letter-spacing:0.06em;color:var(--c-ink-3);margin-bottom:var(--s-2);}
+.magazine-spread__group-list{list-style:none;}
+.magazine-spread__group-list li{margin-bottom:var(--s-2);}
+.magazine-spread__group-list a{font-family:var(--f-display);font-weight:700;font-size:var(--t-md);line-height:1.4;color:var(--c-ink);transition:color var(--dur) var(--ease);}
+.magazine-spread__group-list a:hover{color:var(--c-red);}
+.magazine-spread__cta{display:inline-block;margin-top:var(--s-8);font-family:var(--f-mono);font-weight:700;font-size:var(--t-sm);text-transform:uppercase;letter-spacing:0.06em;color:var(--c-red);transition:opacity var(--dur) var(--ease);}
+.magazine-spread__cta:hover{opacity:0.6;}
+@media (max-width:768px){
+  .magazine-spread{grid-template-columns:1fr;gap:var(--s-6);}
+  .magazine-spread__cover{height:auto;aspect-ratio:2/3;}
 }
 
 /* Table of Contents — phong cách tạp chí in: không card, không đánh số,
