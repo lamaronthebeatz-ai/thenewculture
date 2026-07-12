@@ -753,10 +753,15 @@ def load_magazine_issues_raw():
         with open(path, encoding="utf-8") as f:
             file_raw = f.read()
         meta, _ = _parse_frontmatter(file_raw)
+        # publish_date ghi "YYYY-MM-DD" không quote trong frontmatter khiến
+        # PyYAML tự nhận diện là timestamp và parse thẳng thành
+        # datetime.date/datetime.datetime, không phải str — .strip() thẳng
+        # trên giá trị đó sẽ crash toàn bộ build. str(...) trước luôn an
+        # toàn cho cả 2 trường hợp.
         raw.append({
             "slug": os.path.splitext(os.path.basename(path))[0],
             "cover_image": (meta.get("cover_image") or "").strip(),
-            "publish_date": (meta.get("publish_date") or "").strip(),
+            "publish_date": str(meta.get("publish_date") or "").strip(),
             "editors_note": (meta.get("editors_note") or "").strip(),
             "featured": bool(meta.get("featured", False)),
             "status": (meta.get("status") or "draft").strip(),
