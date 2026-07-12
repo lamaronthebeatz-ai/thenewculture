@@ -3519,37 +3519,62 @@ def render_magazine_archive_page():
     return page_wrap("Magazine Archive", "Toàn bộ số báo TNC Magazine.", inner, path="magazine-archive.html")
 
 def render_homepage_magazine_block():
-    """Khối 'TNC Magazine' trên Trang chủ — luôn hiện số mới nhất theo
-    Issue Number. Tự ẩn hoàn toàn nếu chưa có số báo đã xuất bản nào."""
+    """Khối 'TNC Magazine' trên Trang chủ — bố cục editorial spread 2 cột
+    (40% bìa / 60% panel biên tập), như 1 cuốn tạp chí đang mở ra: chỉ
+    typography + whitespace, không card/border/shadow (xem .magazine-spread
+    trong style.css). Panel bên phải đúng thứ tự Issue Number -> Month ->
+    Cover Story (khối riêng, không nằm trong Contents) -> Contents (nhóm
+    theo Series) -> Read Issue. Luôn hiện số mới nhất theo Issue Number,
+    tự ẩn hoàn toàn nếu chưa có số báo đã xuất bản nào."""
     issue = magazine.latest_issue(MAGAZINE_ISSUES)
     if not issue:
         return ""
     cover_html = (f'<img src="{issue["cover_image"]}" alt="Issue #{issue["number_display"]}" loading="lazy">'
                   if issue["cover_image"] else "")
-    items = "".join(f"<li>{a['title']}</li>" for a in issue["articles"][:8])
-    more_count = len(issue["articles"]) - 8
-    more_note = f'<li style="color:var(--c-ink-3);">+{more_count} bài khác trong số này</li>' if more_count > 0 else ""
     month_vn = magazine.format_month_year_vn(issue["month"], issue["year"])
     cover_story = issue["cover_story"]
     cover_story_html = (f"""
-        <span class="eyebrow eyebrow--red" style="margin-top:var(--s-5);">Cover Story</span>
-        <h3 style="font-size:var(--t-xl);margin:var(--s-2) 0 0;"><a href="{article_url(cover_story['slug'])}">{cover_story['title']}</a></h3>"""
-        if cover_story else "")
+      <div class="magazine-spread__coverstory">
+        <span class="eyebrow eyebrow--red">Cover Story</span>
+        <h3><a href="{article_url(cover_story['slug'])}">{cover_story['title']}</a></h3>
+      </div>""" if cover_story else "")
+
+    # Contents: nhóm theo Series (thứ tự chuẩn của SERIES), loại trừ Cover
+    # Story — bài đó đã có khối riêng ngay phía trên, không lặp lại ở đây.
+    contents_articles = [a for a in issue["articles"]
+                          if not cover_story or a["slug"] != cover_story["slug"]]
+    by_series = {}
+    for a in contents_articles:
+        by_series.setdefault(a["series"], []).append(a)
+    groups_html = ""
+    for s in SERIES:
+        group = by_series.get(s["slug"])
+        if not group:
+            continue
+        items = "".join(f'<li><a href="{article_url(a["slug"])}">{a["title"]}</a></li>' for a in group)
+        groups_html += f"""
+        <div class="magazine-spread__group">
+          <span class="magazine-spread__group-label">{s['name']}</span>
+          <ul class="magazine-spread__group-list">{items}
+          </ul>
+        </div>"""
+
     return f"""
   <section class="section container js-reveal">
     <div class="section-head"><h2>TNC Magazine</h2><a class="more" href="magazine-archive.html">Xem toàn bộ số báo →</a></div>
-    <a href="{magazine.issue_url(issue)}" class="magazine-block">
-      <div class="media">{cover_html}</div>
-      <div>
+    <div class="magazine-spread">
+      <a href="{magazine.issue_url(issue)}" class="magazine-spread__cover" aria-label="Đọc Issue #{issue['number_display']}">{cover_html}</a>
+      <div class="magazine-spread__panel">
         <span class="eyebrow eyebrow--red">Issue #{issue['number_display']}</span>
-        <p class="byline" style="margin-top:var(--s-2);">{month_vn} · {len(issue['articles'])} bài viết</p>
+        <p class="magazine-spread__month">{month_vn} · {len(issue['articles'])} bài viết</p>
         {cover_story_html}
-        <h3 style="font-size:var(--t-xl);margin:var(--s-4) 0 0;">Contents</h3>
-        <ul class="magazine-block__list">{items}{more_note}
-        </ul>
-        <span class="btn btn--ghost">Read Issue →</span>
+        <div class="magazine-spread__contents">
+          <h3 class="magazine-spread__contents-title">Contents</h3>
+          {groups_html}
+        </div>
+        <a href="{magazine.issue_url(issue)}" class="magazine-spread__cta">Read Issue →</a>
       </div>
-    </a>
+    </div>
   </section>
 """
 
