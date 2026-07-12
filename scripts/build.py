@@ -7,7 +7,7 @@ Dữ liệu trung tâm -> đảm bảo nhất quán tuyệt đối giữa các t
 import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import magazine  # scripts/magazine.py — Issue Builder cho TNC Magazine (V6.0), module độc lập
+import magazine  # scripts/magazine.py — Issue Builder cho TNC Magazine (Monthly Digital Magazine), module độc lập
 
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public")
 os.makedirs(OUT, exist_ok=True)
@@ -363,6 +363,7 @@ def _normalize_ranking(raw):
     return items
 
 ARTICLES = load_articles()
+ARTICLES_BY_SLUG = {a["slug"]: a for a in ARTICLES}
 
 # -----------------------------------------------------------------
 # CẤU HÌNH SITE (logo, GIF hero, Spotify) — đọc từ content/settings/site.yml
@@ -739,10 +740,11 @@ for a in ARTICLES:
 print(f"Đã nạp {len(SERIES)} series, {len(ARTICLES)} bài viết từ Markdown.")
 
 # -----------------------------------------------------------------
-# TNC MAGAZINE (V6.0) — đọc metadata Issue từ content/magazine/*.md.
-# Collection này KHÔNG chứa bài viết — build.py chỉ đọc/parse frontmatter
-# (tái dùng _parse_frontmatter có sẵn), toàn bộ logic gộp bài + tính Issue
-# Number nằm trong scripts/magazine.py (Issue Builder, module độc lập).
+# TNC MAGAZINE (Monthly Digital Magazine) — đọc metadata Issue từ
+# content/magazine/*.md. Collection này KHÔNG chứa bài viết — build.py
+# chỉ đọc/parse frontmatter (tái dùng _parse_frontmatter có sẵn), toàn bộ
+# logic gộp bài theo Tháng/Năm + tính Issue Number nằm trong
+# scripts/magazine.py (Issue Builder, module độc lập).
 # -----------------------------------------------------------------
 def load_magazine_issues_raw():
     magazine_dir = os.path.join(REPO_ROOT, "content", "magazine")
@@ -753,29 +755,36 @@ def load_magazine_issues_raw():
         with open(path, encoding="utf-8") as f:
             file_raw = f.read()
         meta, _ = _parse_frontmatter(file_raw)
-        # publish_date ghi "YYYY-MM-DD" không quote trong frontmatter khiến
-        # PyYAML tự nhận diện là timestamp và parse thẳng thành
-        # datetime.date/datetime.datetime, không phải str — .strip() thẳng
-        # trên giá trị đó sẽ crash toàn bộ build. str(...) trước luôn an
-        # toàn cho cả 2 trường hợp.
         raw.append({
             "slug": os.path.splitext(os.path.basename(path))[0],
             "cover_image": (meta.get("cover_image") or "").strip(),
-            "publish_date": str(meta.get("publish_date") or "").strip(),
+            "cover_story": str(meta.get("cover_story") or "").strip(),
             "editors_note": (meta.get("editors_note") or "").strip(),
-            "featured": bool(meta.get("featured", False)),
+            "month": meta.get("month"),
+            "year": meta.get("year"),
             "status": (meta.get("status") or "draft").strip(),
         })
     return raw
 
+def _resolve_magazine_article(raw_slug):
+    """Cover Story field (relation) lưu slug thô của Sveltia CMS (có thể
+    còn dấu, do slug entry Article không ép clean_accents) — chuẩn hoá
+    qua đúng slugify() mà load_articles() đã dùng cho chính Article đó
+    rồi mới tra cứu, để không phụ thuộc CMS lưu slug có dấu hay không."""
+    if not raw_slug:
+        return None
+    return ARTICLES_BY_SLUG.get(slugify(raw_slug))
+
 MAGAZINE_RAW_ISSUES = load_magazine_issues_raw()
-MAGAZINE_ISSUES, _magazine_skipped, _magazine_duplicates = magazine.build_issues(
-    MAGAZINE_RAW_ISSUES, ARTICLES, _parse_vn_date, lambda a: (a["order"], a["slug"])
+MAGAZINE_ISSUES, _magazine_skipped, _magazine_duplicates, _magazine_bad_cover_story = magazine.build_issues(
+    MAGAZINE_RAW_ISSUES, ARTICLES, _parse_vn_date, _resolve_magazine_article
 )
 for _slug in _magazine_skipped:
-    print(f"  ! TNC Magazine: số báo '{_slug}' thiếu/lỗi Ngày phát hành, bỏ qua")
+    print(f"  ! TNC Magazine: số báo '{_slug}' thiếu/lỗi Tháng hoặc Năm phát hành, bỏ qua")
 for _slug in _magazine_duplicates:
-    print(f"  ! TNC Magazine: số báo '{_slug}' trùng Ngày phát hành với số báo khác, bỏ qua")
+    print(f"  ! TNC Magazine: số báo '{_slug}' trùng Tháng/Năm với số báo khác, bỏ qua")
+for _slug in _magazine_bad_cover_story:
+    print(f"  ! TNC Magazine: số báo '{_slug}' có Cover Story không khớp bài viết nào, bỏ qua trường này")
 if MAGAZINE_ISSUES:
     print(f"TNC Magazine: {len(MAGAZINE_ISSUES)} số báo đã xuất bản.")
 # =================================================================
@@ -3356,7 +3365,7 @@ def _compute_sw_cache_version():
     return h.hexdigest()[:12]
 
 # -----------------------------------------------------------------
-# TNC MAGAZINE (V6.0) — RENDER
+# TNC MAGAZINE (Monthly Digital Magazine) — RENDER
 # Chỉ render danh sách/liên kết tới Article đã có (article_url, zoom,
 # art_code...) — không render lại toàn bộ nội dung bài viết, không tạo
 # bản sao dữ liệu. Logic "issue nào chứa bài nào / số báo bao nhiêu" nằm
@@ -3381,7 +3390,9 @@ def render_magazine_toc(issue):
 def render_magazine_article_list(issue):
     """Danh sách bài đầy đủ của Issue: Title/Series/Author/Time/Thumbnail/
     Read Article — tái dùng đúng khuôn .card hàng ngang đã dùng cho Series/
-    Archive/Tag/Author, không tạo component thẻ bài mới."""
+    Archive/Tag/Author, không tạo component thẻ bài mới. Bao gồm cả bài
+    Cover Story (không loại trừ) — đây là trùng lặp TRÌNH BÀY (highlight
+    thêm 1 lần), không phải trùng lặp DỮ LIỆU."""
     rows = ""
     for a in issue["articles"]:
         s = SERIES_BY_SLUG[a["series"]]
@@ -3398,15 +3409,40 @@ def render_magazine_article_list(issue):
     <div class="grid js-reveal" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
     </div>"""
 
+def render_magazine_cover_story(a):
+    """Khối Cover Story nổi bật — dùng chung ở cả trang Issue và khối Trang
+    chủ (xem .magazine-coverstory trong style.css), chỉ render nếu Issue
+    đã resolve được Cover Story thành 1 Article thật (magazine.py trả về
+    None nếu editor chưa chọn hoặc chọn slug không khớp bài nào)."""
+    if not a:
+        return ""
+    s = SERIES_BY_SLUG[a["series"]]
+    return f"""
+      <a class="magazine-coverstory" href="{article_url(a['slug'])}">
+        <div class="media media--3-2">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
+        <div>
+          <span class="eyebrow eyebrow--red">Cover Story</span>
+          <h3 style="font-size:var(--t-2xl);margin:var(--s-3) 0;">{a['title']}</h3>
+          <span class="byline">{a['author']} · {a['date']}</span>
+          <span class="btn btn--ghost" style="margin-top:var(--s-4);">Read Article →</span>
+        </div>
+      </a>"""
+
 def render_magazine_issue_page(issue):
     path = magazine.issue_url(issue)
     title = f"TNC Magazine — Issue #{issue['number_display']}"
-    date_vn = magazine.format_publish_date_vn(issue["publish_date"])
-    desc = issue["editors_note"] or f"Số báo {issue['number_display']} của TNC Magazine, {date_vn} — {len(issue['articles'])} bài viết."
+    month_vn = magazine.format_month_year_vn(issue["month"], issue["year"])
+    desc = issue["editors_note"] or f"Số báo {issue['number_display']} của TNC Magazine, {month_vn} — {len(issue['articles'])} bài viết."
     cover_html = (f'<img src="{issue["cover_image"]}" alt="Issue #{issue["number_display"]}" loading="eager">'
                   if issue["cover_image"] else "")
     note_html = (f'<p style="font-size:var(--t-md);color:var(--c-ink-2);max-width:56ch;margin-top:var(--s-4);">{issue["editors_note"]}</p>'
                  if issue["editors_note"] else "")
+    cover_story_html = render_magazine_cover_story(issue["cover_story"])
+    cover_story_section = (f"""
+    <div class="js-reveal" style="margin-bottom:var(--s-8);">
+      <div class="section-head"><h2>Cover Story</h2></div>
+      {cover_story_html}
+    </div>""" if cover_story_html else "")
 
     html = head(title, desc, path=path, image=issue["cover_image"], og_type="article") + masthead()
     html += f"""
@@ -3421,11 +3457,11 @@ def render_magazine_issue_page(issue):
       <div>
         <span class="eyebrow eyebrow--red">TNC Magazine</span>
         <h1 style="font-size:var(--t-3xl);margin:var(--s-3) 0;">Issue #{issue['number_display']}</h1>
-        <p class="byline" style="font-size:var(--t-md);">{date_vn} · {len(issue['articles'])} bài viết</p>
+        <p class="byline" style="font-size:var(--t-md);">{month_vn} · {len(issue['articles'])} bài viết</p>
         {note_html}
       </div>
     </div>
-
+    {cover_story_section}
     <div class="js-reveal" style="margin-bottom:var(--s-8);">
       <div class="section-head"><h2>Contents</h2></div>
       {render_magazine_toc(issue)}
@@ -3444,7 +3480,7 @@ def render_magazine_issue_page(issue):
 def render_magazine_issue_card(issue):
     """Thẻ bìa cho Magazine Archive — tái dùng nguyên .poster-card (đã có
     sẵn cho TNC Community), không tạo component thẻ mới."""
-    date_vn = magazine.format_publish_date_vn(issue["publish_date"])
+    month_vn = magazine.format_month_year_vn(issue["month"], issue["year"])
     img = (f'<img src="{issue["cover_image"]}" alt="Issue #{issue["number_display"]}" loading="lazy">'
            if issue["cover_image"] else "")
     return f"""
@@ -3455,7 +3491,7 @@ def render_magazine_issue_card(issue):
         </div>
         <div class="poster-card__body">
           <h3 class="poster-card__title">Issue #{issue['number_display']}</h3>
-          <span class="poster-card__meta">{date_vn} · {len(issue['articles'])} bài viết</span>
+          <span class="poster-card__meta">{month_vn} · {len(issue['articles'])} bài viết</span>
         </div>
       </a>"""
 
@@ -3474,7 +3510,7 @@ def render_magazine_archive_page():
     <div class="page-hero">
       <span class="eyebrow eyebrow--red">TNC Magazine</span>
       <h1>Magazine Archive</h1>
-      <p>Toàn bộ số báo TNC Magazine — mỗi số tự động tổng hợp các bài viết xuất bản cùng ngày trên The New Culture.</p>
+      <p>Toàn bộ số báo TNC Magazine — mỗi số tự động tổng hợp các bài viết xuất bản trong cùng một tháng trên The New Culture.</p>
     </div>
     <div class="poster-grid js-reveal">{cards}
     </div>
@@ -3483,10 +3519,9 @@ def render_magazine_archive_page():
     return page_wrap("Magazine Archive", "Toàn bộ số báo TNC Magazine.", inner, path="magazine-archive.html")
 
 def render_homepage_magazine_block():
-    """Khối 'TNC Magazine' trên Trang chủ — hiện số Featured nếu có, không
-    thì số mới nhất theo Ngày phát hành. Tự ẩn hoàn toàn nếu chưa có số
-    báo đã xuất bản nào."""
-    issue = magazine.latest_or_featured(MAGAZINE_ISSUES)
+    """Khối 'TNC Magazine' trên Trang chủ — luôn hiện số mới nhất theo
+    Issue Number. Tự ẩn hoàn toàn nếu chưa có số báo đã xuất bản nào."""
+    issue = magazine.latest_issue(MAGAZINE_ISSUES)
     if not issue:
         return ""
     cover_html = (f'<img src="{issue["cover_image"]}" alt="Issue #{issue["number_display"]}" loading="lazy">'
@@ -3494,7 +3529,12 @@ def render_homepage_magazine_block():
     items = "".join(f"<li>{a['title']}</li>" for a in issue["articles"][:8])
     more_count = len(issue["articles"]) - 8
     more_note = f'<li style="color:var(--c-ink-3);">+{more_count} bài khác trong số này</li>' if more_count > 0 else ""
-    date_vn = magazine.format_publish_date_vn(issue["publish_date"])
+    month_vn = magazine.format_month_year_vn(issue["month"], issue["year"])
+    cover_story = issue["cover_story"]
+    cover_story_html = (f"""
+        <span class="eyebrow eyebrow--red" style="margin-top:var(--s-5);">Cover Story</span>
+        <h3 style="font-size:var(--t-xl);margin:var(--s-2) 0 0;"><a href="{article_url(cover_story['slug'])}">{cover_story['title']}</a></h3>"""
+        if cover_story else "")
     return f"""
   <section class="section container js-reveal">
     <div class="section-head"><h2>TNC Magazine</h2><a class="more" href="magazine-archive.html">Xem toàn bộ số báo →</a></div>
@@ -3502,8 +3542,9 @@ def render_homepage_magazine_block():
       <div class="media">{cover_html}</div>
       <div>
         <span class="eyebrow eyebrow--red">Issue #{issue['number_display']}</span>
-        <p class="byline" style="margin-top:var(--s-2);">{date_vn}</p>
-        <h3 style="font-size:var(--t-xl);margin:var(--s-4) 0 0;">Trong số hôm nay</h3>
+        <p class="byline" style="margin-top:var(--s-2);">{month_vn} · {len(issue['articles'])} bài viết</p>
+        {cover_story_html}
+        <h3 style="font-size:var(--t-xl);margin:var(--s-4) 0 0;">Contents</h3>
         <ul class="magazine-block__list">{items}{more_note}
         </ul>
         <span class="btn btn--ghost">Read Issue →</span>
@@ -3513,18 +3554,20 @@ def render_homepage_magazine_block():
 """
 
 def render_article_magazine_notice(a):
-    """'This article appears in TNC Magazine' — chỉ hiện nếu bài viết này
-    thực sự thuộc một Issue đã xuất bản (tính lại mỗi build, không lưu
-    quan hệ này ở đâu trong dữ liệu bài viết)."""
+    """'Published in TNC Magazine' — chỉ hiện nếu bài viết này thực sự
+    thuộc một Issue đã xuất bản (tính lại mỗi build, không lưu quan hệ
+    này ở đâu trong dữ liệu bài viết)."""
     issue = magazine.issue_for_article(MAGAZINE_ISSUES, a["slug"])
     if not issue:
         return ""
+    month_vn = magazine.format_month_year_vn(issue["month"], issue["year"])
     return f"""
     <div class="container" style="max-width:680px;">
       <div class="magazine-notice">
         <div>
-          <span class="magazine-notice__label">This article appears in</span><br>
-          <span class="magazine-notice__issue">TNC Magazine — Issue #{issue['number_display']}</span>
+          <span class="magazine-notice__label">Published in</span><br>
+          <span class="magazine-notice__issue">TNC Magazine — Issue #{issue['number_display']}</span><br>
+          <span class="magazine-notice__issue" style="font-weight:600;">{month_vn}</span>
         </div>
         <a class="btn btn--ghost" href="{magazine.issue_url(issue)}" style="margin-left:auto;">View Issue</a>
       </div>
@@ -3651,7 +3694,7 @@ self.addEventListener('fetch',e=>{
         with open(os.path.join(OUT, profile_url(p["slug"])),"w",encoding="utf-8") as f:
             f.write(render_profile_page(p))
 
-    # TNC Magazine (V6.0) — mỗi Issue đã xuất bản 1 trang riêng
+    # TNC Magazine (Monthly Digital Magazine) — mỗi Issue đã xuất bản 1 trang riêng
     for issue in MAGAZINE_ISSUES:
         with open(os.path.join(OUT, magazine.issue_url(issue)),"w",encoding="utf-8") as f:
             f.write(render_magazine_issue_page(issue))
