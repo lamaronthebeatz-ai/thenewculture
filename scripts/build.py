@@ -5,6 +5,9 @@ Sinh toàn bộ hệ thống trang tĩnh: index, 16 trang series, bài viết ch
 Dữ liệu trung tâm -> đảm bảo nhất quán tuyệt đối giữa các trang.
 """
 import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import magazine  # scripts/magazine.py — Issue Builder cho TNC Magazine (V6.0), module độc lập
 
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public")
 os.makedirs(OUT, exist_ok=True)
@@ -734,6 +737,42 @@ for a in ARTICLES:
         TAGS_BY_SLUG[tslug]["articles"].append(a)
 
 print(f"Đã nạp {len(SERIES)} series, {len(ARTICLES)} bài viết từ Markdown.")
+
+# -----------------------------------------------------------------
+# TNC MAGAZINE (V6.0) — đọc metadata Issue từ content/magazine/*.md.
+# Collection này KHÔNG chứa bài viết — build.py chỉ đọc/parse frontmatter
+# (tái dùng _parse_frontmatter có sẵn), toàn bộ logic gộp bài + tính Issue
+# Number nằm trong scripts/magazine.py (Issue Builder, module độc lập).
+# -----------------------------------------------------------------
+def load_magazine_issues_raw():
+    magazine_dir = os.path.join(REPO_ROOT, "content", "magazine")
+    raw = []
+    if not os.path.isdir(magazine_dir):
+        return raw
+    for path in sorted(glob.glob(os.path.join(magazine_dir, "*.md"))):
+        with open(path, encoding="utf-8") as f:
+            file_raw = f.read()
+        meta, _ = _parse_frontmatter(file_raw)
+        raw.append({
+            "slug": os.path.splitext(os.path.basename(path))[0],
+            "cover_image": (meta.get("cover_image") or "").strip(),
+            "publish_date": (meta.get("publish_date") or "").strip(),
+            "editors_note": (meta.get("editors_note") or "").strip(),
+            "featured": bool(meta.get("featured", False)),
+            "status": (meta.get("status") or "draft").strip(),
+        })
+    return raw
+
+MAGAZINE_RAW_ISSUES = load_magazine_issues_raw()
+MAGAZINE_ISSUES, _magazine_skipped, _magazine_duplicates = magazine.build_issues(
+    MAGAZINE_RAW_ISSUES, ARTICLES, _parse_vn_date, lambda a: (a["order"], a["slug"])
+)
+for _slug in _magazine_skipped:
+    print(f"  ! TNC Magazine: số báo '{_slug}' thiếu/lỗi Ngày phát hành, bỏ qua")
+for _slug in _magazine_duplicates:
+    print(f"  ! TNC Magazine: số báo '{_slug}' trùng Ngày phát hành với số báo khác, bỏ qua")
+if MAGAZINE_ISSUES:
+    print(f"TNC Magazine: {len(MAGAZINE_ISSUES)} số báo đã xuất bản.")
 # =================================================================
 # TEMPLATE v3 — theo hệ thống component Complex-style
 # =================================================================
@@ -1112,6 +1151,7 @@ def footer():
       <div class="footer__col"><h4>Khám phá</h4><ul>
         <li><a href="all-series.html">Toàn bộ Series</a></li>
         <li><a href="archive.html">Toàn bộ bài viết</a></li>
+        <li><a href="magazine-archive.html">TNC Magazine</a></li>
         <li><a href="video.html">Video</a></li>
         <li><a href="su-kien.html">Sự kiện</a></li>
         <li><a href="newsletter.html">Newsletter</a></li>
@@ -2073,7 +2113,7 @@ def render_index():
       </div>
     </div>
   </section>
-
+{render_homepage_magazine_block()}
   <section class="hero-side-strip container js-reveal">
     <div class="section-head"><h2>Mới cập nhật</h2></div>
     <div class="hero-side-strip__grid">{side}
@@ -2758,7 +2798,7 @@ def render_article_page(a):
     <div class="container" style="max-width:680px;margin-top:var(--s-6);display:flex;gap:var(--s-2);flex-wrap:wrap;">
       {tags}
     </div>
-
+{render_article_magazine_notice(a)}
     <div class="container" style="max-width:680px;">{share_bar(a, _path)}
     </div>
 {author_bio_box_html(a['author'])}
@@ -2902,7 +2942,9 @@ def build_sitemap():
         urls.append(f"{SITE_URL}/{article_url(a['slug'])}")
     for tslug in TAGS_BY_SLUG:
         urls.append(f"{SITE_URL}/{tag_url(tslug)}")
-    for extra in ["all-series.html","all-tags.html","archive.html","video.html","search.html","su-kien.html",
+    for issue in MAGAZINE_ISSUES:
+        urls.append(f"{SITE_URL}/{magazine.issue_url(issue)}")
+    for extra in ["all-series.html","all-tags.html","archive.html","magazine-archive.html","video.html","search.html","su-kien.html",
                   "ve-tnc.html","lien-he.html","hop-tac.html","tuyen-dung.html","tnc-sessions.html"]:
         urls.append(f"{SITE_URL}/{extra}")
     items = "\n".join(f"  <url><loc>{u}</loc></url>" for u in urls)
@@ -3301,11 +3343,187 @@ def _compute_sw_cache_version():
             src_files.append(os.path.join(root, fn))
     src_files.append(os.path.abspath(__file__))
     src_files.append(os.path.join(os.path.dirname(__file__), "style.css"))
+    src_files.append(os.path.join(os.path.dirname(__file__), "magazine.py"))
     for path in sorted(src_files):
         h.update(os.path.relpath(path, REPO_ROOT).encode("utf-8"))
         with open(path, "rb") as f:
             h.update(f.read())
     return h.hexdigest()[:12]
+
+# -----------------------------------------------------------------
+# TNC MAGAZINE (V6.0) — RENDER
+# Chỉ render danh sách/liên kết tới Article đã có (article_url, zoom,
+# art_code...) — không render lại toàn bộ nội dung bài viết, không tạo
+# bản sao dữ liệu. Logic "issue nào chứa bài nào / số báo bao nhiêu" nằm
+# hoàn toàn trong scripts/magazine.py (Issue Builder); các hàm dưới đây
+# chỉ lo phần trình bày HTML, tái dùng đúng component/class đã có.
+# -----------------------------------------------------------------
+def render_magazine_toc(issue):
+    """Contents — phong cách tạp chí in: không đánh số, không card lớn,
+    chỉ tên series nhỏ phía trên tiêu đề (xem .magazine-toc trong style.css)."""
+    items = ""
+    for a in issue["articles"]:
+        s = SERIES_BY_SLUG[a["series"]]
+        items += f"""
+      <a href="{article_url(a['slug'])}">
+        <span class="magazine-toc__series">{s['name']}</span>
+        <span class="magazine-toc__title">{a['title']}</span>
+      </a>"""
+    return f"""
+    <div class="magazine-toc">{items}
+    </div>"""
+
+def render_magazine_article_list(issue):
+    """Danh sách bài đầy đủ của Issue: Title/Series/Author/Time/Thumbnail/
+    Read Article — tái dùng đúng khuôn .card hàng ngang đã dùng cho Series/
+    Archive/Tag/Author, không tạo component thẻ bài mới."""
+    rows = ""
+    for a in issue["articles"]:
+        s = SERIES_BY_SLUG[a["series"]]
+        rows += f"""
+      <a class="card" href="{article_url(a['slug'])}" style="flex-direction:row;gap:var(--s-5);align-items:center;">
+        <div class="media media--3-2" style="flex:0 0 220px;">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
+        <div>
+          <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
+          <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{a['title']}</h3>
+          <span class="byline">{a['author']} · {a['read_time']}</span>
+        </div>
+      </a>"""
+    return f"""
+    <div class="grid js-reveal" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
+    </div>"""
+
+def render_magazine_issue_page(issue):
+    path = magazine.issue_url(issue)
+    title = f"TNC Magazine — Issue #{issue['number_display']}"
+    date_vn = magazine.format_publish_date_vn(issue["publish_date"])
+    desc = issue["editors_note"] or f"Số báo {issue['number_display']} của TNC Magazine, {date_vn} — {len(issue['articles'])} bài viết."
+    cover_html = (f'<img src="{issue["cover_image"]}" alt="Issue #{issue["number_display"]}" loading="eager">'
+                  if issue["cover_image"] else "")
+    note_html = (f'<p style="font-size:var(--t-md);color:var(--c-ink-2);max-width:56ch;margin-top:var(--s-4);">{issue["editors_note"]}</p>'
+                 if issue["editors_note"] else "")
+
+    html = head(title, desc, path=path, image=issue["cover_image"], og_type="article") + masthead()
+    html += f"""
+<main>
+  <section class="container" style="padding-top:var(--s-6);">
+    <nav class="byline" style="margin-bottom:var(--s-6);" aria-label="breadcrumb">
+      <a href="index.html">Trang chủ</a> / <a href="magazine-archive.html">TNC Magazine</a> / Issue #{issue['number_display']}
+    </nav>
+
+    <div class="magazine-hero">
+      <div class="media">{cover_html}</div>
+      <div>
+        <span class="eyebrow eyebrow--red">TNC Magazine</span>
+        <h1 style="font-size:var(--t-3xl);margin:var(--s-3) 0;">Issue #{issue['number_display']}</h1>
+        <p class="byline" style="font-size:var(--t-md);">{date_vn} · {len(issue['articles'])} bài viết</p>
+        {note_html}
+      </div>
+    </div>
+
+    <div class="js-reveal" style="margin-bottom:var(--s-8);">
+      <div class="section-head"><h2>Contents</h2></div>
+      {render_magazine_toc(issue)}
+    </div>
+
+    <div>
+      <div class="section-head"><h2>Trong số này</h2></div>
+      {render_magazine_article_list(issue)}
+    </div>
+  </section>
+</main>
+"""
+    html += newsletter() + footer()
+    return html
+
+def render_magazine_issue_card(issue):
+    """Thẻ bìa cho Magazine Archive — tái dùng nguyên .poster-card (đã có
+    sẵn cho TNC Community), không tạo component thẻ mới."""
+    date_vn = magazine.format_publish_date_vn(issue["publish_date"])
+    img = (f'<img src="{issue["cover_image"]}" alt="Issue #{issue["number_display"]}" loading="lazy">'
+           if issue["cover_image"] else "")
+    return f"""
+      <a class="poster-card" href="{magazine.issue_url(issue)}">
+        <div class="poster-card__media">
+          {img}
+          <span class="poster-card__archive">Issue {issue['number_display']}</span>
+        </div>
+        <div class="poster-card__body">
+          <h3 class="poster-card__title">Issue #{issue['number_display']}</h3>
+          <span class="poster-card__meta">{date_vn} · {len(issue['articles'])} bài viết</span>
+        </div>
+      </a>"""
+
+def render_magazine_archive_page():
+    """Magazine Archive — toàn bộ số báo đã xuất bản, mới nhất trước."""
+    ordered = sorted(MAGAZINE_ISSUES, key=lambda i: i["number"], reverse=True)
+    cards = "".join(render_magazine_issue_card(i) for i in ordered)
+    if not cards:
+        cards = """
+      <div style="grid-column:1/-1;padding:var(--s-8);text-align:center;border:1px dashed var(--c-line);">
+        <p style="font-family:var(--f-mono);font-size:var(--t-sm);color:var(--c-ink-3);text-transform:uppercase;letter-spacing:0.06em;">Chưa có số báo nào</p>
+        <p style="color:var(--c-ink-3);margin-top:var(--s-2);font-size:var(--t-sm);">Số báo đầu tiên của TNC Magazine đang được biên tập.</p>
+      </div>"""
+    inner = f"""
+  <section class="container">
+    <div class="page-hero">
+      <span class="eyebrow eyebrow--red">TNC Magazine</span>
+      <h1>Magazine Archive</h1>
+      <p>Toàn bộ số báo TNC Magazine — mỗi số tự động tổng hợp các bài viết xuất bản cùng ngày trên The New Culture.</p>
+    </div>
+    <div class="poster-grid js-reveal">{cards}
+    </div>
+  </section>
+"""
+    return page_wrap("Magazine Archive", "Toàn bộ số báo TNC Magazine.", inner, path="magazine-archive.html")
+
+def render_homepage_magazine_block():
+    """Khối 'TNC Magazine' trên Trang chủ — hiện số Featured nếu có, không
+    thì số mới nhất theo Ngày phát hành. Tự ẩn hoàn toàn nếu chưa có số
+    báo đã xuất bản nào."""
+    issue = magazine.latest_or_featured(MAGAZINE_ISSUES)
+    if not issue:
+        return ""
+    cover_html = (f'<img src="{issue["cover_image"]}" alt="Issue #{issue["number_display"]}" loading="lazy">'
+                  if issue["cover_image"] else "")
+    items = "".join(f"<li>{a['title']}</li>" for a in issue["articles"][:8])
+    more_count = len(issue["articles"]) - 8
+    more_note = f'<li style="color:var(--c-ink-3);">+{more_count} bài khác trong số này</li>' if more_count > 0 else ""
+    date_vn = magazine.format_publish_date_vn(issue["publish_date"])
+    return f"""
+  <section class="section container js-reveal">
+    <div class="section-head"><h2>TNC Magazine</h2><a class="more" href="magazine-archive.html">Xem toàn bộ số báo →</a></div>
+    <a href="{magazine.issue_url(issue)}" class="magazine-block">
+      <div class="media">{cover_html}</div>
+      <div>
+        <span class="eyebrow eyebrow--red">Issue #{issue['number_display']}</span>
+        <p class="byline" style="margin-top:var(--s-2);">{date_vn}</p>
+        <h3 style="font-size:var(--t-xl);margin:var(--s-4) 0 0;">Trong số hôm nay</h3>
+        <ul class="magazine-block__list">{items}{more_note}
+        </ul>
+        <span class="btn btn--ghost">Read Issue →</span>
+      </div>
+    </a>
+  </section>
+"""
+
+def render_article_magazine_notice(a):
+    """'This article appears in TNC Magazine' — chỉ hiện nếu bài viết này
+    thực sự thuộc một Issue đã xuất bản (tính lại mỗi build, không lưu
+    quan hệ này ở đâu trong dữ liệu bài viết)."""
+    issue = magazine.issue_for_article(MAGAZINE_ISSUES, a["slug"])
+    if not issue:
+        return ""
+    return f"""
+    <div class="container" style="max-width:680px;">
+      <div class="magazine-notice">
+        <div>
+          <span class="magazine-notice__label">This article appears in</span><br>
+          <span class="magazine-notice__issue">TNC Magazine — Issue #{issue['number_display']}</span>
+        </div>
+        <a class="btn btn--ghost" href="{magazine.issue_url(issue)}" style="margin-left:auto;">View Issue</a>
+      </div>
+    </div>"""
 
 def main():
     import shutil, glob as _glob
@@ -3428,11 +3646,17 @@ self.addEventListener('fetch',e=>{
         with open(os.path.join(OUT, profile_url(p["slug"])),"w",encoding="utf-8") as f:
             f.write(render_profile_page(p))
 
+    # TNC Magazine (V6.0) — mỗi Issue đã xuất bản 1 trang riêng
+    for issue in MAGAZINE_ISSUES:
+        with open(os.path.join(OUT, magazine.issue_url(issue)),"w",encoding="utf-8") as f:
+            f.write(render_magazine_issue_page(issue))
+
     # trang phụ
     extra = {
         "all-series.html": render_all_series(),
         "all-tags.html": render_all_tags(),
         "archive.html": render_archive_page(),
+        "magazine-archive.html": render_magazine_archive_page(),
         "video.html": render_video_page(),
         "search.html": render_search_page(),
         "su-kien.html": render_events_page(),
