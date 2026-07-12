@@ -29,7 +29,14 @@ jobs:
       - run: |
           git config user.name "TNC Build Bot"
           git config user.email "bot@thenewculture.local"
-          git add public
+          # "content" phải được add cùng "public": khi một bài viết thiếu
+          # date, build.py chỉ gán ngày publish MỘT LẦN DUY NHẤT rồi ghi
+          # thẳng vào content/articles/*.md để bất biến từ đó về sau (xem
+          # _assign_date_once trong scripts/build.py). Nếu bước này chỉ add
+          # "public", lần ghi đó không bao giờ được commit -> mỗi lần CI
+          # build lại, bài viết đó bị coi là "vẫn thiếu date" và ngày publish
+          # tiếp tục trôi theo đúng ngày build, phá vỡ tính bất biến.
+          git add public content
           if git diff --staged --quiet; then
             echo "Khong co thay doi."
           else
