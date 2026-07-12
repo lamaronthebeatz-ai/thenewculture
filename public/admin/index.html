@@ -18,8 +18,16 @@
   <link rel="cms-config-url" href="/admin/config.yml" type="application/yaml">
 </head>
 <body>
-  <!-- Sveltia CMS: nạp từ CDN, luôn lấy bản mới nhất -->
-  <script src="https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js"></script>
+  <!-- Sveltia CMS: PIN cứng phiên bản, KHÔNG dùng "latest" (không có dấu
+       @version). Ngày 2026-07-12 bản 0.170.6 (bản mới nhất tại thời điểm
+       đó) có regression: bất kỳ field nào khai báo "hint:" cũng khiến
+       Editor + Preview trắng trơn khi tạo/sửa entry, lỗi console
+       "n is not a function" — tái hiện được ở MỌI collection, kể cả cấu
+       hình tối giản 2 field không liên quan gì tới TNC. Đã xác nhận
+       0.170.5 hoạt động bình thường với đúng config.yml hiện tại. Nếu sau
+       này muốn nâng cấp, phải test lại toàn bộ Editor/Preview trước khi
+       đổi số phiên bản ở đây, không tự ý gỡ ghim để trở lại "latest". -->
+  <script src="https://unpkg.com/@sveltia/cms@0.170.5/dist/sveltia-cms.js"></script>
   <!-- V2.2 Permission Layer: chỉ HIỂN THỊ vai trò biên tập nhận được từ
        Worker sau khi đăng nhập — không can thiệp vào Sveltia CMS, không
        tham gia bắt tay postMessage (Sveltia CMS đã tự làm việc đó), chỉ
