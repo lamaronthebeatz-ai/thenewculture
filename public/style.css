@@ -497,10 +497,11 @@ a:hover .media__zoom{transform:scale(1.04);box-shadow:inset 0 -120px 90px -50px 
 .cover-story{margin-top:var(--s-7);margin-bottom:var(--s-9);padding-bottom:var(--s-8);border-bottom:1px solid var(--c-line);}
 .cover-story .section-head{margin-bottom:var(--s-6);}
 
-/* ----- TNC Magazine (V6.0) — bìa + nội dung 2 cột, cùng kỹ thuật grid
-   collapse-1-cột-trên-mobile đã dùng cho .feature (Cover Story) ở trên,
-   giữ nhất quán, không phát minh kỹ thuật responsive mới. Dùng chung cho
-   khối Trang chủ (.magazine-block) và hero trang Issue (.magazine-hero). */
+/* ----- TNC Magazine (Monthly Digital Magazine) — bìa + nội dung 2 cột,
+   cùng kỹ thuật grid collapse-1-cột-trên-mobile đã dùng cho .feature
+   (Cover Story trang chủ khác — không liên quan) ở trên, giữ nhất quán,
+   không phát minh kỹ thuật responsive mới. Dùng chung cho khối Trang chủ
+   (.magazine-block) và hero trang Issue (.magazine-hero). */
 .magazine-block,.magazine-hero{display:grid;grid-template-columns:320px 1fr;gap:var(--s-7);align-items:start;}
 .magazine-block .media,.magazine-hero .media{aspect-ratio:3/4;}
 .magazine-block{padding:var(--s-7);border:1px solid var(--c-line);}
@@ -522,7 +523,14 @@ a:hover .media__zoom{transform:scale(1.04);box-shadow:inset 0 -120px 90px -50px 
 .magazine-toc a:hover .magazine-toc__title{color:var(--c-red);}
 @media (max-width:768px){.magazine-toc{columns:1;}}
 
-/* Ghi chú "This article appears in TNC Magazine" trên trang Article */
+/* Cover Story — khối nổi bật 1 bài viết duy nhất của Issue, tái dùng
+   .media/.archive-code/.eyebrow/.btn đã có, chỉ thêm khung viền trái đỏ
+   để phân biệt với .card thường trong danh sách bên dưới. */
+.magazine-coverstory{display:grid;grid-template-columns:280px 1fr;gap:var(--s-6);align-items:center;padding:var(--s-6);border:1px solid var(--c-line);border-left:3px solid var(--c-red);}
+.magazine-coverstory:hover{border-color:var(--c-line-strong);border-left-color:var(--c-red);}
+@media (max-width:768px){.magazine-coverstory{grid-template-columns:1fr;}}
+
+/* Ghi chú "Published in TNC Magazine" trên trang Article */
 .magazine-notice{
   display:flex;align-items:center;gap:var(--s-4);flex-wrap:wrap;
   padding:var(--s-5);border:1px solid var(--c-line-strong);border-radius:var(--r-md);

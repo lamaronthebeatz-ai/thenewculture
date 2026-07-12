@@ -501,15 +501,16 @@ collections:
         hint: "Tiểu sử, dấu ấn nổi bật, thông tin chi tiết — hiển thị đầy đủ ở trang riêng của hồ sơ này."
 
   # ============================================================
-  # TNC MAGAZINE (V6.0) — Digital Issue System
+  # TNC MAGAZINE — Monthly Digital Magazine
   # QUAN TRỌNG: collection này KHÔNG chứa bài viết, KHÔNG có field chọn
-  # bài. Mỗi bản ghi chỉ là METADATA của một số báo (ảnh bìa, ngày phát
-  # hành, lời toà soạn, trạng thái). Lúc build, hệ thống tự động gộp TOÀN
-  # BỘ bài viết có "Ngày đăng" trùng đúng "Ngày phát hành" bên dưới vào
-  # đúng số báo đó — không nhập tay, không tạo bản sao bài viết nào cả.
-  # Issue Number KHÔNG phải trường nhập tay — tự tăng 001, 002, 003...
-  # theo thứ tự Ngày phát hành, tính lại mỗi lần build (xem scripts/
-  # magazine.py — Issue Builder, module độc lập với hệ bài viết chính).
+  # danh sách bài. Mỗi bản ghi chỉ là METADATA của một số báo THEO THÁNG
+  # (ảnh bìa, Cover Story, lời toà soạn, tháng/năm, trạng thái). Lúc build,
+  # hệ thống tự động gộp TOÀN BỘ bài viết có "Ngày đăng" rơi vào đúng
+  # Tháng/Năm bên dưới vào đúng số báo đó — không nhập tay, không tạo bản
+  # sao bài viết nào cả. Mỗi tháng chỉ nên có 1 số báo.
+  # Issue Number KHÔNG phải trường nhập tay — tự tăng 001, 002, 003... theo
+  # thứ tự Tháng/Năm, KHÔNG reset theo năm, tính lại mỗi lần build (xem
+  # scripts/magazine.py — Issue Builder, module độc lập với hệ bài viết chính).
   # ============================================================
   - name: magazine-divider
     divider: true
@@ -519,22 +520,25 @@ collections:
     label_singular: "Số báo"
     folder: "content/magazine"
     create: true
-    slug: "{{fields.publish_date}}"
-    identifier_field: publish_date
-    summary: "Số báo {{fields.publish_date}} — {{fields.status}}"
-    sortable_fields: [publish_date, status]
+    slug: "{{fields.year}}-{{fields.month}}"
+    identifier_field: year
+    summary: "Tháng {{fields.month}}/{{fields.year}} — {{fields.status}}"
+    sortable_fields: [year, month, status]
     fields:
       - label: "Ảnh bìa"
         name: cover_image
         widget: image
-        hint: "Ảnh bìa cho số báo này. Khuyến nghị ảnh dọc hoặc vuông, chất lượng cao — dùng làm bìa Issue và thẻ trong Magazine Archive."
+        hint: "Ảnh bìa cho số báo này. Khuyến nghị ảnh dọc hoặc vuông, chất lượng cao — dùng làm bìa Issue, khối Trang chủ và thẻ trong Magazine Archive."
 
-      - label: "Ngày phát hành"
-        name: publish_date
-        widget: datetime
-        type: date
-        format: "YYYY-MM-DD"
-        hint: "TNC Magazine sẽ TỰ ĐỘNG gộp toàn bộ bài viết có 'Ngày đăng' trùng đúng ngày này vào số báo — không cần và không thể chọn bài thủ công. Nếu hôm đó chưa có bài nào trùng ngày, số báo sẽ tạm thời không có bài nào cho tới khi có bài đăng đúng ngày."
+      - label: "Cover Story"
+        name: cover_story
+        widget: relation
+        collection: articles
+        search_fields: [title]
+        display_fields: ["title"]
+        value_field: "{{slug}}"
+        required: true
+        hint: "Chọn đúng 1 bài viết làm Cover Story của số báo này (nên chọn bài có Ngày đăng trong đúng Tháng/Năm bên dưới). Trang chủ và trang Issue đều sẽ nổi bật bài này."
 
       - label: "Lời toà soạn (Editor's Note, tùy chọn)"
         name: editors_note
@@ -542,11 +546,37 @@ collections:
         required: false
         hint: "Đoạn lời dẫn ngắn của toà soạn cho số báo này. Để trống sẽ ẩn phần này trên trang Issue."
 
-      - label: "Số đặc biệt (Featured, tùy chọn)"
-        name: featured
-        widget: boolean
-        default: false
-        hint: "Bật để ghim số báo này làm số hiển thị ở khối TNC Magazine trên Trang chủ, thay vì mặc định hiện số mới nhất theo Ngày phát hành."
+      - label: "Tháng"
+        name: month
+        widget: select
+        options:
+          - { label: "Tháng 1", value: 1 }
+          - { label: "Tháng 2", value: 2 }
+          - { label: "Tháng 3", value: 3 }
+          - { label: "Tháng 4", value: 4 }
+          - { label: "Tháng 5", value: 5 }
+          - { label: "Tháng 6", value: 6 }
+          - { label: "Tháng 7", value: 7 }
+          - { label: "Tháng 8", value: 8 }
+          - { label: "Tháng 9", value: 9 }
+          - { label: "Tháng 10", value: 10 }
+          - { label: "Tháng 11", value: 11 }
+          - { label: "Tháng 12", value: 12 }
+        hint: "TNC Magazine sẽ TỰ ĐỘNG gộp toàn bộ bài viết có 'Ngày đăng' rơi vào đúng Tháng/Năm này vào số báo — không cần và không thể chọn bài thủ công."
+
+      - label: "Năm"
+        name: year
+        widget: select
+        default: 2026
+        options:
+          - { label: "2024", value: 2024 }
+          - { label: "2025", value: 2025 }
+          - { label: "2026", value: 2026 }
+          - { label: "2027", value: 2027 }
+          - { label: "2028", value: 2028 }
+          - { label: "2029", value: 2029 }
+          - { label: "2030", value: 2030 }
+        hint: "Năm phát hành của số báo. Mỗi Tháng/Năm chỉ nên có đúng 1 số báo."
 
       - label: "Trạng thái"
         name: status
@@ -555,4 +585,4 @@ collections:
         options:
           - { label: "Nháp (chưa công khai)", value: draft }
           - { label: "Đã xuất bản", value: published }
-        hint: "Chỉ số báo ở trạng thái 'Đã xuất bản' mới được tính vào Issue Number, hiển thị trên Trang chủ, Magazine Archive và ghi chú 'This article appears in' ở bài viết."
+        hint: "Chỉ số báo ở trạng thái 'Đã xuất bản' mới được tính vào Issue Number, hiển thị trên Trang chủ, Magazine Archive và ghi chú 'Published in' ở bài viết."
