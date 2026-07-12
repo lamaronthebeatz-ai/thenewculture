@@ -33,7 +33,7 @@
 <header class="masthead">
   <div class="masthead__util">
     <div class="container">
-      <span>Thứ Bảy · 11.07.2026 · Sài Gòn</span>
+      <span>Chủ Nhật · 12.07.2026 · Sài Gòn</span>
       <div class="u-links">
         <a href="all-series.html">Series</a>
         <a href="tnc-sessions.html">TNC Sessions</a>
@@ -214,11 +214,29 @@
   var current=0;
   var intervalMs=parseInt(root.getAttribute('data-slide-interval'),10)||5000;
   var timer=null;
+  // Hero Progress — thanh mảnh báo thời gian tới khi tự chuyển slide (thay
+  // cho chấm chỉ báo, xem comment CSS .hero-progress). reflow ép trình
+  // duyệt tính lại style trước khi thêm class mới, đảm bảo transition luôn
+  // chạy lại từ đầu (kỹ thuật chuẩn, không dùng thư viện ngoài).
+  var progressBar=root.querySelector('.hero-progress__bar');
+  function resetProgress(){
+    if(!progressBar)return;
+    progressBar.classList.remove('is-filling');
+    progressBar.style.transitionDuration='0s';
+    void progressBar.offsetWidth;
+    progressBar.style.transitionDuration=intervalMs+'ms';
+    progressBar.classList.add('is-filling');
+  }
+  function pauseProgress(){
+    if(!progressBar)return;
+    progressBar.classList.remove('is-filling');
+  }
 
   function goTo(index){
     slides[current].classList.remove('is-active');
     current=(index+slides.length)%slides.length;
     slides[current].classList.add('is-active');
+    resetProgress(); // slide vừa đổi (dù do timer hay thao tác tay) -> chạy lại từ đầu
     // Báo cho Hero Parallax Controller (IIFE riêng, phía dưới) biết slide
     // active vừa đổi để tự bind sang media mới — không gọi thẳng hàm của
     // nhau, giữ 2 cơ chế độc lập, chỉ liên lạc qua sự kiện DOM.
@@ -229,9 +247,11 @@
   function startAuto(){
     stopAuto();
     timer=setInterval(next,intervalMs);
+    resetProgress();
   }
   function stopAuto(){
     if(timer){clearInterval(timer);timer=null;}
+    pauseProgress();
   }
   function restartAuto(){startAuto();}
 
@@ -431,14 +451,42 @@
   var bar=document.createElement('div');
   bar.className='read-progress';
   document.body.appendChild(bar);
+  var ticking=false;
   function update(){
+    ticking=false;
     var docH=document.documentElement.scrollHeight-window.innerHeight;
     var scrolled=window.scrollY;
     var pct=docH>0?(scrolled/docH*100):0;
     bar.style.width=Math.min(Math.max(pct,0),100)+'%';
   }
-  window.addEventListener('scroll',update,{passive:true});
-  window.addEventListener('resize',update);
+  function onScroll(){
+    if(ticking)return;
+    ticking=true;
+    requestAnimationFrame(update);
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',onScroll);
+  update();
+})();
+
+// 9. Sticky header mượt — thêm bóng đổ nhẹ khi đã cuộn khỏi đầu trang,
+// giúp masthead nổi rõ hơn trên nội dung khi dính trần (position:sticky).
+// rAF-throttle giống mọi scroll listener khác trong file này, chỉ đổi 1
+// class, không đụng vị trí/kích thước -> không ảnh hưởng Core Web Vitals.
+(function(){
+  var header=document.querySelector('.masthead');
+  if(!header)return;
+  var ticking=false;
+  function update(){
+    ticking=false;
+    header.classList.toggle('is-scrolled',window.scrollY>4);
+  }
+  function onScroll(){
+    if(ticking)return;
+    ticking=true;
+    requestAnimationFrame(update);
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
   update();
 })();
 
@@ -452,31 +500,40 @@
   });
 })();
 
-// 8. Parallax nhẹ cho ảnh hero khi cuộn — Hero Parallax Controller.
-// Áp dụng cho ĐÚNG 1 media tại một thời điểm: media của slide đang active
-// (không phải luôn slide đầu tiên như trước). Khi Hero Slideshow đổi slide
-// (sự kiện 'heroslidechange' do IIFE slideshow phía trên phát ra), tự bind
-// sang media của slide mới; slide không active không bao giờ được ghi
-// transform. Hero tĩnh (không slideshow, chỉ 1 bài) vẫn hoạt động như cũ.
+// 8. Parallax nhẹ cho hero khi cuộn — Hero Parallax Controller.
+// Áp dụng cho ĐÚNG 1 slide tại một thời điểm: media + content của slide
+// đang active (không phải luôn slide đầu tiên). Khi Hero Slideshow đổi
+// slide (sự kiện 'heroslidechange' do IIFE slideshow phía trên phát ra),
+// tự bind sang media/content của slide mới; slide không active không bao
+// giờ được ghi transform. Hero tĩnh (không slideshow, chỉ 1 bài) vẫn hoạt
+// động như cũ. Ảnh và chữ dịch chuyển ở 2 TỐC ĐỘ KHÁC NHAU khi cuộn (ảnh
+// nhanh hơn, chữ chậm hơn) để tạo cảm giác chiều sâu (depth) — chữ như ở
+// gần người xem hơn nền phía sau.
 (function(){
   var heroSection=document.querySelector('.hero-full');
   if(!heroSection||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   var slideshowRoot=document.querySelector('[data-slideshow]');
-  var activeMedia=null;
+  var MEDIA_RATE=0.25;
+  var CONTENT_RATE=0.12;
+  var activeMedia=null,activeContent=null;
 
-  function findActiveMedia(){
-    var scope=slideshowRoot
-      ? slideshowRoot.querySelector('.hero-full-slide.is-active .hero-full__media')
-      : heroSection.querySelector('.hero-full__media');
-    return scope ? scope.querySelector('img,.media__zoom') : null;
+  function findActiveSlideScope(){
+    return slideshowRoot
+      ? slideshowRoot.querySelector('.hero-full-slide.is-active')
+      : heroSection;
+  }
+  function findActiveMedia(scope){
+    var media=scope&&scope.querySelector('.hero-full__media');
+    return media?media.querySelector('img,.media__zoom'):null;
   }
 
   var ticking=false;
   function applyTransform(){
     ticking=false;
-    if(!activeMedia)return;
     var y=window.scrollY;
-    if(y<window.innerHeight){activeMedia.style.transform='translateY('+(y*0.25)+'px)';}
+    if(y>=window.innerHeight)return;
+    if(activeMedia)activeMedia.style.transform='translateY('+(y*MEDIA_RATE)+'px)';
+    if(activeContent)activeContent.style.transform='translateY('+(y*CONTENT_RATE)+'px)';
   }
   function onScroll(){
     if(ticking)return;
@@ -484,17 +541,21 @@
     requestAnimationFrame(applyTransform);
   }
 
-  function bindActiveMedia(){
-    var next=findActiveMedia();
-    if(next===activeMedia)return;
-    if(activeMedia)activeMedia.style.transform=''; // slide rời đi: xoá transform cũ, tránh lệch hình khi quay vòng lại
-    activeMedia=next;
+  function bindActiveSlide(){
+    var scope=findActiveSlideScope();
+    var nextMedia=findActiveMedia(scope);
+    var nextContent=scope?scope.querySelector('.hero-full__content'):null;
+    if(nextMedia===activeMedia&&nextContent===activeContent)return;
+    // Slide rời đi: xoá transform cũ, tránh lệch hình khi quay vòng lại.
+    if(activeMedia)activeMedia.style.transform='';
+    if(activeContent)activeContent.style.transform='';
+    activeMedia=nextMedia;activeContent=nextContent;
     applyTransform(); // áp ngay theo vị trí cuộn hiện tại, không chờ sự kiện scroll kế tiếp
   }
 
-  bindActiveMedia();
+  bindActiveSlide();
   window.addEventListener('scroll',onScroll,{passive:true});
-  if(slideshowRoot)slideshowRoot.addEventListener('heroslidechange',bindActiveMedia);
+  if(slideshowRoot)slideshowRoot.addEventListener('heroslidechange',bindActiveSlide);
 })();
 
 // PWA: đăng ký service worker
