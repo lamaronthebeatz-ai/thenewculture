@@ -497,6 +497,40 @@ a:hover .media__zoom{transform:scale(1.04);box-shadow:inset 0 -120px 90px -50px 
 .cover-story{margin-top:var(--s-7);margin-bottom:var(--s-9);padding-bottom:var(--s-8);border-bottom:1px solid var(--c-line);}
 .cover-story .section-head{margin-bottom:var(--s-6);}
 
+/* ----- TNC Magazine (V6.0) — bìa + nội dung 2 cột, cùng kỹ thuật grid
+   collapse-1-cột-trên-mobile đã dùng cho .feature (Cover Story) ở trên,
+   giữ nhất quán, không phát minh kỹ thuật responsive mới. Dùng chung cho
+   khối Trang chủ (.magazine-block) và hero trang Issue (.magazine-hero). */
+.magazine-block,.magazine-hero{display:grid;grid-template-columns:320px 1fr;gap:var(--s-7);align-items:start;}
+.magazine-block .media,.magazine-hero .media{aspect-ratio:3/4;}
+.magazine-block{padding:var(--s-7);border:1px solid var(--c-line);}
+.magazine-block:hover{border-color:var(--c-line-strong);}
+.magazine-hero{padding-bottom:var(--s-7);border-bottom:2px solid var(--c-line-strong);margin-bottom:var(--s-7);}
+.magazine-block__list{list-style:none;display:flex;flex-direction:column;gap:var(--s-3);margin:var(--s-5) 0;}
+.magazine-block__list li{font-family:var(--f-display);font-weight:700;font-size:var(--t-md);line-height:1.3;}
+@media (max-width:768px){
+  .magazine-block,.magazine-hero{grid-template-columns:1fr;}
+}
+
+/* Table of Contents — phong cách tạp chí in: không card, không đánh số,
+   chỉ tên series nhỏ phía trên tiêu đề. 2 cột desktop cho cảm giác trang
+   mục lục thật, 1 cột trên mobile. */
+.magazine-toc{columns:2;column-gap:var(--s-8);}
+.magazine-toc a{display:block;break-inside:avoid;margin-bottom:var(--s-5);}
+.magazine-toc__series{display:block;font-family:var(--f-mono);font-size:var(--t-xs);text-transform:uppercase;letter-spacing:0.06em;color:var(--c-ink-3);margin-bottom:2px;}
+.magazine-toc__title{font-family:var(--f-display);font-weight:700;font-size:var(--t-md);line-height:1.3;transition:color var(--dur) var(--ease);}
+.magazine-toc a:hover .magazine-toc__title{color:var(--c-red);}
+@media (max-width:768px){.magazine-toc{columns:1;}}
+
+/* Ghi chú "This article appears in TNC Magazine" trên trang Article */
+.magazine-notice{
+  display:flex;align-items:center;gap:var(--s-4);flex-wrap:wrap;
+  padding:var(--s-5);border:1px solid var(--c-line-strong);border-radius:var(--r-md);
+  margin-top:var(--s-6);
+}
+.magazine-notice__label{font-family:var(--f-mono);font-size:var(--t-xs);color:var(--c-ink-3);text-transform:uppercase;letter-spacing:0.04em;}
+.magazine-notice__issue{font-family:var(--f-display);font-weight:800;font-size:var(--t-md);}
+
 /* ----- 9. SERIES INDEX (khối bản đồ tri thức) -------------------------- */
 .series-band{background:var(--c-bg-invert);color:#fff;margin-top:var(--s-9);padding-block:var(--s-8);}
 .series-band .section-head{border-color:rgba(255,255,255,0.24);}
