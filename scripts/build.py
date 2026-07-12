@@ -1173,11 +1173,29 @@ def footer():
   var current=0;
   var intervalMs=parseInt(root.getAttribute('data-slide-interval'),10)||5000;
   var timer=null;
+  // Hero Progress — thanh mảnh báo thời gian tới khi tự chuyển slide (thay
+  // cho chấm chỉ báo, xem comment CSS .hero-progress). reflow ép trình
+  // duyệt tính lại style trước khi thêm class mới, đảm bảo transition luôn
+  // chạy lại từ đầu (kỹ thuật chuẩn, không dùng thư viện ngoài).
+  var progressBar=root.querySelector('.hero-progress__bar');
+  function resetProgress(){
+    if(!progressBar)return;
+    progressBar.classList.remove('is-filling');
+    progressBar.style.transitionDuration='0s';
+    void progressBar.offsetWidth;
+    progressBar.style.transitionDuration=intervalMs+'ms';
+    progressBar.classList.add('is-filling');
+  }
+  function pauseProgress(){
+    if(!progressBar)return;
+    progressBar.classList.remove('is-filling');
+  }
 
   function goTo(index){
     slides[current].classList.remove('is-active');
     current=(index+slides.length)%slides.length;
     slides[current].classList.add('is-active');
+    resetProgress(); // slide vừa đổi (dù do timer hay thao tác tay) -> chạy lại từ đầu
     // Báo cho Hero Parallax Controller (IIFE riêng, phía dưới) biết slide
     // active vừa đổi để tự bind sang media mới — không gọi thẳng hàm của
     // nhau, giữ 2 cơ chế độc lập, chỉ liên lạc qua sự kiện DOM.
@@ -1188,9 +1206,11 @@ def footer():
   function startAuto(){
     stopAuto();
     timer=setInterval(next,intervalMs);
+    resetProgress();
   }
   function stopAuto(){
     if(timer){clearInterval(timer);timer=null;}
+    pauseProgress();
   }
   function restartAuto(){startAuto();}
 
@@ -1390,14 +1410,42 @@ def footer():
   var bar=document.createElement('div');
   bar.className='read-progress';
   document.body.appendChild(bar);
+  var ticking=false;
   function update(){
+    ticking=false;
     var docH=document.documentElement.scrollHeight-window.innerHeight;
     var scrolled=window.scrollY;
     var pct=docH>0?(scrolled/docH*100):0;
     bar.style.width=Math.min(Math.max(pct,0),100)+'%';
   }
-  window.addEventListener('scroll',update,{passive:true});
-  window.addEventListener('resize',update);
+  function onScroll(){
+    if(ticking)return;
+    ticking=true;
+    requestAnimationFrame(update);
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',onScroll);
+  update();
+})();
+
+// 9. Sticky header mượt — thêm bóng đổ nhẹ khi đã cuộn khỏi đầu trang,
+// giúp masthead nổi rõ hơn trên nội dung khi dính trần (position:sticky).
+// rAF-throttle giống mọi scroll listener khác trong file này, chỉ đổi 1
+// class, không đụng vị trí/kích thước -> không ảnh hưởng Core Web Vitals.
+(function(){
+  var header=document.querySelector('.masthead');
+  if(!header)return;
+  var ticking=false;
+  function update(){
+    ticking=false;
+    header.classList.toggle('is-scrolled',window.scrollY>4);
+  }
+  function onScroll(){
+    if(ticking)return;
+    ticking=true;
+    requestAnimationFrame(update);
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
   update();
 })();
 
@@ -1411,31 +1459,40 @@ def footer():
   });
 })();
 
-// 8. Parallax nhẹ cho ảnh hero khi cuộn — Hero Parallax Controller.
-// Áp dụng cho ĐÚNG 1 media tại một thời điểm: media của slide đang active
-// (không phải luôn slide đầu tiên như trước). Khi Hero Slideshow đổi slide
-// (sự kiện 'heroslidechange' do IIFE slideshow phía trên phát ra), tự bind
-// sang media của slide mới; slide không active không bao giờ được ghi
-// transform. Hero tĩnh (không slideshow, chỉ 1 bài) vẫn hoạt động như cũ.
+// 8. Parallax nhẹ cho hero khi cuộn — Hero Parallax Controller.
+// Áp dụng cho ĐÚNG 1 slide tại một thời điểm: media + content của slide
+// đang active (không phải luôn slide đầu tiên). Khi Hero Slideshow đổi
+// slide (sự kiện 'heroslidechange' do IIFE slideshow phía trên phát ra),
+// tự bind sang media/content của slide mới; slide không active không bao
+// giờ được ghi transform. Hero tĩnh (không slideshow, chỉ 1 bài) vẫn hoạt
+// động như cũ. Ảnh và chữ dịch chuyển ở 2 TỐC ĐỘ KHÁC NHAU khi cuộn (ảnh
+// nhanh hơn, chữ chậm hơn) để tạo cảm giác chiều sâu (depth) — chữ như ở
+// gần người xem hơn nền phía sau.
 (function(){
   var heroSection=document.querySelector('.hero-full');
   if(!heroSection||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   var slideshowRoot=document.querySelector('[data-slideshow]');
-  var activeMedia=null;
+  var MEDIA_RATE=0.25;
+  var CONTENT_RATE=0.12;
+  var activeMedia=null,activeContent=null;
 
-  function findActiveMedia(){
-    var scope=slideshowRoot
-      ? slideshowRoot.querySelector('.hero-full-slide.is-active .hero-full__media')
-      : heroSection.querySelector('.hero-full__media');
-    return scope ? scope.querySelector('img,.media__zoom') : null;
+  function findActiveSlideScope(){
+    return slideshowRoot
+      ? slideshowRoot.querySelector('.hero-full-slide.is-active')
+      : heroSection;
+  }
+  function findActiveMedia(scope){
+    var media=scope&&scope.querySelector('.hero-full__media');
+    return media?media.querySelector('img,.media__zoom'):null;
   }
 
   var ticking=false;
   function applyTransform(){
     ticking=false;
-    if(!activeMedia)return;
     var y=window.scrollY;
-    if(y<window.innerHeight){activeMedia.style.transform='translateY('+(y*0.25)+'px)';}
+    if(y>=window.innerHeight)return;
+    if(activeMedia)activeMedia.style.transform='translateY('+(y*MEDIA_RATE)+'px)';
+    if(activeContent)activeContent.style.transform='translateY('+(y*CONTENT_RATE)+'px)';
   }
   function onScroll(){
     if(ticking)return;
@@ -1443,17 +1500,21 @@ def footer():
     requestAnimationFrame(applyTransform);
   }
 
-  function bindActiveMedia(){
-    var next=findActiveMedia();
-    if(next===activeMedia)return;
-    if(activeMedia)activeMedia.style.transform=''; // slide rời đi: xoá transform cũ, tránh lệch hình khi quay vòng lại
-    activeMedia=next;
+  function bindActiveSlide(){
+    var scope=findActiveSlideScope();
+    var nextMedia=findActiveMedia(scope);
+    var nextContent=scope?scope.querySelector('.hero-full__content'):null;
+    if(nextMedia===activeMedia&&nextContent===activeContent)return;
+    // Slide rời đi: xoá transform cũ, tránh lệch hình khi quay vòng lại.
+    if(activeMedia)activeMedia.style.transform='';
+    if(activeContent)activeContent.style.transform='';
+    activeMedia=nextMedia;activeContent=nextContent;
     applyTransform(); // áp ngay theo vị trí cuộn hiện tại, không chờ sự kiện scroll kế tiếp
   }
 
-  bindActiveMedia();
+  bindActiveSlide();
   window.addEventListener('scroll',onScroll,{passive:true});
-  if(slideshowRoot)slideshowRoot.addEventListener('heroslidechange',bindActiveMedia);
+  if(slideshowRoot)slideshowRoot.addEventListener('heroslidechange',bindActiveSlide);
 })();
 
 // PWA: đăng ký service worker
@@ -1789,6 +1850,7 @@ def render_hero_slideshow(slides):
   <section class="hero-full hero-slideshow" data-slideshow data-slide-interval="5000">
     <div class="hero-slideshow__track">{slides_html}
     </div>
+    <div class="hero-progress" aria-hidden="true"><div class="hero-progress__bar"></div></div>
   </section>"""
 
 def render_gif_hero():
@@ -1864,7 +1926,7 @@ def render_ranking_spotlight():
     more_count = len(a["ranking"]) - len(top_items)
     more_note = f'<span class="spot-more-note">+{more_count} mục khác trong bài</span>' if more_count > 0 else ""
     return f"""
-  <section class="ranking-spotlight">
+  <section class="ranking-spotlight js-reveal">
     <div class="container">
       <div class="section-head">
         <h2>Bảng Xếp Hạng — {s['name']}</h2>
@@ -1997,7 +2059,7 @@ def render_index():
     html += f"""
 {render_hero_slideshow(slide_articles)}
 <main>
-  <section class="section container cover-story">
+  <section class="section container cover-story js-reveal">
     <div class="section-head"><h2>Câu chuyện nổi bật</h2></div>
     <div class="feature">
       <a href="{article_url(feat['slug'])}" aria-hidden="true" tabindex="-1">
@@ -2012,13 +2074,13 @@ def render_index():
     </div>
   </section>
 
-  <section class="hero-side-strip container">
+  <section class="hero-side-strip container js-reveal">
     <div class="section-head"><h2>Mới cập nhật</h2></div>
     <div class="hero-side-strip__grid">{side}
     </div>
   </section>
 
-  <section class="trending container">
+  <section class="trending container js-reveal">
     <div class="section-head"><h2>Đang được quan tâm</h2></div>
     <div class="trending__grid">{trending}
     </div>
@@ -2026,7 +2088,7 @@ def render_index():
 {render_ranking_spotlight()}
 {render_profiles_homepage_block()}
 {render_community_homepage_block()}
-  <section class="series-band">
+  <section class="series-band js-reveal">
     <div class="container">
       <div class="section-head">
         <h2>Series</h2>
@@ -2037,13 +2099,13 @@ def render_index():
     </div>
   </section>
 {render_homepage_ad_block()}
-  <section class="section container">
+  <section class="section container js-reveal">
     <div class="section-head"><h2>Video</h2><a class="more" href="video.html" id="video">Tất cả tập →</a></div>
     <div class="video-row">{video_html}
     </div>
   </section>
 
-  <section class="section container">
+  <section class="section container js-reveal">
     <div class="section-head"><h2>Mới đăng</h2><a class="more" href="all-series.html">Xem thêm →</a></div>
     <div class="grid grid-3">{latest}
     </div>
@@ -2091,7 +2153,7 @@ def render_community_homepage_block():
         return ""
     cards_html = "".join(render_poster_card(a) for a in top_posters)
     return f"""
-  <section class="profiles-spotlight">
+  <section class="profiles-spotlight js-reveal">
     <div class="container">
       <div class="section-head">
         <h2>TNC Community</h2>
@@ -2226,11 +2288,11 @@ def render_profiles_series_page(s):
 
     <div class="profile-filters">{filter_buttons}</div>
 
-    <div class="profile-grid" id="profileGrid">{cards_html}
+    <div class="profile-grid js-reveal" id="profileGrid">{cards_html}
     </div>
   </section>
 
-  <section class="series-band" style="margin-top:var(--s-9);">
+  <section class="series-band js-reveal" style="margin-top:var(--s-9);">
     <div class="container">
       <div class="section-head"><h2>Series khác</h2></div>
       <div class="series-grid">
@@ -2279,7 +2341,7 @@ def render_profiles_series_page(s):
         card.style.transform='translate('+dx+'px,'+dy+'px)';
         card.style.transition='none';
         requestAnimationFrame(function(){{
-          card.style.transition='transform .35s cubic-bezier(0.2,0.6,0.2,1)';
+          card.style.transition='transform var(--dur-slow) var(--ease)';
           card.style.transform='';
         }});
       }});
@@ -2320,7 +2382,7 @@ def render_profile_page(p):
         <span class="byline">{rs['name']} · {r['date']}</span>
       </a>"""
         related_section = f"""
-  <section class="section container">
+  <section class="section container js-reveal">
     <div class="section-head"><h2>Bài viết liên quan</h2></div>
     <div class="grid grid-3">{cards}
     </div>
@@ -2411,11 +2473,11 @@ def render_community_series_page(s):
       </div>
     </div>
 
-    <div class="{grid_class}">{cards_html}
+    <div class="{grid_class} js-reveal">{cards_html}
     </div>
   </section>
 
-  <section class="series-band" style="margin-top:var(--s-9);">
+  <section class="series-band js-reveal" style="margin-top:var(--s-9);">
     <div class="container">
       <div class="section-head"><h2>Series khác</h2></div>
       <div class="series-grid">{others}
@@ -2476,12 +2538,12 @@ def render_series_page(s):
       </div>
     </div>
 
-    <div class="grid js-infinite-list" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
+    <div class="grid js-infinite-list js-reveal" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
     </div>
     <div class="js-infinite-sentinel" style="height:1px;"></div>
   </section>
 
-  <section class="series-band" style="margin-top:var(--s-9);">
+  <section class="series-band js-reveal" style="margin-top:var(--s-9);">
     <div class="container">
       <div class="section-head"><h2>Series khác</h2></div>
       <div class="series-grid">{others}
@@ -2704,7 +2766,7 @@ def render_article_page(a):
 {render_inline_ad_mobile()}
   </article>
 
-  <section class="section container">
+  <section class="section container js-reveal">
     <div class="section-head"><h2>Bài viết liên quan</h2></div>
     <div class="grid grid-3">{rel}
     </div>
@@ -2880,7 +2942,7 @@ def render_author_page(name, arts):
       </div>
     </div>
     <div class="section-head"><h2>Bài viết</h2></div>
-    <div class="grid" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
+    <div class="grid js-reveal" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
     </div>
   </section>
 """
@@ -2915,7 +2977,7 @@ def render_tag_page(tslug, tag_name, arts):
       <h1 style="font-size:var(--t-3xl);margin:var(--s-3) 0;">Chủ đề: {display_tag}</h1>
       <p style="font-size:var(--t-md);color:var(--c-ink-2);">{len(arts)} bài viết được gắn thẻ "{display_tag}".</p>
     </div>
-    <div class="grid" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
+    <div class="grid js-reveal" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
     </div>
   </section>
 """
@@ -2942,7 +3004,7 @@ def render_all_tags():
       <p>Duyệt toàn bộ từ khóa (tag) đang được gắn trên các bài viết của The New Culture.</p>
     </div>
   </section>
-  <section class="series-band" style="margin-top:0;">
+  <section class="series-band js-reveal" style="margin-top:0;">
     <div class="container">
       <div class="series-grid">{cells}
       </div>
@@ -2970,7 +3032,7 @@ def render_all_series():
       <p>Toàn bộ hệ thống tuyến nội dung của TNC. Mỗi series là một vùng tích lũy tri thức và lưu trữ riêng biệt về văn hóa hip-hop underground Việt Nam.</p>
     </div>
   </section>
-  <section class="series-band" style="margin-top:0;">
+  <section class="series-band js-reveal" style="margin-top:0;">
     <div class="container">
       <div class="series-grid">{cells}
       </div>
@@ -3005,7 +3067,7 @@ def render_archive_page():
       <h1>Toàn bộ bài viết</h1>
       <p>Danh sách đầy đủ mọi bài viết đã xuất bản trên The New Culture, không giới hạn theo series hay chủ đề — xếp theo thứ tự ưu tiên/mới nhất.</p>
     </div>
-    <div class="grid js-infinite-list" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
+    <div class="grid js-infinite-list js-reveal" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
     </div>
     <div class="js-infinite-sentinel" style="height:1px;"></div>
   </section>
