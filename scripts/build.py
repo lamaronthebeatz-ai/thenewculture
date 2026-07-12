@@ -249,6 +249,55 @@ def _auto_excerpt(md, limit=160):
         return text
     return ""
 
+def _jpeg_dimensions(data):
+    """Quét marker JPEG để tìm segment SOF chứa width/height thật. Trả về
+    None nếu không parse được (file lỗi/định dạng lạ) — không chặn build."""
+    import struct
+    i = 2
+    n = len(data)
+    sof_markers = (0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7,
+                   0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF)
+    while i < n - 9:
+        if data[i] != 0xFF:
+            i += 1
+            continue
+        marker = data[i + 1]
+        if marker in sof_markers:
+            h, w = struct.unpack(">HH", data[i + 5:i + 9])
+            return (w, h)
+        if marker == 0xD8 or 0xD0 <= marker <= 0xD7:
+            i += 2
+            continue
+        try:
+            seg_len = struct.unpack(">H", data[i + 2:i + 4])[0]
+        except struct.error:
+            return None
+        i += 2 + seg_len
+    return None
+
+def image_dimensions(path):
+    """Đọc width/height thật của ảnh (PNG/JPEG/GIF) từ header file — không
+    phụ thuộc thư viện ngoài (không có Pillow trong requirements.txt của CI).
+    Dùng để tính đúng aspect-ratio bìa TNC Magazine trên Trang chủ, tránh
+    Cumulative Layout Shift khi ảnh chưa tải xong. Trả về None nếu không
+    đọc được (file không tồn tại/định dạng không nhận ra) — nơi gọi phải
+    tự có fallback, không được để lỗi này chặn build."""
+    import struct
+    try:
+        with open(path, "rb") as f:
+            data = f.read(65536)
+    except OSError:
+        return None
+    if data[:8] == b'\x89PNG\r\n\x1a\n' and len(data) >= 24:
+        w, h = struct.unpack(">II", data[16:24])
+        return (w, h)
+    if data[:6] in (b'GIF87a', b'GIF89a') and len(data) >= 10:
+        w, h = struct.unpack("<HH", data[6:10])
+        return (w, h)
+    if data[:2] == b'\xff\xd8':
+        return _jpeg_dimensions(data)
+    return None
+
 def slugify(text):
     """Chuẩn hóa chuỗi thành slug an toàn cho URL: bỏ dấu, chỉ giữ chữ/số/gạch ngang."""
     import unicodedata
@@ -3520,17 +3569,29 @@ def render_magazine_archive_page():
 
 def render_homepage_magazine_block():
     """Khối 'TNC Magazine' trên Trang chủ — bố cục editorial spread 2 cột
-    (40% bìa / 60% panel biên tập), như 1 cuốn tạp chí đang mở ra: chỉ
-    typography + whitespace, không card/border/shadow (xem .magazine-spread
-    trong style.css). Panel bên phải đúng thứ tự Issue Number -> Month ->
-    Cover Story (khối riêng, không nằm trong Contents) -> Contents (nhóm
-    theo Series) -> Read Issue. Luôn hiện số mới nhất theo Issue Number,
-    tự ẩn hoàn toàn nếu chưa có số báo đã xuất bản nào."""
+    (~1/3 bìa / ~2/3 panel biên tập), như 1 cuốn tạp chí thật đặt trên
+    bàn: chỉ typography + whitespace, không card/border/shadow/bo góc
+    (xem .magazine-spread trong style.css). Panel bên phải đúng thứ tự
+    Issue Number -> Month -> Cover Story (khối riêng, không nằm trong
+    Contents) -> Contents (nhóm theo Series) -> Read Issue. Luôn hiện số
+    mới nhất theo Issue Number, tự ẩn hoàn toàn nếu chưa có số báo đã
+    xuất bản nào.
+
+    Bìa LUÔN hiển thị đủ 100%, không crop/zoom/stretch: object-fit:contain
+    + width/height thật của ảnh (đọc bằng image_dimensions(), không
+    hardcode) để trình duyệt tự tính đúng aspect-ratio và không bị Layout
+    Shift khi ảnh chưa tải xong."""
     issue = magazine.latest_issue(MAGAZINE_ISSUES)
     if not issue:
         return ""
-    cover_html = (f'<img src="{issue["cover_image"]}" alt="Issue #{issue["number_display"]}" loading="lazy">'
-                  if issue["cover_image"] else "")
+    cover_html = ""
+    cover_ratio_style = ""
+    if issue["cover_image"]:
+        dims = image_dimensions(os.path.join(REPO_ROOT, "public", issue["cover_image"].lstrip("/")))
+        w, h = dims if dims else (3, 4)  # fallback hợp lý nếu không đọc được kích thước thật
+        cover_ratio_style = f' style="aspect-ratio:{w}/{h};"'
+        cover_html = (f'<img src="{issue["cover_image"]}" alt="Issue #{issue["number_display"]}" '
+                      f'width="{w}" height="{h}" fetchpriority="high" decoding="async">')
     month_vn = magazine.format_month_year_vn(issue["month"], issue["year"])
     cover_story = issue["cover_story"]
     cover_story_html = (f"""
@@ -3563,7 +3624,7 @@ def render_homepage_magazine_block():
   <section class="section container js-reveal">
     <div class="section-head"><h2>TNC Magazine</h2><a class="more" href="magazine-archive.html">Xem toàn bộ số báo →</a></div>
     <div class="magazine-spread">
-      <a href="{magazine.issue_url(issue)}" class="magazine-spread__cover" aria-label="Đọc Issue #{issue['number_display']}">{cover_html}</a>
+      <a href="{magazine.issue_url(issue)}" class="magazine-spread__cover" aria-label="Đọc Issue #{issue['number_display']}"{cover_ratio_style}>{cover_html}</a>
       <div class="magazine-spread__panel">
         <span class="eyebrow eyebrow--red">Issue #{issue['number_display']}</span>
         <p class="magazine-spread__month">{month_vn} · {len(issue['articles'])} bài viết</p>
