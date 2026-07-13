@@ -13,6 +13,18 @@ on:
   schedule:
     - cron: "0 17 * * *"
 
+# Mỗi lần lưu trong CMS (mỗi entry, kể cả sửa liên tiếp trong vài phút) đều
+# push thẳng vào "main" -> kích hoạt 1 run riêng. Không có "concurrency" thì
+# các run xếp hàng độc lập, không đảm bảo chạy/hoàn tất theo đúng thứ tự —
+# quan sát thực tế: run của 1 commit cũ có thể kẹt "queued" phía sau run của
+# commit MỚI HƠN đã build xong, khiến CMS "trông như" không cập nhật dù bản
+# build mới nhất đã đúng. Vì build.py luôn đọc lại TOÀN BỘ content hiện có
+# (không build theo diff), run nào cũ hơn commit hiện tại của "main" cũng vô
+# nghĩa — hủy thẳng, chỉ giữ lại run ứng với commit mới nhất.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
