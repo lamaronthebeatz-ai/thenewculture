@@ -6,7 +6,7 @@ cover: /uploads/3897.jpg
 cover_credit: Cơm Tấm Sài Gòn Show
 poster: ''
 author: Lamar
-date: ''
+date: 13 Tháng 7, 2026
 read_time: ''
 featured: false
 order: 1
