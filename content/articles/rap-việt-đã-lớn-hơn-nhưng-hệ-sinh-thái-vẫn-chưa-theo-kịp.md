@@ -6,9 +6,9 @@ cover: /uploads/3897.jpg
 cover_credit: Cơm Tấm Sài Gòn Show
 poster: ''
 author: Lamar
-date: 13 Tháng 7, 2026
+date: ''
 read_time: ''
-featured: false
+featured: true
 order: 1
 tags:
   - '#TNC'
