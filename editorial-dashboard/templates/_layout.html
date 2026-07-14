@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} — Editorial OS</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="shell">
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Mở/đóng menu" aria-expanded="false">
+    <img src="/static/icons/menu.svg" alt="" width="20" height="20">
+  </button>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar__brand">TNC<span>Editorial OS</span></div>
+    <nav class="nav">{{NAV}}</nav>
+    <div class="sidebar__footer">Presentation Layer — Phase 7</div>
+  </aside>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <main class="main">
+    {{CONTENT}}
+  </main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="/static/dashboard.js"></script>
+</body>
+</html>

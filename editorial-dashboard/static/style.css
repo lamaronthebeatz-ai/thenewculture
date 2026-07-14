@@ -1,0 +1,222 @@
+/* ==========================================================================
+   Editorial Dashboard (Phase 7) — Presentation Layer only.
+   Dark theme, brand tokens borrowed from The New Culture's own design
+   system (scripts/style.css) but never editing that file — this is a
+   separate, standalone stylesheet for a separate tool.
+   ========================================================================== */
+
+:root{
+  --bg:            #0B0B0B;
+  --bg-elevated:   #161614;
+  --bg-subtle:     #1E1E1B;
+  --ink:           #F5F5F3;
+  --ink-2:         #B8B8B3;
+  --ink-3:         #8A8A86;
+  --line:          #2A2A26;
+
+  --red:           #E64A3D;
+  --blue:          #5B8DEF;
+  --green:         #2FA968;
+  --amber:         #D97706;
+  --purple:        #9B6DF0;
+  --gold:          #D4AF37;
+
+  --f-display: 'Archivo', -apple-system, BlinkMacSystemFont, sans-serif;
+  --f-body:    'Archivo', -apple-system, BlinkMacSystemFont, sans-serif;
+  --f-mono:    'IBM Plex Mono', ui-monospace, monospace;
+
+  --r-sm: 4px;
+  --r-md: 8px;
+
+  --sidebar-w: 220px;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--f-body);
+  font-size:0.9375rem;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--blue);text-decoration:none;}
+a:hover{text-decoration:underline;}
+code{
+  font-family:var(--f-mono);
+  font-size:0.85em;
+  background:var(--bg-subtle);
+  padding:2px 6px;
+  border-radius:var(--r-sm);
+  color:var(--ink-2);
+}
+h1,h2,h3{font-family:var(--f-display);font-weight:800;line-height:1.15;letter-spacing:-0.01em;margin:0 0 0.5em;}
+h1{font-size:1.75rem;}
+h2{font-size:1.125rem;margin-top:0;}
+.muted{color:var(--ink-3);}
+.empty{color:var(--ink-3);font-style:italic;}
+
+/* ----- layout shell ----- */
+.shell{display:flex;min-height:100vh;}
+
+.sidebar{
+  width:var(--sidebar-w);
+  flex-shrink:0;
+  background:var(--bg-elevated);
+  border-right:1px solid var(--line);
+  padding:20px 16px;
+  display:flex;
+  flex-direction:column;
+  position:sticky;
+  top:0;
+  height:100vh;
+}
+.sidebar__brand{
+  font-family:var(--f-display);font-weight:900;font-size:1.15rem;
+  letter-spacing:-0.02em;margin-bottom:24px;color:var(--ink);
+}
+.sidebar__brand span{display:block;font-family:var(--f-mono);font-weight:500;font-size:0.7rem;
+  letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-3);margin-top:2px;}
+
+.nav{display:flex;flex-direction:column;gap:4px;flex:1;}
+.nav__item{
+  display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--r-md);
+  font-family:var(--f-mono);font-size:0.85rem;font-weight:600;
+  letter-spacing:0.01em;color:var(--ink-2);
+}
+.nav__icon{filter:invert(0.75);flex-shrink:0;}
+.nav__item--active .nav__icon{filter:invert(1);}
+.nav__item:hover{background:var(--bg-subtle);text-decoration:none;color:var(--ink);}
+.nav__item--active{background:var(--red);color:#fff;}
+.nav__item--active:hover{background:var(--red);color:#fff;}
+
+.sidebar__footer{font-family:var(--f-mono);font-size:0.65rem;color:var(--ink-3);
+  letter-spacing:0.04em;text-transform:uppercase;padding-top:12px;}
+
+.sidebar-toggle{
+  display:none;position:fixed;top:14px;left:14px;z-index:30;
+  width:40px;height:40px;border-radius:var(--r-md);
+  background:var(--bg-elevated);border:1px solid var(--line);
+  align-items:center;justify-content:center;cursor:pointer;
+}
+.sidebar-toggle img{filter:invert(1);}
+.sidebar-overlay{display:none;}
+
+.main{flex:1;min-width:0;padding:32px 40px;max-width:1200px;}
+
+.page-head{margin-bottom:24px;}
+
+/* ----- cards / tiles ----- */
+.card{
+  background:var(--bg-elevated);border:1px solid var(--line);
+  border-radius:var(--r-md);padding:20px 22px;margin-bottom:20px;
+}
+.tiles{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px;
+}
+.tile{
+  background:var(--bg-elevated);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:18px;text-align:center;
+}
+.tile__value{font-family:var(--f-display);font-weight:900;font-size:1.9rem;color:var(--ink);}
+.tile__label{font-family:var(--f-mono);font-size:0.7rem;letter-spacing:0.06em;
+  text-transform:uppercase;color:var(--ink-3);margin-top:4px;}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+
+.highlight{font-family:var(--f-display);font-weight:700;font-size:1.1rem;color:var(--ink);margin:0 0 16px;}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;}
+.queue-card h3{font-size:1.05rem;}
+
+/* ----- fields / lists / tables ----- */
+.fields{display:grid;grid-template-columns:1fr;gap:10px;margin:0;}
+.fields div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:8px;}
+.fields dt{color:var(--ink-3);font-family:var(--f-mono);font-size:0.78rem;text-transform:uppercase;letter-spacing:0.03em;}
+.fields dd{margin:0;text-align:right;font-weight:600;}
+
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
+.list li{border-bottom:1px solid var(--line);padding-bottom:8px;}
+.list li:last-child{border-bottom:none;padding-bottom:0;}
+
+.badge{
+  display:inline-block;background:var(--red);color:#fff;font-family:var(--f-mono);
+  font-weight:700;font-size:0.7rem;border-radius:var(--r-sm);padding:2px 6px;margin-right:6px;
+}
+
+.table{width:100%;border-collapse:collapse;font-size:0.875rem;}
+.table th,.table td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);}
+.table th{font-family:var(--f-mono);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-3);}
+.table--clickable tbody tr,.clickable-row{cursor:pointer;}
+.table--clickable tbody tr:hover,.clickable-row:hover{background:var(--bg-subtle);}
+
+.code-block{
+  background:var(--bg-subtle);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:16px;font-family:var(--f-mono);font-size:0.8rem;white-space:pre-wrap;
+  word-break:break-word;max-height:480px;overflow:auto;color:var(--ink-2);
+}
+
+.timeline{list-style:none;margin:0;padding:0;}
+.timeline__item{display:flex;gap:12px;padding-bottom:16px;position:relative;}
+.timeline__dot{
+  width:10px;height:10px;border-radius:50%;background:var(--red);
+  margin-top:6px;flex-shrink:0;
+}
+
+/* ----- buttons / actions ----- */
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  font-family:var(--f-mono);font-size:0.8rem;font-weight:600;letter-spacing:0.01em;
+  background:var(--bg-subtle);color:var(--ink);border:1px solid var(--line);
+  border-radius:var(--r-md);padding:12px 18px;cursor:pointer;min-height:44px;
+}
+.btn:hover{border-color:var(--ink-3);text-decoration:none;}
+.btn--cli::before{content:"$ ";color:var(--ink-3);}
+.btn--disabled,.btn[disabled]{opacity:0.45;cursor:not-allowed;}
+
+/* ----- toast ----- */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translate(-50%,12px);
+  background:var(--ink);color:var(--bg);font-family:var(--f-mono);font-size:0.8rem;
+  padding:10px 18px;border-radius:var(--r-md);opacity:0;pointer-events:none;
+  transition:opacity 0.15s ease, transform 0.15s ease;
+  z-index:40;
+}
+.toast--visible{opacity:1;transform:translate(-50%,0);}
+
+/* ==========================================================================
+   RESPONSIVE — tablet-first, breakpoints at 768 / 1024 / 1366
+   ========================================================================== */
+
+@media (max-width: 1366px){
+  .main{padding:28px 32px;}
+}
+
+@media (max-width: 1024px){
+  .tiles{grid-template-columns:repeat(3,1fr);}
+  .grid-2{grid-template-columns:1fr;}
+  :root{--sidebar-w:190px;}
+}
+
+@media (max-width: 768px){
+  .sidebar-toggle{display:flex;}
+  .sidebar{
+    position:fixed;left:0;top:0;bottom:0;z-index:31;
+    transform:translateX(-100%);transition:transform 0.15s ease;
+    width:min(280px,80vw);
+  }
+  .sidebar.is-open{transform:translateX(0);}
+  .sidebar-overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:29;
+  }
+  .sidebar-overlay.is-open{display:block;}
+  .main{padding:76px 18px 32px;}
+  .tiles{grid-template-columns:repeat(2,1fr);}
+  .cards{grid-template-columns:1fr;}
+  .btn{width:100%;}
+  .actions{flex-direction:column;}
+  .fields div{flex-direction:column;gap:2px;}
+  .fields dd{text-align:left;}
+}
