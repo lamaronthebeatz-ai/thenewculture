@@ -1,0 +1,46 @@
+# Source Registry (section VI — Source Policy).
+#
+# This is the single source of truth for which named sources exist and
+# which tier they belong to. Providers reference a source purely by
+# `name` (see models/source.py); nothing about tiering is hardcoded in
+# Python. Adding a source is a data change here, not a code change.
+#
+# Explicitly NOT allowed anywhere in this system: scraping an arbitrary
+# website, or trusting an unverified account. Every entry below is either
+# an artist/org's own verified channel (tier_1), known Vietnamese
+# hip-hop trade press / labels / festival organizers (tier_2), or a
+# general but still-verifiable platform release feed (tier_3).
+
+tier_1:
+  - name: "Official Artist"
+    description: "Nghệ sĩ tự đăng trên kênh chính thức của chính họ (không qua trung gian)."
+  - name: "Spotify Artist"
+    description: "Trang Spotify for Artists đã xác thực của nghệ sĩ."
+  - name: "Apple Music Artist"
+    description: "Trang nghệ sĩ đã xác thực trên Apple Music."
+  - name: "YouTube Official"
+    description: "Kênh YouTube có tick xác thực chính chủ nghệ sĩ/label."
+  - name: "Facebook Verified"
+    description: "Trang Facebook đã xác thực (tick xanh) của nghệ sĩ/tổ chức."
+  - name: "Instagram Verified"
+    description: "Tài khoản Instagram đã xác thực (tick xanh) của nghệ sĩ/tổ chức."
+  - name: "Official Website"
+    description: "Website chính thức do nghệ sĩ/label/tổ chức tự vận hành."
+
+tier_2:
+  - name: "Billboard Vietnam"
+    description: "Billboard Vietnam — báo chí âm nhạc chính thống."
+  - name: "Vietcetera Music"
+    description: "Chuyên mục âm nhạc của Vietcetera."
+  - name: "Official Labels"
+    description: "Kênh chính thức của hãng đĩa/label quản lý nghệ sĩ."
+  - name: "Festival Organizers"
+    description: "Ban tổ chức lễ hội/sự kiện âm nhạc chính thức."
+
+tier_3:
+  - name: "Spotify Releases"
+    description: "Danh sách phát hành mới trên Spotify (không phải trang nghệ sĩ)."
+  - name: "Apple Music Releases"
+    description: "Danh sách phát hành mới trên Apple Music (không phải trang nghệ sĩ)."
+  - name: "YouTube Music"
+    description: "YouTube Music — nền tảng phát hành, không phải kênh chính chủ."

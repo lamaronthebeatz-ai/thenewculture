@@ -1,0 +1,20 @@
+# Editorial Mapping (section IX).
+#
+# event_type -> suggested_series (must be one of the 16 real Series slugs
+# already defined in admin/config.yml — this file does not invent new
+# series, and Editorial Intelligence never creates or edits Series).
+#
+# The 5 pairs the spec gives explicitly are marked below; the remaining
+# event types are filled in against the actual Series descriptions
+# (see admin/config.yml) so every EventType in models/enums.py maps to
+# something real. "Có thể mở rộng" (section IX) — extend by adding a
+# line here, no code change required.
+album_release: tnc-records          # spec: Album -> TNC Records
+single_release: tnc-tracks          # TNC Tracks: "Phân tích các ca khúc nổi bật"
+mv_release: tnc-tracks               # MV gắn liền với 1 ca khúc, cùng series với Single
+artist_announcement: tnc-profiles    # spec: Artist -> TNC Profiles
+festival: tnc-radar                  # spec: Festival -> TNC Radar
+concert: tnc-radar                   # cùng tính chất "sự kiện sắp diễn ra" với Festival
+interview: inside-the-culture        # Inside The Culture: "Series phỏng vấn các nghệ sĩ..."
+award: tnc-timeline                  # spec: Milestone -> TNC Timeline (Award = 1 dạng milestone)
+community_event: tnc-community       # spec: Community -> TNC Community
