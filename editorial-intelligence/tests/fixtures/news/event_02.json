@@ -1,0 +1,19 @@
+{
+  "title": "Bài Hát Mới Của Nghệ Sĩ B",
+  "artist": "Nghệ Sĩ B",
+  "event_type": "single",
+  "description": "Một fan page chia sẻ lại thông tin phát hành, chưa có xác nhận chính thức.",
+  "published_at": "2026-08-05",
+  "platform": "YouTube Music",
+  "image": null,
+  "related_artists": [],
+  "related_profiles": [],
+  "sources": [
+    {
+      "name": "YouTube Music",
+      "tier": "community",
+      "url": null,
+      "retrieved_at": "2026-08-05T12:00:00Z"
+    }
+  ]
+}

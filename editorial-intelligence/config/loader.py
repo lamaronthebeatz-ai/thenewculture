@@ -33,6 +33,18 @@ def load_editorial_mapping() -> Dict[str, str]:
     return _load_yaml("editorial_mapping.yaml")
 
 
+def load_event_categories() -> Dict[str, Any]:
+    """Phase 2 (section VI) addition. Returns categories /
+    related_series / homepage_eligible_event_types /
+    homepage_confidence_threshold / magazine_eligible_event_types /
+    magazine_confidence_threshold / search_weight_base /
+    search_weight_confidence_multiplier — see event_categories.yaml.
+    Deliberately a separate file/function from
+    load_editorial_mapping(), so that function's existing return shape
+    (Phase 1, already load-bearing) never changes."""
+    return _load_yaml("event_categories.yaml")
+
+
 def source_tier_lookup() -> Dict[str, str]:
     """Flattens sources.yaml into {source_name: tier_value}, e.g.
     {"Official Website": "tier_1", ...} — the shape events/confidence.py

@@ -16,10 +16,15 @@ source_weights:
   "YouTube Official": 15
   "Facebook Verified": 10
 
+# Phase 2 (section V) names these "Official / Editorial / Community /
+# Unknown" — see models/enums.py's SOURCE_TIER_LABELS for the exact
+# label<->tier mapping. tier_1="Official", tier_2="Editorial",
+# tier_3="Community", unknown="Unknown".
 default_tier_weights:
   tier_1: 10
   tier_2: 7
   tier_3: 4
+  unknown: 2
 
 # Cùng MỘT nguồn (theo Source.key()) xuất hiện lặp lại — tín hiệu "được
 # xác nhận lại qua nhiều lần thu thập", không phải nhiều nguồn khác nhau.

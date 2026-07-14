@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 from .enums import EventStatus, EventType
+from .mapping_result import MappingResult
 from .source import Source
 
 
@@ -54,6 +55,13 @@ class EditorialEvent:
 
     suggested_series: Optional[str] = None
     suggested_tags: List[str] = field(default_factory=list)
+
+    # --- Phase 2 additions (additive only — every field above is exactly
+    # as Phase 1 left it; both fields below default to None so any code
+    # that already constructs an EditorialEvent without them, including
+    # every Phase 1 test, is unaffected). ---
+    primary_source: Optional[Source] = None  # set by events/duplicate.py, section IV
+    mapping_result: Optional[MappingResult] = None  # set by events/mapping.py, section VI
 
     @classmethod
     def create(cls, *, title: str, artist: str, event_type: EventType,

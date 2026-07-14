@@ -31,3 +31,9 @@ class InMemoryEventQueue(EventQueue):
         event = self._events.get(event_id)
         if event is not None:
             event.status = status
+
+    def remove(self, event_id: str) -> Optional[EditorialEvent]:
+        """Phase 2 addition — `dict.pop` preserves the insertion order of
+        every remaining key (Python dicts since 3.7), so FIFO order for
+        peek()/dequeue() stays correct after a removal."""
+        return self._events.pop(event_id, None)

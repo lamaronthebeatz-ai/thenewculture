@@ -51,12 +51,33 @@ class EventStatus(str, Enum):
 class SourceTier(str, Enum):
     """Trust tier of a Source, per section VI (Source Policy).
 
-    Tier 1: the artist/organization's own official channel.
-    Tier 2: Vietnamese hip-hop trade press, labels, festival organizers.
-    Tier 3: general streaming-platform release feeds (not an official
-            channel, but still a verifiable platform, not a random blog).
+    Tier 1 ("Official"): the artist/organization's own official channel.
+    Tier 2 ("Editorial"): Vietnamese hip-hop trade press, labels, festival
+            organizers.
+    Tier 3 ("Community"): general streaming-platform release feeds (not
+            an official channel, but still a verifiable platform, not a
+            random blog).
+    UNKNOWN ("Unknown"): Phase 2 addition — a Source the Normalizer could
+            not confidently place in Tier 1/2/3. Scored very low by the
+            Confidence Engine (config/confidence_weights.yaml), never
+            silently dropped to 0 and never rejected outright: an editor
+            reviewing the queue should be able to see "this came from
+            somewhere unverified" rather than the event vanishing.
     """
 
     TIER_1 = "tier_1"
     TIER_2 = "tier_2"
     TIER_3 = "tier_3"
+    UNKNOWN = "unknown"
+
+
+# Human-readable labels for the tiers above, matching the vocabulary used
+# in Phase 2's spec (section V) and in generated Prompts/Markdown.
+# Display-only — never used for scoring logic (that stays entirely
+# data-driven from config/confidence_weights.yaml).
+SOURCE_TIER_LABELS = {
+    SourceTier.TIER_1: "Official",
+    SourceTier.TIER_2: "Editorial",
+    SourceTier.TIER_3: "Community",
+    SourceTier.UNKNOWN: "Unknown",
+}
