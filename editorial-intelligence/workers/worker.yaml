@@ -1,0 +1,19 @@
+# Worker Config (Phase 6) — schedule / providers / limits / retry / logging.
+# Loaded only by workers/config.py — a self-contained loader, not
+# config/loader.py (Phase 1, locked).
+
+schedule:
+  mode: manual   # manual | hourly | daily | weekly
+
+providers:
+  fixtures_dir: null   # null => NewsProvider's own default fixtures dir
+
+limits:
+  max_events_per_run: 50
+
+retry:
+  max_attempts: 1
+  backoff_seconds: 0
+
+logging:
+  level: info   # debug | info | warning | error
