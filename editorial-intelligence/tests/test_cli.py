@@ -37,8 +37,10 @@ def _isolated_state(tmp_path, monkeypatch):
     editorial-intelligence/.cli-state/ or leaves files behind."""
     state_dir = tmp_path / "cli-state"
     state_file = state_dir / "stories.json"
+    articles_state_file = state_dir / "articles.json"
     monkeypatch.setattr(editorial_cli, "STATE_DIR", str(state_dir))
     monkeypatch.setattr(editorial_cli, "STATE_FILE", str(state_file))
+    monkeypatch.setattr(editorial_cli, "ARTICLES_STATE_FILE", str(articles_state_file))
     yield
 
 
@@ -311,13 +313,179 @@ def test_cmd_recommend_unknown_id(capsys):
 
 
 # ---------------------------------------------------------------------
+# Phase 5: workspace / articles / open / status / history / export / archive
+# ---------------------------------------------------------------------
+
+def test_cmd_workspace_empty(capsys):
+    rc = editorial_cli.cmd_workspace(argparse_namespace())
+    assert rc == 0
+    assert "Workspace rỗng" in capsys.readouterr().out
+
+
+def test_cmd_workspace_syncs_stories_into_articles_and_reports_metrics(capsys):
+    editorial_cli.save_stories([_full_story(title="A"), _full_story(title="B", series="tnc-tracks")])
+    rc = editorial_cli.cmd_workspace(argparse_namespace())
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Pending             : 2" in out
+    assert "Series Distribution:" in out
+
+    articles = editorial_cli.load_articles()
+    assert len(articles) == 2
+
+
+def test_cmd_articles_empty(capsys):
+    rc = editorial_cli.cmd_articles(argparse_namespace())
+    assert rc == 0
+    assert "Workspace rỗng" in capsys.readouterr().out
+
+
+def test_cmd_articles_lists_synced_articles(capsys):
+    editorial_cli.save_stories([_full_story(title="Album X")])
+    rc = editorial_cli.cmd_articles(argparse_namespace())
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Album X" in out
+    assert "[new" in out
+
+
+def test_cmd_open_shows_full_detail(capsys):
+    story = _full_story(title="Album X")
+    editorial_cli.save_stories([story])
+    rc = editorial_cli.cmd_open(argparse_namespace(article_id=story.event.id))
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Title           : Album X" in out
+    assert "Status          : new" in out
+
+
+def test_cmd_open_unknown_id(capsys):
+    rc = editorial_cli.cmd_open(argparse_namespace(article_id="nope"))
+    assert rc == 1
+    assert "Không tìm thấy" in capsys.readouterr().out
+
+
+def test_cmd_status_advances_one_step(capsys):
+    story = _full_story()
+    editorial_cli.save_stories([story])
+    editorial_cli.cmd_articles(argparse_namespace())  # sync so an Article exists
+
+    rc = editorial_cli.cmd_status(argparse_namespace(article_id=story.event.id, path=None))
+    assert rc == 0
+    assert "-> pending_review" in capsys.readouterr().out
+
+    article = editorial_cli.load_articles()[0]
+    assert article.status.value == "pending_review"
+
+
+def test_cmd_status_sets_prompt_path_on_prompt_ready_transition(capsys):
+    story = _full_story()
+    editorial_cli.save_stories([story])
+    editorial_cli.cmd_status(argparse_namespace(article_id=story.event.id, path=None))  # -> pending_review
+    capsys.readouterr()
+
+    rc = editorial_cli.cmd_status(argparse_namespace(article_id=story.event.id, path="prompts/x.txt"))
+    assert rc == 0
+    article = editorial_cli.load_articles()[0]
+    assert article.status.value == "prompt_ready"
+    assert article.prompt_path == "prompts/x.txt"
+
+
+def test_cmd_status_refuses_past_published(capsys):
+    story = _full_story()
+    editorial_cli.save_stories([story])
+    for _ in range(7):
+        editorial_cli.cmd_status(argparse_namespace(article_id=story.event.id, path=None))
+    capsys.readouterr()
+
+    rc = editorial_cli.cmd_status(argparse_namespace(article_id=story.event.id, path=None))
+    assert rc == 1
+    assert "dùng `editorial archive`" in capsys.readouterr().out
+
+
+def test_cmd_status_unknown_id(capsys):
+    rc = editorial_cli.cmd_status(argparse_namespace(article_id="nope", path=None))
+    assert rc == 1
+
+
+def test_cmd_history_shows_timeline(capsys):
+    story = _full_story()
+    editorial_cli.save_stories([story])
+    editorial_cli.cmd_status(argparse_namespace(article_id=story.event.id, path=None))
+    capsys.readouterr()
+
+    rc = editorial_cli.cmd_history(argparse_namespace(article_id=story.event.id))
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Created" in out
+    assert "Queued for Review" in out
+
+
+def test_cmd_history_unknown_id(capsys):
+    rc = editorial_cli.cmd_history(argparse_namespace(article_id="nope"))
+    assert rc == 1
+
+
+def test_cmd_export_writes_file(tmp_path, capsys):
+    story = _full_story(title="Album X")
+    editorial_cli.save_stories([story])
+    output_path = str(tmp_path / "export.md")
+
+    rc = editorial_cli.cmd_export(argparse_namespace(article_id=story.event.id, output=output_path))
+    assert rc == 0
+    assert os.path.exists(output_path)
+    content = open(output_path, encoding="utf-8").read()
+    assert "## Editorial Metadata" in content
+    assert "Album X" in content
+    assert "Đã xuất" in capsys.readouterr().out
+
+
+def test_cmd_export_unknown_id(capsys):
+    rc = editorial_cli.cmd_export(argparse_namespace(article_id="nope", output=None))
+    assert rc == 1
+
+
+def test_cmd_archive_requires_published_first(capsys):
+    story = _full_story()
+    editorial_cli.save_stories([story])
+    editorial_cli.cmd_articles(argparse_namespace())
+
+    rc = editorial_cli.cmd_archive(argparse_namespace(article_id=story.event.id))
+    assert rc == 1
+    assert "Chỉ có thể Archive" in capsys.readouterr().out
+
+
+def test_cmd_archive_after_published(capsys):
+    story = _full_story()
+    editorial_cli.save_stories([story])
+    for _ in range(7):
+        editorial_cli.cmd_status(argparse_namespace(article_id=story.event.id, path=None))
+    capsys.readouterr()
+
+    rc = editorial_cli.cmd_archive(argparse_namespace(article_id=story.event.id))
+    assert rc == 0
+    assert "đã được Archive" in capsys.readouterr().out
+
+    article = editorial_cli.load_articles()[0]
+    assert article.status.value == "archived"
+
+
+def test_cmd_archive_unknown_id(capsys):
+    rc = editorial_cli.cmd_archive(argparse_namespace(article_id="nope"))
+    assert rc == 1
+
+
+# ---------------------------------------------------------------------
 # argparse wiring / main()
 # ---------------------------------------------------------------------
 
 def test_build_parser_has_all_commands():
     parser = editorial_cli.build_parser()
     actions = [a for a in parser._subparsers._group_actions for a in getattr(a, "choices", {})]
-    for command in ["collect", "queue", "dashboard", "prompt", "markdown", "issue", "recommend", "review"]:
+    for command in [
+        "collect", "queue", "dashboard", "prompt", "markdown", "issue", "recommend", "review",
+        "workspace", "articles", "open", "status", "history", "export", "archive",
+    ]:
         assert command in actions
 
 
