@@ -75,10 +75,18 @@ from editorial_intelligence.prompt.markdown_generator import MarkdownGenerator  
 from editorial_intelligence.providers.news_provider import NewsProvider  # noqa: E402
 from editorial_intelligence.providers.registry import ProviderRegistry  # noqa: E402
 from editorial_intelligence.queue.in_memory import InMemoryEventQueue  # noqa: E402
+from editorial_intelligence.workspace.archive import ArchiveEngine  # noqa: E402
+from editorial_intelligence.workspace.article import Article  # noqa: E402
+from editorial_intelligence.workspace.export import ExportEngine  # noqa: E402
+from editorial_intelligence.workspace.history import HistoryEntry  # noqa: E402
+from editorial_intelligence.workspace.metrics import MetricsEngine  # noqa: E402
+from editorial_intelligence.workspace.status import ArticleStatus, InvalidTransitionError  # noqa: E402
+from editorial_intelligence.workspace.workspace import Workspace  # noqa: E402
 
 DEFAULT_FIXTURES_DIR = os.path.join(EI_ROOT, "tests", "fixtures", "news")
 STATE_DIR = os.path.join(EI_ROOT, ".cli-state")
 STATE_FILE = os.path.join(STATE_DIR, "stories.json")
+ARTICLES_STATE_FILE = os.path.join(STATE_DIR, "articles.json")
 
 COLLECT_STEPS = [
     "Collect", "Normalize", "Validate", "Duplicate", "Confidence", "Mapping",
@@ -173,6 +181,63 @@ def series_counts(stories):
         if s.decision == EditorialDecisionType.PUBLISH and s.event.suggested_series:
             counts[s.event.suggested_series] = counts.get(s.event.suggested_series, 0) + 1
     return counts
+
+
+# --------------------------------------------------------------------
+# Phase 5 (Workspace) persistence — same JSON-file pattern as the
+# StoryCandidate persistence above, kept as an entirely separate file
+# (.cli-state/articles.json) so nothing about stories.json changes.
+# --------------------------------------------------------------------
+
+def _history_entry_from_dict(d):
+    return HistoryEntry(label=d["label"], status=d["status"], timestamp=d["timestamp"], note=d.get("note"))
+
+
+def _article_to_dict(article: Article) -> dict:
+    return _stringify_enums(dataclasses.asdict(article))
+
+
+def _article_from_dict(d) -> Article:
+    article = Article(
+        story=_story_from_dict(d["story"]),
+        status=ArticleStatus(d.get("status", "new")),
+        assigned_editor=d.get("assigned_editor"),
+        prompt_path=d.get("prompt_path"),
+        markdown_path=d.get("markdown_path"),
+        created=d.get("created", ""),
+        updated=d.get("updated", ""),
+        published=d.get("published"),
+    )
+    article.history = [_history_entry_from_dict(h) for h in d.get("history", [])]
+    return article
+
+
+def save_articles(articles):
+    os.makedirs(STATE_DIR, exist_ok=True)
+    with open(ARTICLES_STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump([_article_to_dict(a) for a in articles], f, ensure_ascii=False, indent=2)
+
+
+def load_articles():
+    if not os.path.exists(ARTICLES_STATE_FILE):
+        return []
+    with open(ARTICLES_STATE_FILE, encoding="utf-8") as f:
+        raw = json.load(f)
+    return [_article_from_dict(d) for d in raw]
+
+
+def load_synced_workspace():
+    """Loads the Workspace's own Article state, then registers any
+    StoryCandidate from stories.json (Phase 4's state) that isn't
+    tracked as an Article yet. Workspace.create_article() is idempotent
+    by id, so re-running this on every command is always safe and never
+    loses an existing Article's status/history."""
+    stories = load_stories()
+    ws = Workspace(articles=load_articles())
+    for story in stories:
+        ws.create_article(story)
+    save_articles(ws.all_articles())
+    return ws
 
 
 # --------------------------------------------------------------------
@@ -428,6 +493,149 @@ def cmd_review(args):
 
 
 # --------------------------------------------------------------------
+# Phase 5 (Workspace) commands
+# --------------------------------------------------------------------
+
+def cmd_workspace(args):
+    ws = load_synced_workspace()
+    articles = ws.all_articles()
+    if not articles:
+        print("Workspace rỗng — chạy `editorial collect` trước.")
+        return 0
+
+    metrics = MetricsEngine().compute(articles)
+
+    def _fmt_hours(value):
+        return f"{value:.1f}h" if value is not None else "(chưa có dữ liệu)"
+
+    print("=== editorial workspace ===")
+    print(f"Pending             : {metrics.pending}")
+    print(f"Writing             : {metrics.writing}")
+    print(f"Review              : {metrics.review}")
+    print(f"Published           : {metrics.published}")
+    print(f"Average Writing Time: {_fmt_hours(metrics.average_writing_time_hours)}")
+    print(f"Average Review Time : {_fmt_hours(metrics.average_review_time_hours)}")
+    print()
+    print("Series Distribution:")
+    for series, count in sorted(metrics.series_distribution.items()):
+        print(f"  {series:<20} {count}")
+    print()
+    print("Story Distribution:")
+    for story_type, count in sorted(metrics.story_type_distribution.items()):
+        print(f"  {story_type:<12} {count}")
+    return 0
+
+
+def cmd_articles(args):
+    ws = load_synced_workspace()
+    articles = ws.all_articles()
+    if not articles:
+        print("Workspace rỗng — chạy `editorial collect` trước.")
+        return 0
+
+    print("=== editorial articles ===")
+    for a in articles:
+        print(
+            f"  {a.id[:8]}  [{a.status.value:<16}]  {a.title} — {a.story.event.artist}"
+            f"  (editor={a.assigned_editor or '(chưa gán)'})"
+        )
+    return 0
+
+
+def cmd_open(args):
+    ws = load_synced_workspace()
+    article = ws.find(args.article_id)
+    if article is None:
+        print(f"Không tìm thấy Article với id: {args.article_id}")
+        return 1
+
+    print(f"=== editorial open {article.id[:8]} ===")
+    print(f"Title           : {article.title}")
+    print(f"Series          : {article.series or '(chưa xác định)'}")
+    print(f"Story Type      : {article.story_type.value}")
+    print(f"Priority        : {article.priority}")
+    print(f"Status          : {article.status.value}")
+    print(f"Assigned Editor : {article.assigned_editor or '(chưa gán)'}")
+    print(f"Prompt Path     : {article.prompt_path or '(chưa có)'}")
+    print(f"Markdown Path   : {article.markdown_path or '(chưa có)'}")
+    print(f"Created         : {article.created}")
+    print(f"Updated         : {article.updated}")
+    print(f"Published       : {article.published or '(chưa xuất bản)'}")
+    return 0
+
+
+def cmd_status(args):
+    ws = load_synced_workspace()
+    article = ws.find(args.article_id)
+    if article is None:
+        print(f"Không tìm thấy Article với id: {args.article_id}")
+        return 1
+
+    try:
+        ws.advance(article)
+    except InvalidTransitionError as e:
+        print(str(e))
+        return 1
+
+    if args.path:
+        if article.status == ArticleStatus.PROMPT_READY:
+            ws.set_prompt_path(article, args.path)
+        elif article.status == ArticleStatus.DRAFT_READY:
+            ws.set_markdown_path(article, args.path)
+
+    save_articles(ws.all_articles())
+    print(f"Article {article.id[:8]} -> {article.status.value}")
+    return 0
+
+
+def cmd_history(args):
+    ws = load_synced_workspace()
+    article = ws.find(args.article_id)
+    if article is None:
+        print(f"Không tìm thấy Article với id: {args.article_id}")
+        return 1
+
+    print(f"=== editorial history {article.id[:8]} ===")
+    if not article.history:
+        print("  (chưa có lịch sử)")
+    for h in article.history:
+        note_part = f" — {h.note}" if h.note else ""
+        print(f"  [{h.timestamp}] {h.label}{note_part}")
+    return 0
+
+
+def cmd_export(args):
+    ws = load_synced_workspace()
+    article = ws.find(args.article_id)
+    if article is None:
+        print(f"Không tìm thấy Article với id: {args.article_id}")
+        return 1
+
+    output_path = args.output or f"export-{article.id[:8]}.md"
+    ExportEngine().write(article, output_path)
+    print(f"Đã xuất: {output_path}")
+    return 0
+
+
+def cmd_archive(args):
+    ws = load_synced_workspace()
+    article = ws.find(args.article_id)
+    if article is None:
+        print(f"Không tìm thấy Article với id: {args.article_id}")
+        return 1
+
+    try:
+        ArchiveEngine().archive(article)
+    except InvalidTransitionError as e:
+        print(str(e))
+        return 1
+
+    save_articles(ws.all_articles())
+    print(f"Article {article.id[:8]} đã được Archive.")
+    return 0
+
+
+# --------------------------------------------------------------------
 # argparse wiring
 # --------------------------------------------------------------------
 
@@ -463,6 +671,34 @@ def build_parser():
 
     p = subparsers.add_parser("review", help="Toàn bộ bài theo Publish/Hold/Reject/NeedMoreSources")
     p.set_defaults(func=cmd_review)
+
+    p = subparsers.add_parser("workspace", help="Metrics tổng quan Workspace (Phase 5)")
+    p.set_defaults(func=cmd_workspace)
+
+    p = subparsers.add_parser("articles", help="Danh sách toàn bộ Article (Phase 5)")
+    p.set_defaults(func=cmd_articles)
+
+    p = subparsers.add_parser("open", help="Xem chi tiết 1 Article (Phase 5)")
+    p.add_argument("article_id")
+    p.set_defaults(func=cmd_open)
+
+    p = subparsers.add_parser("status", help="Chuyển Article sang trạng thái kế tiếp (Phase 5)")
+    p.add_argument("article_id")
+    p.add_argument("--path", default=None, help="Prompt/Markdown path khi chuyển sang PROMPT_READY/DRAFT_READY")
+    p.set_defaults(func=cmd_status)
+
+    p = subparsers.add_parser("history", help="Timeline lịch sử của 1 Article (Phase 5)")
+    p.add_argument("article_id")
+    p.set_defaults(func=cmd_history)
+
+    p = subparsers.add_parser("export", help="Xuất Markdown+Frontmatter+Sources+Metadata+Assignment+History (Phase 5)")
+    p.add_argument("article_id")
+    p.add_argument("--output", "-o", default=None)
+    p.set_defaults(func=cmd_export)
+
+    p = subparsers.add_parser("archive", help="Archive 1 Article đã PUBLISHED (Phase 5)")
+    p.add_argument("article_id")
+    p.set_defaults(func=cmd_archive)
 
     return parser
 
