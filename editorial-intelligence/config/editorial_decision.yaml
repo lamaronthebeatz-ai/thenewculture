@@ -1,0 +1,6 @@
+# Editorial Decision (Phase 3, section 3). Priority Score thresholds
+# only apply once status-based facts (REJECTED/MERGED/LOW_CONFIDENCE,
+# already known from the Phase 1/2 Collector pipeline) are ruled out —
+# see editorial/decision.py for the exact order of checks.
+publish_priority_threshold: 70
+hold_priority_threshold: 30

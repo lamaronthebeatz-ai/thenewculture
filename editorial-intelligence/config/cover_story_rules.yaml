@@ -1,0 +1,6 @@
+# Cover Story Candidate selector (Phase 3, section 6). Only PUBLISH-
+# decision StoryCandidates of these StoryTypes, at or above this
+# Priority Score, are eligible — a Community or Timeline story never
+# becomes a Cover Story pick automatically, regardless of priority.
+eligible_story_types: [breaking, release, feature]
+min_priority_score: 70

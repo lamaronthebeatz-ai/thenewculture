@@ -1,5 +1,5 @@
-"""Prompt Generator (Phase 1 section X, extended by Phase 2 section VIII)
-— the most important module here.
+"""Prompt Generator (Phase 1 section X, extended by Phase 2 section VIII
+and Phase 3 section 9) — the most important module here.
 
 It does NOT write articles. It does NOT call any AI/LLM API (section
 XVI: "KHÔNG gọi ChatGPT. KHÔNG gọi Claude API."). It produces one
@@ -8,12 +8,15 @@ hand. Every section required by the spec is included:
 
   Editorial Guideline, Event, Sources, Metadata, SEO Requirement,
   Frontmatter, Suggested Series, Suggested Tags, Internal Linking
-  Suggestions, Related Profiles, Markdown Rules (added Phase 2).
+  Suggestions, Related Profiles, Markdown Rules (added Phase 2),
+  Story Type, Priority, Editorial Notes, Suggested Links (added Phase 3,
+  generate_for_story() only — see below).
 
 Refuses to run on a low-confidence Event (section VII: "Nếu Confidence
 thấp. Không đề xuất Prompt.") — this is enforced here, not left to the
 caller to remember.
 """
+import dataclasses
 import datetime
 import os
 from typing import Optional
@@ -22,6 +25,8 @@ from ..events.confidence import ConfidenceEngine
 from ..models.enums import EventStatus
 from ..models.event import EditorialEvent
 from ..models.prompt import EditorialPrompt
+from ..models.recommendation import Recommendations
+from ..models.story_candidate import StoryCandidate
 from .frontmatter import ARTICLE_FRONTMATTER_FIELDS, build_frontmatter
 
 _GUIDELINE_PATH = os.path.join(
@@ -103,6 +108,56 @@ class PromptGenerator:
             sources=list(event.sources),
             related_artists=list(event.related_artists),
             related_profiles=list(event.related_profiles),
+        )
+
+    def generate_for_story(
+        self,
+        story: StoryCandidate,
+        recommendations: Optional[Recommendations] = None,
+    ) -> EditorialPrompt:
+        """Phase 3, section 9. Reuses generate(story.event) for the
+        entire Phase 1/2 Prompt (same eligibility gate, same rendering —
+        generate() itself is completely untouched, so every existing
+        caller/test keeps working exactly as before) and appends four
+        new sections on top: Story Type, Priority, Editorial Notes,
+        Suggested Links.
+
+        `recommendations` (editorial/recommendation.py's output) is
+        optional — if not supplied, Suggested Links falls back to
+        `story.assignment.suggested_internal_links` (Assignment
+        Generator's own output, section 4) if an Assignment was already
+        generated, otherwise an empty list. Either way this method never
+        computes recommendations itself — Phase 3's own engines own that
+        logic, this only renders what it's given."""
+        base = self.generate(story.event)
+
+        if recommendations is not None:
+            suggested_links = list(recommendations.internal_links)
+        elif story.assignment is not None:
+            suggested_links = list(story.assignment.suggested_internal_links)
+        else:
+            suggested_links = []
+
+        extra_sections = f"""
+## Story Type
+{story.story_type.value}
+
+## Priority
+{story.priority_score}
+
+## Editorial Notes
+{_format_list(story.editorial_notes, "(không có ghi chú)")}
+
+## Suggested Links
+{_format_list(suggested_links, "(không có gợi ý liên kết)")}
+"""
+        return dataclasses.replace(
+            base,
+            text=base.text + extra_sections,
+            story_type=story.story_type.value,
+            priority_score=story.priority_score,
+            editorial_notes=list(story.editorial_notes),
+            suggested_links=suggested_links,
         )
 
     def _render(self, event: EditorialEvent, frontmatter: dict) -> str:
