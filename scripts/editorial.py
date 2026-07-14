@@ -82,11 +82,18 @@ from editorial_intelligence.workspace.history import HistoryEntry  # noqa: E402
 from editorial_intelligence.workspace.metrics import MetricsEngine  # noqa: E402
 from editorial_intelligence.workspace.status import ArticleStatus, InvalidTransitionError  # noqa: E402
 from editorial_intelligence.workspace.workspace import Workspace  # noqa: E402
+from editorial_intelligence.workers.config import load_worker_config  # noqa: E402
+from editorial_intelligence.workers.health import HealthEngine  # noqa: E402
+from editorial_intelligence.workers.logger import RunLog, WorkerLogger  # noqa: E402
+from editorial_intelligence.workers.scheduler import Scheduler  # noqa: E402
+from editorial_intelligence.workers.worker import WorkerRunner  # noqa: E402
 
 DEFAULT_FIXTURES_DIR = os.path.join(EI_ROOT, "tests", "fixtures", "news")
 STATE_DIR = os.path.join(EI_ROOT, ".cli-state")
 STATE_FILE = os.path.join(STATE_DIR, "stories.json")
 ARTICLES_STATE_FILE = os.path.join(STATE_DIR, "articles.json")
+WORKER_RUNS_FILE = os.path.join(STATE_DIR, "worker_runs.json")
+DASHBOARD_FILE = os.path.join(STATE_DIR, "dashboard.json")
 
 COLLECT_STEPS = [
     "Collect", "Normalize", "Validate", "Duplicate", "Confidence", "Mapping",
@@ -238,6 +245,51 @@ def load_synced_workspace():
         ws.create_article(story)
     save_articles(ws.all_articles())
     return ws
+
+
+# --------------------------------------------------------------------
+# Phase 6 (Worker) persistence — RunLog has no Enum fields, so this is
+# a plain dataclasses.asdict() round-trip, simpler than the Phase 4/5
+# persistence above.
+# --------------------------------------------------------------------
+
+def _run_log_to_dict(run: RunLog) -> dict:
+    return dataclasses.asdict(run)
+
+
+def _run_log_from_dict(d) -> RunLog:
+    return RunLog(
+        run_id=d["run_id"], started_at=d["started_at"], finished_at=d.get("finished_at"),
+        duration_seconds=d.get("duration_seconds"), events_processed=d.get("events_processed", 0),
+        errors=list(d.get("errors", [])), messages=list(d.get("messages", [])),
+    )
+
+
+def save_worker_runs(runs):
+    os.makedirs(STATE_DIR, exist_ok=True)
+    with open(WORKER_RUNS_FILE, "w", encoding="utf-8") as f:
+        json.dump([_run_log_to_dict(r) for r in runs], f, ensure_ascii=False, indent=2)
+
+
+def load_worker_runs():
+    if not os.path.exists(WORKER_RUNS_FILE):
+        return []
+    with open(WORKER_RUNS_FILE, encoding="utf-8") as f:
+        raw = json.load(f)
+    return [_run_log_from_dict(d) for d in raw]
+
+
+def save_dashboard(dashboard: dict) -> None:
+    os.makedirs(STATE_DIR, exist_ok=True)
+    with open(DASHBOARD_FILE, "w", encoding="utf-8") as f:
+        json.dump(dashboard, f, ensure_ascii=False, indent=2)
+
+
+def load_dashboard():
+    if not os.path.exists(DASHBOARD_FILE):
+        return None
+    with open(DASHBOARD_FILE, encoding="utf-8") as f:
+        return json.load(f)
 
 
 # --------------------------------------------------------------------
@@ -636,6 +688,119 @@ def cmd_archive(args):
 
 
 # --------------------------------------------------------------------
+# Phase 6 (Worker) commands — `editorial worker <run|status|dashboard|health>`
+# --------------------------------------------------------------------
+
+def cmd_worker_run(args):
+    config = load_worker_config()
+    fixtures_dir = args.fixtures or config.get("providers", {}).get("fixtures_dir") or DEFAULT_FIXTURES_DIR
+    limits = config.get("limits", {})
+    retry = config.get("retry", {})
+    logging_cfg = config.get("logging", {})
+
+    runs = load_worker_runs()
+    last_run_at = runs[-1].started_at if runs else None
+
+    scheduler = Scheduler(mode=config.get("schedule", {}).get("mode", "manual"))
+    logger = WorkerLogger(min_level=logging_cfg.get("level", "info"))
+    runner = WorkerRunner(
+        fixtures_dir=fixtures_dir,
+        scheduler=scheduler,
+        logger=logger,
+        max_events_per_run=limits.get("max_events_per_run"),
+        retry_max_attempts=retry.get("max_attempts", 1),
+        retry_backoff_seconds=retry.get("backoff_seconds", 0),
+    )
+
+    result = runner.run(last_run_at=last_run_at, existing_articles=load_articles())
+
+    runs.append(result.run)
+    save_worker_runs(runs)
+
+    print("=== editorial worker run ===")
+    print(f"Run ID   : {result.run.run_id}")
+    if not result.ran:
+        print("Trạng thái: Bỏ qua (chưa đến lịch chạy)")
+        return 0
+
+    save_stories(result.stories)
+    save_articles(result.articles)
+    if result.dashboard is not None:
+        save_dashboard(result.dashboard)
+
+    print(f"Events processed : {result.run.events_processed}")
+    print(f"Errors           : {len(result.run.errors)}")
+    print(f"Draft branches   : {len(result.draft_branches)}")
+    for branch in result.draft_branches:
+        print(f"  - {branch}")
+    return 0
+
+
+def cmd_worker_status(args):
+    runs = load_worker_runs()
+    if not runs:
+        print("Chưa có lần chạy nào — dùng `editorial worker run` trước.")
+        return 0
+
+    last = runs[-1]
+    print("=== editorial worker status ===")
+    print(f"Run ID          : {last.run_id}")
+    print(f"Started         : {last.started_at}")
+    print(f"Finished        : {last.finished_at or '(chưa xong)'}")
+    duration = f"{last.duration_seconds:.3f}s" if last.duration_seconds is not None else "(n/a)"
+    print(f"Duration        : {duration}")
+    print(f"Events Processed: {last.events_processed}")
+    print(f"Errors          : {len(last.errors)}")
+    for error in last.errors:
+        print(f"  - {error}")
+    return 0
+
+
+def cmd_worker_dashboard(args):
+    dashboard = load_dashboard()
+    if dashboard is None:
+        print("Chưa có dashboard.json — dùng `editorial worker run` trước.")
+        return 0
+
+    print("=== editorial worker dashboard ===")
+    print(f"Pending           : {dashboard['pending']}")
+    print(f"Ready             : {dashboard['ready']}")
+    print(f"Writing           : {dashboard['writing']}")
+    print(f"Review            : {dashboard['review']}")
+    print(f"Published         : {dashboard['published']}")
+    print(f"Cover Story       : {dashboard['cover_story'] or '(không có)'}")
+    print(f"Top Story         : {dashboard['top_story'] or '(không có)'}")
+    confidence = dashboard["average_confidence"]
+    priority = dashboard["average_priority"]
+    print(f"Average Confidence: {confidence:.1f}" if confidence is not None else "Average Confidence: (n/a)")
+    print(f"Average Priority  : {priority:.1f}" if priority is not None else "Average Priority  : (n/a)")
+    print()
+    print("Issue Planning:")
+    for item in dashboard["issue_planning"]:
+        print(f"  [{item['priority']:>3}] {item['title']} ({item['series']})")
+    print()
+    print("Series Balance:")
+    for series, info in sorted(dashboard["series_balance"].items()):
+        print(f"  {series:<20} target={info['target']} current={info['current']} gap={info['gap']}")
+    return 0
+
+
+def cmd_worker_health(args):
+    runs = load_worker_runs()
+    status = HealthEngine().compute(runs)
+
+    print("=== editorial worker health ===")
+    print(f"Status            : {status.status}")
+    print(f"Last Run          : {status.last_run_at or '(chưa có)'}")
+    print(f"Last Success      : {status.last_success_at or '(chưa có)'}")
+    print(f"Last Failure      : {status.last_failure_at or '(chưa có)'}")
+    duration = f"{status.last_duration_seconds:.3f}s" if status.last_duration_seconds is not None else "(n/a)"
+    print(f"Last Duration     : {duration}")
+    print(f"Events Processed  : {status.last_events_processed}")
+    return 0
+
+
+# --------------------------------------------------------------------
 # argparse wiring
 # --------------------------------------------------------------------
 
@@ -699,6 +864,22 @@ def build_parser():
     p = subparsers.add_parser("archive", help="Archive 1 Article đã PUBLISHED (Phase 5)")
     p.add_argument("article_id")
     p.set_defaults(func=cmd_archive)
+
+    p_worker = subparsers.add_parser("worker", help="Worker: run/status/dashboard/health (Phase 6)")
+    worker_subparsers = p_worker.add_subparsers(dest="worker_command", required=True)
+
+    wp = worker_subparsers.add_parser("run", help="Schedule -> Collect -> Desk -> Workspace -> Dashboard JSON")
+    wp.add_argument("--fixtures", default=None)
+    wp.set_defaults(func=cmd_worker_run)
+
+    wp = worker_subparsers.add_parser("status", help="Trạng thái lần chạy Worker gần nhất")
+    wp.set_defaults(func=cmd_worker_status)
+
+    wp = worker_subparsers.add_parser("dashboard", help="In dashboard.json (Pending/Ready/Writing/Review/...)")
+    wp.set_defaults(func=cmd_worker_dashboard)
+
+    wp = worker_subparsers.add_parser("health", help="Health check (last run/success/failure/duration)")
+    wp.set_defaults(func=cmd_worker_health)
 
     return parser
 

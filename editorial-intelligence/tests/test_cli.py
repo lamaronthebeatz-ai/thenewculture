@@ -38,9 +38,13 @@ def _isolated_state(tmp_path, monkeypatch):
     state_dir = tmp_path / "cli-state"
     state_file = state_dir / "stories.json"
     articles_state_file = state_dir / "articles.json"
+    worker_runs_file = state_dir / "worker_runs.json"
+    dashboard_file = state_dir / "dashboard.json"
     monkeypatch.setattr(editorial_cli, "STATE_DIR", str(state_dir))
     monkeypatch.setattr(editorial_cli, "STATE_FILE", str(state_file))
     monkeypatch.setattr(editorial_cli, "ARTICLES_STATE_FILE", str(articles_state_file))
+    monkeypatch.setattr(editorial_cli, "WORKER_RUNS_FILE", str(worker_runs_file))
+    monkeypatch.setattr(editorial_cli, "DASHBOARD_FILE", str(dashboard_file))
     yield
 
 
@@ -476,6 +480,77 @@ def test_cmd_archive_unknown_id(capsys):
 
 
 # ---------------------------------------------------------------------
+# Phase 6: worker run / status / dashboard / health
+# ---------------------------------------------------------------------
+
+def test_cmd_worker_run_over_real_fixtures(capsys):
+    rc = editorial_cli.cmd_worker_run(argparse_namespace(fixtures=_FIXTURES_DIR))
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Events processed : 3" in out
+    assert "Draft branches   : 3" in out
+
+    assert len(editorial_cli.load_stories()) == 3
+    assert len(editorial_cli.load_articles()) == 3
+    assert editorial_cli.load_dashboard() is not None
+    assert len(editorial_cli.load_worker_runs()) == 1
+
+
+def test_cmd_worker_run_persists_run_history_across_calls(capsys):
+    editorial_cli.cmd_worker_run(argparse_namespace(fixtures=_FIXTURES_DIR))
+    editorial_cli.cmd_worker_run(argparse_namespace(fixtures=_FIXTURES_DIR))
+    assert len(editorial_cli.load_worker_runs()) == 2
+
+
+def test_cmd_worker_status_no_runs(capsys):
+    rc = editorial_cli.cmd_worker_status(argparse_namespace())
+    assert rc == 0
+    assert "Chưa có lần chạy nào" in capsys.readouterr().out
+
+
+def test_cmd_worker_status_after_run(capsys):
+    editorial_cli.cmd_worker_run(argparse_namespace(fixtures=_FIXTURES_DIR))
+    capsys.readouterr()
+    rc = editorial_cli.cmd_worker_status(argparse_namespace())
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Events Processed: 3" in out
+    assert "Errors          : 0" in out
+
+
+def test_cmd_worker_dashboard_before_any_run(capsys):
+    rc = editorial_cli.cmd_worker_dashboard(argparse_namespace())
+    assert rc == 0
+    assert "Chưa có dashboard.json" in capsys.readouterr().out
+
+
+def test_cmd_worker_dashboard_after_run(capsys):
+    editorial_cli.cmd_worker_run(argparse_namespace(fixtures=_FIXTURES_DIR))
+    capsys.readouterr()
+    rc = editorial_cli.cmd_worker_dashboard(argparse_namespace())
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Cover Story" in out
+    assert "Series Balance:" in out
+
+
+def test_cmd_worker_health_never_run(capsys):
+    rc = editorial_cli.cmd_worker_health(argparse_namespace())
+    assert rc == 0
+    assert "Status            : never_run" in capsys.readouterr().out
+
+
+def test_cmd_worker_health_after_run(capsys):
+    editorial_cli.cmd_worker_run(argparse_namespace(fixtures=_FIXTURES_DIR))
+    capsys.readouterr()
+    rc = editorial_cli.cmd_worker_health(argparse_namespace())
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Status            : ok" in out
+    assert "Events Processed  : 3" in out
+
+
+# ---------------------------------------------------------------------
 # argparse wiring / main()
 # ---------------------------------------------------------------------
 
@@ -484,9 +559,18 @@ def test_build_parser_has_all_commands():
     actions = [a for a in parser._subparsers._group_actions for a in getattr(a, "choices", {})]
     for command in [
         "collect", "queue", "dashboard", "prompt", "markdown", "issue", "recommend", "review",
-        "workspace", "articles", "open", "status", "history", "export", "archive",
+        "workspace", "articles", "open", "status", "history", "export", "archive", "worker",
     ]:
         assert command in actions
+
+
+def test_build_parser_worker_has_all_subcommands():
+    parser = editorial_cli.build_parser()
+    worker_actions = [a for a in parser._subparsers._group_actions if "worker" in a.choices]
+    worker_parser = worker_actions[0].choices["worker"]
+    worker_subactions = [a for a in worker_parser._subparsers._group_actions for a in getattr(a, "choices", {})]
+    for command in ["run", "status", "dashboard", "health"]:
+        assert command in worker_subactions
 
 
 def test_main_dispatches_to_dashboard(capsys):
