@@ -1,0 +1,52 @@
+# Editorial Mapping — Phase 2 additions (section VI).
+#
+# Separate file from editorial_mapping.yaml on purpose: that file's shape
+# (`{event_type: series_slug}`) is Phase 1, already load-bearing for
+# EditorialMappingEngine.apply()/suggest_series() — this file adds the
+# richer routing data Phase 2 asks for (category, homepage/magazine
+# eligibility, related_series, search_weight) without changing
+# editorial_mapping.yaml's existing shape or load_editorial_mapping()'s
+# return type at all.
+
+# event_type -> a short human category label, used in the Prompt and in
+# generated Markdown so an editor sees "Release" / "Live Event" instead
+# of the raw enum value.
+categories:
+  album_release: "Release"
+  single_release: "Release"
+  mv_release: "Release"
+  artist_announcement: "Announcement"
+  festival: "Live Event"
+  concert: "Live Event"
+  interview: "Editorial"
+  award: "Milestone"
+  community_event: "Community"
+
+# event_type -> other Series slugs worth cross-linking, besides the
+# single primary `series` from editorial_mapping.yaml. All real slugs
+# from admin/config.yml, same as editorial_mapping.yaml uses.
+related_series:
+  album_release: ["tnc-reviews"]
+  single_release: ["tnc-selects"]
+  mv_release: ["tnc-culture"]
+  artist_announcement: ["tnc-radar"]
+  festival: ["tnc-community"]
+  concert: ["tnc-community"]
+  interview: ["tnc-profiles"]
+  award: ["tnc-timeline"]
+  community_event: ["tnc-radar"]
+
+# Homepage/Magazine eligibility: an event_type in the list AND
+# event.confidence >= the threshold qualifies. Both are rule-based, no
+# AI, no Editorial Intelligence write access to the Homepage or Magazine
+# collections themselves — this is only ever a *suggestion* surfaced in
+# the Prompt/Markdown for a human to act on.
+homepage_eligible_event_types: [album_release, festival, artist_announcement]
+homepage_confidence_threshold: 70
+
+magazine_eligible_event_types: [album_release, single_release, mv_release, festival, interview, award]
+magazine_confidence_threshold: 50
+
+# search_weight = base + confidence * multiplier (rounded to int).
+search_weight_base: 10
+search_weight_confidence_multiplier: 0.5

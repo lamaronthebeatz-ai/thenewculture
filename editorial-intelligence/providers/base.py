@@ -6,11 +6,14 @@ out to be in a later phase). Nothing outside a Provider subclass may ever
 see a `RawPayload` — the rest of the system (collector, events, prompt)
 only ever deals in `EditorialEvent`.
 
-Phase 1 ships this interface only. No concrete network-calling Provider
-is implemented here (no RSS, no Cloudflare Worker, no API — section XVI).
-`editorial-intelligence/tests/fakes.py` has an in-memory FakeProvider used
-solely to prove the pipeline wiring in tests; it is not a real source and
-must not be registered outside test code.
+Phase 1 shipped this interface only. Phase 2 (section I) adds the first
+concrete implementation, `providers/news_provider.py`'s `NewsProvider` —
+it still performs no network I/O: it reads local JSON fixture files
+(tests/fixtures/news/), no crawling, no RSS, no Cloudflare Worker, no
+real API (section XVI's constraints still hold).
+`editorial-intelligence/tests/fakes.py` also has an in-memory
+FakeProvider used solely to prove the pipeline wiring in tests; it is
+not a real source and must not be registered outside test code.
 """
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List

@@ -1,4 +1,5 @@
-"""Prompt Generator (section X) — the most important module here.
+"""Prompt Generator (Phase 1 section X, extended by Phase 2 section VIII)
+— the most important module here.
 
 It does NOT write articles. It does NOT call any AI/LLM API (section
 XVI: "KHÔNG gọi ChatGPT. KHÔNG gọi Claude API."). It produces one
@@ -7,7 +8,7 @@ hand. Every section required by the spec is included:
 
   Editorial Guideline, Event, Sources, Metadata, SEO Requirement,
   Frontmatter, Suggested Series, Suggested Tags, Internal Linking
-  Suggestions, Related Profiles.
+  Suggestions, Related Profiles, Markdown Rules (added Phase 2).
 
 Refuses to run on a low-confidence Event (section VII: "Nếu Confidence
 thấp. Không đề xuất Prompt.") — this is enforced here, not left to the
@@ -63,6 +64,20 @@ def _format_list(items, empty_note: str) -> str:
     return "\n".join(f"- {item}" for item in items)
 
 
+# Phase 2 (section VIII): "Markdown Rules" — the exact body-formatting
+# conventions the CMS's own markdown widget already documents (see the
+# "Nội dung bài viết" field's hint in admin/config.yml) so a draft
+# written from this Prompt renders correctly once pasted into the CMS,
+# without inventing a different set of rules here.
+_MARKDOWN_RULES = (
+    "- `##` tạo tiêu đề phụ (h2).\n"
+    "- `>` tạo trích dẫn (blockquote).\n"
+    "- Danh sách bắt đầu bằng `1.` (có số thứ tự) hoặc `-` (không số thứ tự).\n"
+    "- Dán link YouTube, Spotify hoặc SoundCloud đứng riêng một dòng để tự động nhúng trình phát.\n"
+    "- Không dùng HTML thô — chỉ dùng đúng các quy tắc markdown ở trên."
+)
+
+
 class PromptGenerator:
     def __init__(self, confidence_engine: Optional[ConfidenceEngine] = None, guideline_text: Optional[str] = None):
         self._confidence = confidence_engine or ConfidenceEngine()
@@ -85,6 +100,9 @@ class PromptGenerator:
             text=text,
             frontmatter=frontmatter,
             generated_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            sources=list(event.sources),
+            related_artists=list(event.related_artists),
+            related_profiles=list(event.related_profiles),
         )
 
     def _render(self, event: EditorialEvent, frontmatter: dict) -> str:
@@ -129,4 +147,7 @@ class PromptGenerator:
 
 ## Related Profiles
 {_format_list(event.related_profiles, "(không có hồ sơ liên quan được ghi nhận)")}
+
+## Markdown Rules
+{_MARKDOWN_RULES}
 """

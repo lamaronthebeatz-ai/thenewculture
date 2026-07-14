@@ -1,0 +1,19 @@
+{
+  "title": "Lễ Hội Âm Nhạc Underground 2026 Công Bố Line-up",
+  "artist": "Various Artists",
+  "event_type": "FESTIVAL",
+  "description": "Ban tổ chức công bố danh sách nghệ sĩ tham gia lễ hội cuối năm.",
+  "published_at": "20.09.2026",
+  "platform": "Facebook",
+  "image": "/uploads/festival-2026-poster.jpg",
+  "related_artists": ["Nghệ Sĩ A", "Nghệ Sĩ C"],
+  "related_profiles": ["nghe-si-a"],
+  "sources": [
+    {
+      "name": "Festival Organizers",
+      "tier": "editorial",
+      "url": "https://festival2026.example.com/lineup",
+      "retrieved_at": "2026-09-01T08:00:00Z"
+    }
+  ]
+}
