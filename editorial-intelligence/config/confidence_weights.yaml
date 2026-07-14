@@ -1,0 +1,33 @@
+# Confidence Engine weights (section VII).
+#
+# source_weights: exact-match bonus for a specific Source `name` (must
+# exist in sources.yaml). Values below are taken directly from the spec.
+#
+# default_tier_weights: fallback used when a source's exact name has no
+# bespoke entry above — every tier_1/2/3 source in sources.yaml still
+# contributes something, it just isn't individually tuned yet. Extending
+# coverage is a data change here, never a code change.
+source_weights:
+  "Official Website": 50
+  "Spotify Artist": 20
+  "Apple Music Artist": 20
+  "Spotify Releases": 20
+  "Apple Music Releases": 20
+  "YouTube Official": 15
+  "Facebook Verified": 10
+
+default_tier_weights:
+  tier_1: 10
+  tier_2: 7
+  tier_3: 4
+
+# Cùng MỘT nguồn (theo Source.key()) xuất hiện lặp lại — tín hiệu "được
+# xác nhận lại qua nhiều lần thu thập", không phải nhiều nguồn khác nhau.
+duplicate_source_bonus: 5
+
+# Dưới ngưỡng này: EventStatus.LOW_CONFIDENCE — Prompt Generator từ chối
+# sinh Prompt (section VII: "Nếu Confidence thấp. Không đề xuất Prompt.").
+# 50 vì đây đúng bằng trọng số 1 nguồn Tier 1 mạnh nhất (Official Website)
+# — một xác nhận CHÍNH THỨC là đủ, mọi tổ hợp nguồn yếu hơn phải cộng dồn
+# mới đạt ngưỡng tương đương độ tin cậy đó.
+prompt_eligibility_threshold: 50
