@@ -81,3 +81,37 @@ SOURCE_TIER_LABELS = {
     SourceTier.TIER_3: "Community",
     SourceTier.UNKNOWN: "Unknown",
 }
+
+
+class StoryType(str, Enum):
+    """Phase 3, section 1 (Story Layer): the editorial-desk classification
+    a StoryCandidate gets, distinct from EventType. EventType describes
+    *what happened in the world* (an Album Release, a Concert); StoryType
+    describes *what kind of story the desk would write about it* — the
+    same EventType can become different StoryTypes depending on context
+    (e.g. an ALBUM_RELEASE from a huge name the same day it drops is
+    BREAKING; the same event_type covered a week later, in depth, is a
+    FEATURE). The mapping rule lives in config/story_classification.yaml
+    (editorial/story.py), not hardcoded here."""
+
+    BREAKING = "breaking"
+    RELEASE = "release"
+    FEATURE = "feature"
+    INTERVIEW = "interview"
+    REVIEW = "review"
+    PROFILE = "profile"
+    TIMELINE = "timeline"
+    DISCOVERY = "discovery"
+    COMMUNITY = "community"
+    EDITORIAL = "editorial"
+
+
+class EditorialDecisionType(str, Enum):
+    """Phase 3, section 3 (Editorial Decision) — the rule-based verdict
+    editorial/decision.py reaches for a StoryCandidate."""
+
+    PUBLISH = "publish"
+    HOLD = "hold"
+    REJECT = "reject"
+    MERGE = "merge"
+    NEED_MORE_SOURCES = "need_more_sources"

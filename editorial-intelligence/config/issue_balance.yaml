@@ -1,0 +1,26 @@
+# Issue Planner (Phase 3, section 5) — target number of stories per
+# Series for a "balanced" issue. Real slugs from admin/config.yml (the
+# same 16 Series editorial_mapping.yaml/event_categories.yaml already
+# reference) — Issue Planner never reads content/magazine/*.md or
+# scripts/magazine.py itself, this is Editorial Intelligence's own
+# target, independent of the live site's Magazine data.
+target_distribution:
+  tnc-origins: 2
+  tnc-profiles: 2
+  tnc-records: 3
+  tnc-tracks: 2
+  tnc-breakdown: 2
+  tnc-editorial: 1
+  tnc-reviews: 2
+  tnc-timeline: 1
+  tnc-culture: 1
+  inside-the-culture: 1
+  tnc-community: 2
+  tnc-radar: 2
+  tnc-discovery: 2
+  tnc-music-101: 1
+  tnc-selects: 1
+  behind-the-culture: 1
+
+# Series không có trong danh sách trên (hoặc None) dùng giá trị này.
+default_target: 1

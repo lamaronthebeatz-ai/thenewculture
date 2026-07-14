@@ -1,0 +1,15 @@
+# Assignment Generator (Phase 3, section 4) — suggested word count per
+# StoryType. Series/Category/Tags/Profiles are NOT configured here: they
+# come straight from Phase 2's MappingResult (event.mapping_result),
+# reused rather than recomputed.
+suggested_length_by_story_type:
+  breaking: "150-300"
+  release: "400-600"
+  feature: "800-1200"
+  interview: "1000-1500"
+  review: "600-900"
+  profile: "500-800"
+  timeline: "400-600"
+  discovery: "400-600"
+  community: "300-500"
+  editorial: "700-1000"

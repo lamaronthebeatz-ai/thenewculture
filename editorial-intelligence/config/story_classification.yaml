@@ -1,0 +1,24 @@
+# Story Layer (Phase 3, section 1). event_type -> default StoryType.
+# Feature/Review/Profile/Editorial are not reachable from this default
+# map on purpose — they represent an editor's own judgement call to go
+# deeper on a story than the raw event_type implies (see
+# editorial/story.py's `override` parameter). The 6 types below are the
+# ones a rule can determine on its own from event_type alone.
+default_by_event_type:
+  album_release: release
+  single_release: release
+  mv_release: release
+  artist_announcement: discovery
+  festival: community
+  concert: community
+  interview: interview
+  award: timeline
+  community_event: community
+
+# Breaking override: applies on top of the default map above when ALL
+# three hold: event_type is in this list, published_at is within
+# breaking_within_days of the reference date, AND confidence is at least
+# breaking_min_confidence.
+breaking_eligible_event_types: [album_release, single_release, mv_release, artist_announcement]
+breaking_within_days: 2
+breaking_min_confidence: 70

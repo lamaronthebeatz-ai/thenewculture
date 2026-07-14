@@ -56,3 +56,45 @@ def source_tier_lookup() -> Dict[str, str]:
         for entry in entries:
             lookup[entry["name"]] = tier
     return lookup
+
+
+# --- Phase 3 (Editorial Intelligence layer) additions — each a separate
+# file/function, same pattern as load_event_categories() above, so none
+# of the Phase 1/2 loaders' shapes ever change. ---
+
+def load_story_classification() -> Dict[str, Any]:
+    """editorial/story.py — default_by_event_type / breaking_eligible_
+    event_types / breaking_within_days / breaking_min_confidence."""
+    return _load_yaml("story_classification.yaml")
+
+
+def load_priority_weights() -> Dict[str, Any]:
+    """editorial/priority.py — story_type_weights / confidence_multiplier
+    / homepage_bonus / magazine_bonus."""
+    return _load_yaml("priority_weights.yaml")
+
+
+def load_editorial_decision_rules() -> Dict[str, Any]:
+    """editorial/decision.py — publish_priority_threshold /
+    hold_priority_threshold."""
+    return _load_yaml("editorial_decision.yaml")
+
+
+def load_assignment_rules() -> Dict[str, Any]:
+    """editorial/assignment.py — suggested_length_by_story_type."""
+    return _load_yaml("assignment_rules.yaml")
+
+
+def load_cover_story_rules() -> Dict[str, Any]:
+    """editorial/cover_story.py — eligible_story_types / min_priority_score."""
+    return _load_yaml("cover_story_rules.yaml")
+
+
+def load_issue_balance() -> Dict[str, Any]:
+    """editorial/issue_planner.py — target_distribution / default_target."""
+    return _load_yaml("issue_balance.yaml")
+
+
+def load_dashboard_config() -> Dict[str, Any]:
+    """editorial/dashboard.py — high_priority_threshold."""
+    return _load_yaml("dashboard_config.yaml")

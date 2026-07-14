@@ -1,0 +1,25 @@
+# Priority Engine (Phase 3, section 2) — explicitly SEPARATE from
+# Confidence Score (events/confidence.py, config/confidence_weights.yaml):
+# Confidence measures "how trustworthy is this information"; Priority
+# measures "how much editorial attention should this get". Confidence
+# only ever enters here as one input (confidence_multiplier), it is
+# never the score itself.
+story_type_weights:
+  breaking: 100
+  release: 60
+  discovery: 55
+  feature: 55
+  interview: 50
+  review: 45
+  profile: 40
+  timeline: 35
+  editorial: 25
+  community: 25
+
+confidence_multiplier: 0.3
+
+# Bonus if Phase 2's Editorial Mapping (event.mapping_result) already
+# flagged this event Homepage/Magazine-eligible — reused, not
+# recomputed (no duplicate logic).
+homepage_bonus: 20
+magazine_bonus: 10

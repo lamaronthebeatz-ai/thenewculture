@@ -24,3 +24,11 @@ class EditorialPrompt:
     sources: List[Source] = field(default_factory=list)
     related_artists: List[str] = field(default_factory=list)
     related_profiles: List[str] = field(default_factory=list)
+
+    # Phase 3 additions (additive only — generate(), the original Phase 1
+    # entry point, still leaves all four of these at their defaults;
+    # only generate_for_story() populates them). See PHASE 3 section 9.
+    story_type: str = ""
+    priority_score: int = 0
+    editorial_notes: List[str] = field(default_factory=list)
+    suggested_links: List[str] = field(default_factory=list)
