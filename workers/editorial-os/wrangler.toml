@@ -1,0 +1,42 @@
+name = "tnc-editorial-os"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Cron Trigger — "30 phút chạy một lần" (spec). Fires scheduled() in
+# src/index.ts, which calls the exact same runWorkerOnce() as POST /run.
+[triggers]
+crons = ["*/30 * * * *"]
+
+# KV — one namespace, five fixed keys (see src/kv.ts):
+#   queue | history | worker-status | dashboard | metrics
+# Replace the placeholder ids with real ones from:
+#   wrangler kv namespace create EDITORIAL_KV
+#   wrangler kv namespace create EDITORIAL_KV --preview
+[[kv_namespaces]]
+binding = "EDITORIAL_KV"
+id = "REPLACE_WITH_REAL_KV_NAMESPACE_ID"
+preview_id = "REPLACE_WITH_REAL_KV_PREVIEW_NAMESPACE_ID"
+
+# R2 — one bucket, three key prefixes (see src/r2.ts):
+#   drafts/ | exports/ | archive/
+# Not written to by the Worker's own run flow ("Không sinh bài. Worker
+# chỉ chuẩn bị Queue.") — provisioned for future/manual use only.
+[[r2_buckets]]
+binding = "EDITORIAL_R2"
+bucket_name = "tnc-editorial-os"
+preview_bucket_name = "tnc-editorial-os-preview"
+
+# No D1, no Durable Objects, no external database — per the spec.
+
+[vars]
+ENVIRONMENT = "production"
+
+[env.staging]
+vars = { ENVIRONMENT = "staging" }
+[[env.staging.kv_namespaces]]
+binding = "EDITORIAL_KV"
+id = "REPLACE_WITH_REAL_STAGING_KV_NAMESPACE_ID"
+[[env.staging.r2_buckets]]
+binding = "EDITORIAL_R2"
+bucket_name = "tnc-editorial-os-staging"
