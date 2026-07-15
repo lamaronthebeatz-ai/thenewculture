@@ -3,21 +3,36 @@
  * GET /history. Per the spec: "Dashboard chỉ đọc API này. Không thay
  * đổi Dashboard UI." — this router only ever exposes already-computed
  * KV state (or triggers one run through service.ts); it never renders
- * HTML and editorial-dashboard/ (Phase 7) is not modified or wired to
- * call this API in this phase.
+ * HTML.
+ *
+ * CORS: the browser dashboard (public/editorial-dashboard/) is served
+ * from the Pages origin, a different origin than this Worker, so every
+ * response carries Access-Control-Allow-* headers and OPTIONS
+ * preflight requests get a bare 204 — headers only, no change to any
+ * endpoint's routing, status logic, or response body.
  */
 import { EditorialKvStore } from "./kv";
 import { runWorkerOnce } from "./service";
 import { HealthEngine } from "./worker/health";
 
+const CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8" },
+    headers: { "content-type": "application/json; charset=utf-8", ...CORS_HEADERS },
   });
 }
 
 export async function handleApiRequest(request: Request, kvNamespace: KVNamespace): Promise<Response> {
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
+
   const url = new URL(request.url);
   const path = url.pathname;
   const store = new EditorialKvStore(kvNamespace);

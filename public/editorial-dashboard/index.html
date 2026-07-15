@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editorial OS — Worker Dashboard</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div id="progressBar" class="progress-bar" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="topbar__brand">
+    <span class="topbar__title">Editorial OS</span>
+    <span class="topbar__subtitle">Worker Dashboard</span>
+  </div>
+
+  <div class="topbar__status" id="workerStatus">
+    <span class="status-dot status-dot--unknown" id="workerStatusDot"></span>
+    <span id="workerStatusText">Worker Status: chưa tải</span>
+  </div>
+
+  <div class="topbar__meta">
+    <span class="topbar__endpoint" id="workerEndpoint"></span>
+    <span class="topbar__timestamp" id="lastRefreshed">Chưa refresh lần nào</span>
+  </div>
+</header>
+
+<main class="main">
+  <section class="toolbar">
+    <button class="btn btn--primary" id="refreshBtn" type="button">Refresh</button>
+    <button class="btn btn--accent" id="runBtn" type="button">Run Worker</button>
+    <span class="toolbar__auto">Auto refresh: <strong>30s</strong></span>
+    <span class="toolbar__loading" id="globalLoading" hidden>Đang tải…</span>
+  </section>
+
+  <section class="panels">
+    <article class="panel" id="panel-health">
+      <header class="panel__head">
+        <h2>Health</h2>
+        <span class="panel__badge" id="health-badge"></span>
+      </header>
+      <div class="panel__error" id="health-error" hidden></div>
+      <pre class="panel__body" id="health-body">Chưa tải dữ liệu.</pre>
+    </article>
+
+    <article class="panel" id="panel-dashboard">
+      <header class="panel__head">
+        <h2>Dashboard</h2>
+        <span class="panel__badge" id="dashboard-badge"></span>
+      </header>
+      <div class="panel__error" id="dashboard-error" hidden></div>
+      <pre class="panel__body" id="dashboard-body">Chưa tải dữ liệu.</pre>
+    </article>
+
+    <article class="panel" id="panel-queue">
+      <header class="panel__head">
+        <h2>Queue</h2>
+        <span class="panel__badge" id="queue-badge"></span>
+      </header>
+      <div class="panel__error" id="queue-error" hidden></div>
+      <pre class="panel__body" id="queue-body">Chưa tải dữ liệu.</pre>
+    </article>
+
+    <article class="panel" id="panel-history">
+      <header class="panel__head">
+        <h2>History</h2>
+        <span class="panel__badge" id="history-badge"></span>
+      </header>
+      <div class="panel__error" id="history-error" hidden></div>
+      <pre class="panel__body" id="history-body">Chưa tải dữ liệu.</pre>
+    </article>
+  </section>
+</main>
+
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+<script src="./app.js"></script>
+</body>
+</html>
