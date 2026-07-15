@@ -54,4 +54,19 @@ describe("Worker API", () => {
     const res = await SELF.fetch("https://example.com/run");
     expect(res.status).toBe(404);
   });
+
+  it("every JSON response carries CORS headers for the browser dashboard", async () => {
+    const res = await SELF.fetch("https://example.com/health");
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(res.headers.get("Access-Control-Allow-Methods")).toContain("GET");
+    expect(res.headers.get("Access-Control-Allow-Methods")).toContain("POST");
+    expect(res.headers.get("Access-Control-Allow-Headers")).toContain("Content-Type");
+  });
+
+  it("OPTIONS preflight returns 204 with CORS headers and no body", async () => {
+    const res = await SELF.fetch("https://example.com/run", { method: "OPTIONS" });
+    expect(res.status).toBe(204);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(await res.text()).toBe("");
+  });
 });
