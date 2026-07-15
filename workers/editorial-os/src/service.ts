@@ -11,12 +11,16 @@
  *     are collected/deduped/scored/filtered/sorted into RawPayload[]
  *     and handed to WorkerRunner via its *already-existing* `fixtures`
  *     option — collector.ts, providers.ts and worker/runner.ts are
- *     never touched. `fixtures` is only passed at all when at least one
- *     source is configured (SOURCE_CONFIG is empty today — see
- *     collectors/sources.ts), so with zero sources configured this
- *     function's behavior is byte-for-byte identical to before this
- *     feature: WorkerRunner falls back to its own default bundled
- *     fixture events, exactly as it always has.
+ *     never touched. `fixtures` only overrides the bundled defaults
+ *     once collection actually yields at least one accepted story
+ *     (`news.payloads.length > 0`) — not merely when SOURCE_CONFIG is
+ *     non-empty. The Editorial Source Registry (PR #39,
+ *     collectors/sources.ts) ships every entry with `url: null` until a
+ *     feed is verified, so as long as every configured source stays
+ *     NOT_CONFIGURED (or simply fails), this function's behavior stays
+ *     byte-for-byte identical to before this feature: WorkerRunner
+ *     falls back to its own default bundled fixture events, exactly as
+ *     it always has.
  *   - The `dashboard` KV value gains one new, namespaced field
  *     (`newsCollector`) with Collector Health + collected/accepted/
  *     rejected/duplicates/topStory/newestStory/lastCrawlAt — every
@@ -70,9 +74,18 @@ export async function runWorkerOnce(
     maxEventsPerRun: workerConfig.limits.maxEventsPerRun,
     retryMaxAttempts: workerConfig.retry.maxAttempts,
     retryBackoffSeconds: workerConfig.retry.backoffSeconds,
-    // Only override the default bundled fixtures when at least one real
-    // source is configured — see this file's module docstring.
-    ...(sources.length > 0 ? { fixtures: news.payloads } : {}),
+    // Only override the default bundled fixtures once real news has
+    // actually been collected and accepted — not merely when the
+    // registry is non-empty. The Editorial Source Registry (PR #39)
+    // ships with every entry's `url: null` until a feed is verified
+    // (see sources.ts), so `sources.length > 0` alone would wrongly
+    // suppress the bundled fixtures the moment a NOT_CONFIGURED entry
+    // is added, producing zero events per run instead of falling back.
+    // Checking `news.payloads.length` keeps the Worker producing its
+    // existing bundled events for as long as collection yields nothing
+    // real — the "runtime must continue normally even if every source
+    // is NOT_CONFIGURED" requirement.
+    ...(news.payloads.length > 0 ? { fixtures: news.payloads } : {}),
   });
 
   const result = await runner.run(lastRunAt, existingArticles);

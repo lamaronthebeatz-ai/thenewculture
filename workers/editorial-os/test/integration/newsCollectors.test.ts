@@ -1,12 +1,17 @@
 /**
- * Phase 8 (News Intelligence Collector) regression + end-to-end check.
+ * Phase 8 (News Intelligence Collector) + PR #39 (Editorial Source
+ * Registry) regression + end-to-end check.
  *
  * 1. Backward compatibility: with today's real, shipped `SOURCE_CONFIG`
- *    (empty — see src/collectors/sources.ts), `runWorkerOnce()` must
- *    behave byte-for-byte like it did before this feature existed —
- *    same 3 bundled fixture events, same dashboard fields, same KV
- *    keys — with the *only* addition being a zeroed-out `newsCollector`
- *    stats block on the dashboard.
+ *    (PR #39 populates ~20 named sources, but every one has `url: null`
+ *    — no feed could be verified from this environment, see
+ *    src/collectors/sources.ts), `runWorkerOnce()` must still behave
+ *    byte-for-byte like it did before this feature existed — same 3
+ *    bundled fixture events, same dashboard fields, same KV keys — with
+ *    the *only* addition being a `newsCollector` stats block reporting
+ *    zero collected/accepted and one NOT_CONFIGURED health entry per
+ *    registry row. This is the "runtime must continue normally even if
+ *    every source is NOT_CONFIGURED" requirement, proven end-to-end.
  * 2. End-to-end: with a real (injected) RSS source, a collected item
  *    flows all the way through dedupe/scoring/threshold/sort into the
  *    same `queue`/`history`/`dashboard` KV keys the fixture path uses,
@@ -22,8 +27,9 @@ import { SOURCE_CONFIG } from "../../src/collectors/sources";
 import { SourceConfig } from "../../src/collectors/base";
 
 describe("Phase 8 backward compatibility (real, shipped SOURCE_CONFIG)", () => {
-  it("is empty today, so runWorkerOnce falls back to the 3 bundled fixtures unchanged", async () => {
-    expect(SOURCE_CONFIG).toEqual([]);
+  it("every registry entry has url: null today, so runWorkerOnce still falls back to the 3 bundled fixtures unchanged", async () => {
+    expect(SOURCE_CONFIG.length).toBeGreaterThan(0);
+    expect(SOURCE_CONFIG.every((s) => s.url === null)).toBe(true);
 
     const result = await runWorkerOnce(env.EDITORIAL_KV);
     expect(result.ran).toBe(true);
@@ -39,18 +45,20 @@ describe("Phase 8 backward compatibility (real, shipped SOURCE_CONFIG)", () => {
     expect(dashboard.topStory).toBe("Album Vọng Âm Ra Mắt");
     expect(dashboard.ready).toBe(1);
     expect(dashboard.pending).toBe(3);
-    // The one net-new field: present, but zeroed out since there are no
-    // sources configured to collect from.
-    expect(dashboard.newsCollector).toEqual({
-      collectorHealth: [],
-      collected: 0,
-      accepted: 0,
-      rejected: 0,
-      duplicatesRemoved: 0,
-      topStory: null,
-      newestStory: null,
-      lastCrawlAt: dashboard.newsCollector.lastCrawlAt,
-    });
+    // Zero real news collected/accepted, and every registry row reports
+    // NOT_CONFIGURED rather than a failure — but the run itself
+    // proceeds and populates KV exactly as it always has.
+    expect(dashboard.newsCollector.collected).toBe(0);
+    expect(dashboard.newsCollector.accepted).toBe(0);
+    expect(dashboard.newsCollector.rejected).toBe(0);
+    expect(dashboard.newsCollector.topStory).toBeNull();
+    expect(dashboard.newsCollector.newestStory).toBeNull();
+    expect(dashboard.newsCollector.collectorHealth).toHaveLength(SOURCE_CONFIG.length);
+    for (const entry of dashboard.newsCollector.collectorHealth) {
+      expect(["not_configured", "disabled"]).toContain(entry.status);
+      expect(entry.lastSuccess).toBeNull();
+      expect(entry.lastFailure).toBeNull();
+    }
   });
 });
 
@@ -61,7 +69,9 @@ describe("Phase 8 end-to-end with an injected real-shaped RSS source", () => {
       id: "e2e-source",
       name: "E2E Source",
       type: "rss",
-      feed: feedUrl,
+      category: "international",
+      url: feedUrl,
+      notes: "",
       tier: SourceTier.TIER_1,
       enabled: true,
       timeoutMs: 5000,
