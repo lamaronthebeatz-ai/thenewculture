@@ -1,0 +1,59 @@
+name: Deploy Editorial OS Worker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - workers/editorial-os/**
+      - .github/workflows/deploy-worker.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify workers/editorial-os/wrangler.toml exists
+        run: |
+          if [ ! -f "workers/editorial-os/wrangler.toml" ]; then
+            echo "::error::workers/editorial-os/wrangler.toml không tồn tại. Dừng deploy."
+            exit 1
+          fi
+
+      - name: Verify workers/editorial-os/package.json exists
+        run: |
+          if [ ! -f "workers/editorial-os/package.json" ]; then
+            echo "::error::workers/editorial-os/package.json không tồn tại. Dừng deploy."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        working-directory: workers/editorial-os
+        run: |
+          if [ -f "package-lock.json" ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/editorial-os
+          command: deploy
+
+      - name: Deployment result
+        run: echo "Worker deployed successfully."
