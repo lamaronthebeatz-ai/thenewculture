@@ -15,8 +15,7 @@ crons = ["*/30 * * * *"]
 #   wrangler kv namespace create EDITORIAL_KV --preview
 [[kv_namespaces]]
 binding = "EDITORIAL_KV"
-id = "REPLACE_WITH_REAL_KV_NAMESPACE_ID"
-preview_id = "REPLACE_WITH_REAL_KV_PREVIEW_NAMESPACE_ID"
+id = "e9b53af699cb43f8b95f30d7a6b98126"
 
 # R2 — one bucket, three key prefixes (see src/r2.ts):
 #   drafts/ | exports/ | archive/
