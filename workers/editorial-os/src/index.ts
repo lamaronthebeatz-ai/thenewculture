@@ -18,7 +18,12 @@ import { runWorkerOnce } from "./service";
 
 export interface Env {
   EDITORIAL_KV: KVNamespace;
-  EDITORIAL_R2: R2Bucket;
+  // Optional: the Worker deploys and runs on KV alone (see
+  // wrangler.toml, where the R2 binding is commented out by default).
+  // src/r2.ts's EditorialR2Store stays available for whenever a real
+  // bucket is provisioned and this binding is uncommented — no source
+  // change needed either way.
+  EDITORIAL_R2?: R2Bucket;
 }
 
 export default {
