@@ -1,0 +1,38 @@
+# Editorial Configuration Rules — configuration data only.
+#
+# No code. This mirrors values the collector engine already hardcodes
+# today (workers/editorial-os/src/config.ts's `newsIntelligenceWeights`,
+# and the per-source timeoutMs/retry defaults in
+# workers/editorial-os/src/collectors/sources.ts) as plain data, so a
+# later PR can make the engine read its numbers from here instead of
+# from those TypeScript literals. Not read by the Worker yet — see this
+# directory's README.md.
+
+crawl:
+  # Matches wrangler.toml's Cron Trigger (`crons = ["*/30 * * * *"]`) —
+  # how often the Worker's scheduled() handler runs at all, which is an
+  # upper bound on how often any source is actually crawled.
+  intervalMinutes: 30
+
+network:
+  # Per-source fetch timeout and retry count. Matches the defaults used
+  # for every entry in src/collectors/sources.ts today.
+  timeoutMs: 8000
+  retry: 1
+
+scoring:
+  # Matches config.ts's newsIntelligenceWeights.entryThreshold — the
+  # minimum EditorialScore (0-100) a story needs to enter the Queue.
+  minimumConfidence: 50
+
+  # Matches config.ts's newsIntelligenceWeights.tierImpact — the Impact
+  # score (0-100) assigned to a story purely from its source's tier.
+  tierWeights:
+    tier_1: 90
+    tier_2: 70
+    tier_3: 40
+    unknown: 20
+
+  # Matches config.ts's newsIntelligenceWeights.freshnessWindowHours —
+  # how many hours after publish a story's Freshness score decays to 0.
+  freshnessWindowHours: 72
