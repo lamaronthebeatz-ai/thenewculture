@@ -36,12 +36,3 @@ id = "e9b53af699cb43f8b95f30d7a6b98126"
 
 [vars]
 ENVIRONMENT = "production"
-
-[env.staging]
-vars = { ENVIRONMENT = "staging" }
-[[env.staging.kv_namespaces]]
-binding = "EDITORIAL_KV"
-id = "REPLACE_WITH_REAL_STAGING_KV_NAMESPACE_ID"
-# [[env.staging.r2_buckets]]
-# binding = "EDITORIAL_R2"
-# bucket_name = "tnc-editorial-os-staging"
