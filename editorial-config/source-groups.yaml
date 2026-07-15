@@ -1,0 +1,40 @@
+# Editorial Source Groups — configuration data only.
+#
+# Groups the ids declared in sources.yaml under the 4 editorial
+# categories. Purely organizational (e.g. for a future dashboard filter
+# or editorial review workflow) — every id here must also exist as a
+# `sources[].id` in sources.yaml, and every `sources[].category` in
+# sources.yaml must match the group it's listed under here. (See
+# test/config/editorialConfig.test.ts for the schema/cross-reference
+# check that enforces this.)
+#
+# Not read by the Worker yet — see this directory's README.md.
+
+groups:
+  International:
+    - intl-rolling-stone-music
+    - intl-billboard-hiphop
+    - intl-complex-music
+    - intl-xxl-magazine
+
+  Vietnam:
+    - vn-vie-channel-news
+    - vn-spacespeakers
+
+  YouTube:
+    - yt-rap-viet-official
+    - yt-16-typh
+    - yt-hieuthuhai
+    - yt-double2t
+    - yt-mck
+    - yt-tlinh
+    - yt-wean
+    - yt-24k-right
+    - yt-low-g
+    - yt-rhymastic
+    - yt-karik
+    - yt-binz
+
+  Community:
+    - community-vculture-aggregator
+    - community-rap-vietnam-hub
