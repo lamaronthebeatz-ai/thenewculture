@@ -175,11 +175,32 @@ function withTimeout(ms: number): { signal: AbortSignal; cancel: () => void } {
 /** Fetches and parses one RSS/Atom source, with timeout + retry per its
  * SourceConfig, classifying the outcome for Collector Health. Never
  * throws — every failure mode becomes a CollectorFetchResult with a
- * non-"healthy" status instead. */
+ * non-"healthy" status instead.
+ *
+ * A source with `url: null` (no verified feed configured yet — see
+ * sources.ts) is never fetched at all: this returns "not_configured"
+ * immediately, with no network call and no retry, regardless of
+ * `enabled`. This is the collector engine's one required behavior for
+ * unconfigured sources (spec: "Collector engine must ignore every
+ * source whose url == null"; "Collector Health must report
+ * NOT_CONFIGURED instead of FAILED"). */
 export async function fetchRssFeed(
   source: SourceConfig,
   fetchImpl: FetchImpl = fetch,
 ): Promise<CollectorFetchResult> {
+  if (source.url === null) {
+    return {
+      sourceId: source.id,
+      sourceName: source.name,
+      status: "not_configured",
+      items: [],
+      responseTimeMs: null,
+      retryCount: 0,
+      errorMessage: null,
+    };
+  }
+  const feedUrl = source.url;
+
   let lastError: { status: import("./base").CollectorHealthStatus; message: string } | null = null;
   let retryCount = 0;
 
@@ -188,16 +209,16 @@ export async function fetchRssFeed(
     const { signal, cancel } = withTimeout(source.timeoutMs);
     const started = Date.now();
     try {
-      const response = await fetchImpl(source.feed, { signal });
+      const response = await fetchImpl(feedUrl, { signal });
       const responseTimeMs = Date.now() - started;
       cancel();
 
       if (response.status === 404) {
-        lastError = { status: "http_404", message: `HTTP 404 từ ${source.feed}` };
+        lastError = { status: "http_404", message: `HTTP 404 từ ${feedUrl}` };
         continue;
       }
       if (!response.ok) {
-        lastError = { status: "http_error", message: `HTTP ${response.status} từ ${source.feed}` };
+        lastError = { status: "http_error", message: `HTTP ${response.status} từ ${feedUrl}` };
         continue;
       }
 

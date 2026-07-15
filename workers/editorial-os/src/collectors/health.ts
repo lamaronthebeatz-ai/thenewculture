@@ -3,6 +3,11 @@
  * Healthy / Timeout / 404 / Parsing Error / Disabled / Last Success /
  * Last Failure / Response Time / Items Collected / Retry Count."
  *
+ * Editorial Source Registry (PR #39) adds "NOT_CONFIGURED": a source
+ * with `url: null` is reported this way instead of as a failure — it
+ * was never attempted, so it gets neither a lastSuccess nor a
+ * lastFailure timestamp, same treatment as "disabled".
+ *
  * This is computed fresh from the current run's CollectorFetchResult[]
  * (see registry.ts) — it is NOT persisted to its own KV key, since "KV
  * schema must remain identical" (still exactly 5 keys: queue, history,
@@ -58,12 +63,15 @@ export class CollectorHealthTracker {
       }
 
       const healthy = result.status === "healthy";
+      // "not_configured" (no url set) was never attempted — it's
+      // neither a success nor a failure, so neither timestamp is set.
+      const notConfigured = result.status === "not_configured";
       return {
         sourceId: source.id,
         sourceName: source.name,
         status: result.status,
         lastSuccess: healthy ? now : null,
-        lastFailure: healthy ? null : now,
+        lastFailure: !healthy && !notConfigured ? now : null,
         responseTimeMs: result.responseTimeMs,
         itemsCollected: result.items.length,
         retryCount: result.retryCount,

@@ -8,7 +8,9 @@ function makeSource(overrides: Partial<SourceConfig> = {}): SourceConfig {
     id: "test-rss",
     name: "Test RSS Source",
     type: "rss",
-    feed: "https://example.com/feed.xml",
+    category: "international",
+    url: "https://example.com/feed.xml",
+    notes: "",
     tier: SourceTier.TIER_2,
     enabled: true,
     timeoutMs: 5000,
@@ -92,6 +94,18 @@ describe("parseFeedXml", () => {
 });
 
 describe("fetchRssFeed", () => {
+  it("returns not_configured with no network call when url is null, regardless of enabled", async () => {
+    let calls = 0;
+    const fetchImpl = (async () => {
+      calls += 1;
+      return new Response(RSS_FIXTURE, { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const result = await fetchRssFeed(makeSource({ url: null, enabled: true }), fetchImpl);
+    expect(calls).toBe(0);
+    expect(result).toMatchObject({ status: "not_configured", items: [], responseTimeMs: null, retryCount: 0, errorMessage: null });
+  });
+
   it("returns status healthy with parsed items on a 200 response", async () => {
     const fetchImpl = (async () =>
       new Response(RSS_FIXTURE, { status: 200 })) as unknown as typeof fetch;

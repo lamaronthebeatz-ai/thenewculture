@@ -9,7 +9,9 @@ function makeSource(overrides: Partial<SourceConfig> = {}): SourceConfig {
     id: "s1",
     name: "Source One",
     type: "rss",
-    feed: "https://example.com/feed.xml",
+    category: "international",
+    url: "https://example.com/feed.xml",
+    notes: "",
     tier: SourceTier.TIER_1,
     enabled: true,
     timeoutMs: 5000,
@@ -79,8 +81,8 @@ describe("collectAllNews", () => {
   });
 
   it("dedupes across two sources reporting the same url, keeping the higher tier", async () => {
-    const sourceA = makeSource({ id: "a", name: "Source A", tier: SourceTier.TIER_3, feed: "https://a.example.com/feed.xml" });
-    const sourceB = makeSource({ id: "b", name: "Source B", tier: SourceTier.TIER_1, feed: "https://b.example.com/feed.xml" });
+    const sourceA = makeSource({ id: "a", name: "Source A", tier: SourceTier.TIER_3, url: "https://a.example.com/feed.xml" });
+    const sourceB = makeSource({ id: "b", name: "Source B", tier: SourceTier.TIER_1, url: "https://b.example.com/feed.xml" });
 
     const fetchImpl = (async (url: string) => {
       const xml = rssXmlWithOneFreshItem("Cùng một tin", NOW.toUTCString(), "https://shared.example.com/story");
@@ -94,9 +96,45 @@ describe("collectAllNews", () => {
     expect(result.payloads[0]).toMatchObject({ artist: "Source B" }); // kept the tier_1 source's attribution
   });
 
+  it("ignores a source with url: null entirely — no fetch call, reported as not_configured", async () => {
+    let calls = 0;
+    const fetchImpl = (async () => {
+      calls += 1;
+      return new Response(rssXmlWithOneFreshItem("T", NOW.toUTCString()), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const result = await collectAllNews([makeSource({ url: null, enabled: true })], fetchImpl, NOW);
+    expect(calls).toBe(0);
+    expect(result.collected).toBe(0);
+    expect(result.health).toEqual([
+      { sourceId: "s1", sourceName: "Source One", status: "not_configured", lastSuccess: null, lastFailure: null, responseTimeMs: null, itemsCollected: 0, retryCount: 0 },
+    ]);
+  });
+
+  it("mixed registry: a configured source is collected while an unconfigured one is skipped, and both report correctly", async () => {
+    const configured = makeSource({ id: "configured", name: "Configured Source", url: "https://a.example.com/feed.xml", defaultArtist: "HIEUTHUHAI" });
+    const unconfigured = makeSource({ id: "unconfigured", name: "Unconfigured Source", url: null });
+
+    let calls = 0;
+    const fetchImpl = (async () => {
+      calls += 1;
+      return new Response(rssXmlWithOneFreshItem("HIEUTHUHAI ra mắt album mới", NOW.toUTCString()), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const result = await collectAllNews([configured, unconfigured], fetchImpl, NOW);
+    expect(calls).toBe(1); // only the configured source was ever fetched
+    expect(result.collected).toBe(1);
+    expect(result.accepted).toBe(1);
+    expect(result.payloads).toHaveLength(1);
+    expect(result.health).toEqual([
+      expect.objectContaining({ sourceId: "configured", status: "healthy" }),
+      expect.objectContaining({ sourceId: "unconfigured", status: "not_configured" }),
+    ]);
+  });
+
   it("sorts accepted stories by EditorialScore DESC, then publishedAt DESC", async () => {
-    const sourceA = makeSource({ id: "a", feed: "https://a.example.com/feed.xml", tier: SourceTier.TIER_3 });
-    const sourceB = makeSource({ id: "b", feed: "https://b.example.com/feed.xml", tier: SourceTier.TIER_1 });
+    const sourceA = makeSource({ id: "a", url: "https://a.example.com/feed.xml", tier: SourceTier.TIER_3 });
+    const sourceB = makeSource({ id: "b", url: "https://b.example.com/feed.xml", tier: SourceTier.TIER_1 });
 
     const fetchImpl = (async (url: string) => {
       if (String(url).includes("a.example.com")) {

@@ -37,16 +37,27 @@ export interface RawNewsItem {
 
 export type SourceType = "rss" | "atom" | "youtube";
 
+/** Editorial grouping for the source registry (sources.ts) — purely
+ * organizational, does not affect collection behavior. */
+export type SourceCategory = "international" | "vietnam" | "youtube" | "community";
+
 /** One row of the source configuration table (spec: "Never hardcode
- * inside collectors. Create one configuration table."). No entries are
- * shipped with an unverifiable feed URL — see sources.ts. */
+ * inside collectors. Create one configuration table."). `url` is
+ * nullable: a source with no verified feed URL is kept in the registry
+ * (so it's visible, categorized, and individually enableable) but is
+ * never fetched — see sources.ts and rss.ts's null-url short circuit. */
 export interface SourceConfig {
   id: string;
   name: string;
   type: SourceType;
-  feed: string;
+  category: SourceCategory;
   tier: SourceTier;
   enabled: boolean;
+  url: string | null;
+  /** Required, human-readable explanation — mandatory when `url` is
+   * null (why it's unconfigured / what to verify before enabling), and
+   * otherwise free-form context about the source. */
+  notes: string;
   timeoutMs: number;
   retry: number;
   /** Rule-based fallback artist attribution for sources that are a
@@ -63,7 +74,8 @@ export type CollectorHealthStatus =
   | "http_404"
   | "http_error"
   | "parsing_error"
-  | "disabled";
+  | "disabled"
+  | "not_configured";
 
 export interface CollectorFetchResult {
   sourceId: string;

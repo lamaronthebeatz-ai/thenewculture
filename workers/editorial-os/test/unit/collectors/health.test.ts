@@ -8,7 +8,9 @@ function makeSource(overrides: Partial<SourceConfig> = {}): SourceConfig {
     id: "s1",
     name: "Source One",
     type: "rss",
-    feed: "https://example.com/feed.xml",
+    category: "international",
+    url: "https://example.com/feed.xml",
+    notes: "",
     tier: SourceTier.TIER_2,
     enabled: true,
     timeoutMs: 5000,
@@ -50,6 +52,40 @@ describe("CollectorHealthTracker.build", () => {
     const tracker = new CollectorHealthTracker();
     const entries = tracker.build([makeSource()], new Map(), NOW);
     expect(entries[0]).toMatchObject({ status: "http_error", lastFailure: NOW, lastSuccess: null });
+  });
+
+  it("reports not_configured (not a failure) for an enabled source whose fetch result is not_configured", () => {
+    const tracker = new CollectorHealthTracker();
+    const result: CollectorFetchResult = {
+      sourceId: "s1", sourceName: "Source One", status: "not_configured", items: [], responseTimeMs: null, retryCount: 0, errorMessage: null,
+    };
+    const entries = tracker.build([makeSource({ url: null })], new Map([["s1", result]]), NOW);
+    expect(entries[0]).toMatchObject({ status: "not_configured", lastSuccess: null, lastFailure: null, itemsCollected: 0, retryCount: 0 });
+  });
+
+  it("mixed registry: disabled, not_configured, and healthy sources each get their own correct status", () => {
+    const tracker = new CollectorHealthTracker();
+    const healthyResult: CollectorFetchResult = {
+      sourceId: "healthy-src", sourceName: "Healthy Source", status: "healthy", items: [{} as never], responseTimeMs: 80, retryCount: 0, errorMessage: null,
+    };
+    const notConfiguredResult: CollectorFetchResult = {
+      sourceId: "unconfigured-src", sourceName: "Unconfigured Source", status: "not_configured", items: [], responseTimeMs: null, retryCount: 0, errorMessage: null,
+    };
+    const sources = [
+      makeSource({ id: "healthy-src", enabled: true, url: "https://example.com/feed.xml" }),
+      makeSource({ id: "unconfigured-src", enabled: true, url: null }),
+      makeSource({ id: "disabled-src", enabled: false, url: null }),
+    ];
+    const results = new Map([
+      ["healthy-src", healthyResult],
+      ["unconfigured-src", notConfiguredResult],
+    ]);
+    const entries = tracker.build(sources, results, NOW);
+    expect(entries.map((e) => ({ sourceId: e.sourceId, status: e.status }))).toEqual([
+      { sourceId: "healthy-src", status: "healthy" },
+      { sourceId: "unconfigured-src", status: "not_configured" },
+      { sourceId: "disabled-src", status: "disabled" },
+    ]);
   });
 
   it("builds one entry per configured source, preserving order", () => {
