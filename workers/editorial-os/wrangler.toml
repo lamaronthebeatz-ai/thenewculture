@@ -22,10 +22,16 @@ preview_id = "REPLACE_WITH_REAL_KV_PREVIEW_NAMESPACE_ID"
 #   drafts/ | exports/ | archive/
 # Not written to by the Worker's own run flow ("Không sinh bài. Worker
 # chỉ chuẩn bị Queue.") — provisioned for future/manual use only.
-[[r2_buckets]]
-binding = "EDITORIAL_R2"
-bucket_name = "tnc-editorial-os"
-preview_bucket_name = "tnc-editorial-os-preview"
+#
+# Disabled by default so the Worker can deploy with KV only, without
+# requiring an R2 bucket to exist first (src/r2.ts and env.EDITORIAL_R2
+# stay in the codebase, untouched, ready for this). To activate: create
+# the bucket (`wrangler r2 bucket create tnc-editorial-os`) and
+# uncomment the two blocks below — no source code change needed.
+# [[r2_buckets]]
+# binding = "EDITORIAL_R2"
+# bucket_name = "tnc-editorial-os"
+# preview_bucket_name = "tnc-editorial-os-preview"
 
 # No D1, no Durable Objects, no external database — per the spec.
 
@@ -37,6 +43,6 @@ vars = { ENVIRONMENT = "staging" }
 [[env.staging.kv_namespaces]]
 binding = "EDITORIAL_KV"
 id = "REPLACE_WITH_REAL_STAGING_KV_NAMESPACE_ID"
-[[env.staging.r2_buckets]]
-binding = "EDITORIAL_R2"
-bucket_name = "tnc-editorial-os-staging"
+# [[env.staging.r2_buckets]]
+# binding = "EDITORIAL_R2"
+# bucket_name = "tnc-editorial-os-staging"
