@@ -1,0 +1,23 @@
+{
+  "name": "tnc-editorial-os",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Editorial OS v1.0 (Phase 1-6) — Cloudflare Runtime port (Phase 8). Same business rules, ported from Python to TypeScript, running on Workers/KV/R2/Cron.",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.6.4",
+    "@cloudflare/workers-types": "^4.20240909.0",
+    "@vitest/coverage-istanbul": "^2.1.9",
+    "@vitest/coverage-v8": "^2.1.9",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5",
+    "wrangler": "^3.78.0"
+  }
+}
