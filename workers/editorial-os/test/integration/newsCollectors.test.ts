@@ -1,17 +1,20 @@
 /**
- * Phase 8 (News Intelligence Collector) + PR #39 (Editorial Source
- * Registry) regression + end-to-end check.
+ * Phase 8 (News Intelligence Collector) + PR #41 (Registry Runtime
+ * Integration) regression + end-to-end check.
  *
- * 1. Backward compatibility: with today's real, shipped `SOURCE_CONFIG`
- *    (PR #39 populates ~20 named sources, but every one has `url: null`
- *    — no feed could be verified from this environment, see
- *    src/collectors/sources.ts), `runWorkerOnce()` must still behave
- *    byte-for-byte like it did before this feature existed — same 3
- *    bundled fixture events, same dashboard fields, same KV keys — with
- *    the *only* addition being a `newsCollector` stats block reporting
- *    zero collected/accepted and one NOT_CONFIGURED health entry per
- *    registry row. This is the "runtime must continue normally even if
- *    every source is NOT_CONFIGURED" requirement, proven end-to-end.
+ * 1. Backward compatibility: with today's real, shipped
+ *    editorial-config/sources.yaml (PR #40, ~20 named sources, but
+ *    every one has both `rss`/`youtube` null — no feed could be
+ *    verified from this environment), `runWorkerOnce()` must still
+ *    behave byte-for-byte like it did before this feature existed —
+ *    same 3 bundled fixture events, same dashboard fields, same KV
+ *    keys. Per src/config-loader/factory.ts's design ("rss == null ->
+ *    Ignore RSS Collector" / "youtube == null -> Ignore YouTube
+ *    Collector" means no SourceConfig row is produced at all for a
+ *    null feed field), zero real collectors are ever instantiated
+ *    today, so Collector Health is empty too — this is the "runtime
+ *    must continue normally even if every source is NOT_CONFIGURED"
+ *    requirement, proven end-to-end.
  * 2. End-to-end: with a real (injected) RSS source, a collected item
  *    flows all the way through dedupe/scoring/threshold/sort into the
  *    same `queue`/`history`/`dashboard` KV keys the fixture path uses,
@@ -23,13 +26,15 @@ import { describe, expect, it } from "vitest";
 import { SourceTier } from "../../src/models";
 import { EditorialKvStore } from "../../src/kv";
 import { runWorkerOnce, EnrichedWorkerDashboard } from "../../src/service";
-import { SOURCE_CONFIG } from "../../src/collectors/sources";
 import { SourceConfig } from "../../src/collectors/base";
+import { loadSourceConfigFromYaml } from "../../src/config-loader/factory";
+import { EMBEDDED_SOURCES_YAML } from "../../src/config-loader/embeddedSourcesYaml.generated";
 
-describe("Phase 8 backward compatibility (real, shipped SOURCE_CONFIG)", () => {
-  it("every registry entry has url: null today, so runWorkerOnce still falls back to the 3 bundled fixtures unchanged", async () => {
-    expect(SOURCE_CONFIG.length).toBeGreaterThan(0);
-    expect(SOURCE_CONFIG.every((s) => s.url === null)).toBe(true);
+describe("Phase 8 backward compatibility (real, shipped editorial-config/sources.yaml)", () => {
+  it("every registry entry has rss/youtube: null today, so runWorkerOnce still falls back to the 3 bundled fixtures unchanged", async () => {
+    const { sources: loadedSources, configErrors } = loadSourceConfigFromYaml(EMBEDDED_SOURCES_YAML);
+    expect(configErrors).toEqual([]); // today's real file is fully schema-valid
+    expect(loadedSources).toEqual([]); // every row has both rss/youtube null -> zero collectors
 
     const result = await runWorkerOnce(env.EDITORIAL_KV);
     expect(result.ran).toBe(true);
@@ -45,20 +50,15 @@ describe("Phase 8 backward compatibility (real, shipped SOURCE_CONFIG)", () => {
     expect(dashboard.topStory).toBe("Album Vọng Âm Ra Mắt");
     expect(dashboard.ready).toBe(1);
     expect(dashboard.pending).toBe(3);
-    // Zero real news collected/accepted, and every registry row reports
-    // NOT_CONFIGURED rather than a failure — but the run itself
+    // Zero real news collected/accepted, zero collector-health entries
+    // (nothing was ever configured to run) — but the run itself
     // proceeds and populates KV exactly as it always has.
     expect(dashboard.newsCollector.collected).toBe(0);
     expect(dashboard.newsCollector.accepted).toBe(0);
     expect(dashboard.newsCollector.rejected).toBe(0);
     expect(dashboard.newsCollector.topStory).toBeNull();
     expect(dashboard.newsCollector.newestStory).toBeNull();
-    expect(dashboard.newsCollector.collectorHealth).toHaveLength(SOURCE_CONFIG.length);
-    for (const entry of dashboard.newsCollector.collectorHealth) {
-      expect(["not_configured", "disabled"]).toContain(entry.status);
-      expect(entry.lastSuccess).toBeNull();
-      expect(entry.lastFailure).toBeNull();
-    }
+    expect(dashboard.newsCollector.collectorHealth).toEqual([]);
   });
 });
 

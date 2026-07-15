@@ -75,7 +75,12 @@ export type CollectorHealthStatus =
   | "http_error"
   | "parsing_error"
   | "disabled"
-  | "not_configured";
+  | "not_configured"
+  // PR #41: an editorial-config/sources.yaml row that failed schema
+  // validation (see src/config-loader/) — never became a real
+  // collector, so it was never fetched, but it's still surfaced here
+  // rather than silently dropped ("Worker continues running").
+  | "config_error";
 
 export interface CollectorFetchResult {
   sourceId: string;

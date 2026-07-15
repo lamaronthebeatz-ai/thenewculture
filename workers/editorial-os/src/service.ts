@@ -13,20 +13,30 @@
  *     option — collector.ts, providers.ts and worker/runner.ts are
  *     never touched. `fixtures` only overrides the bundled defaults
  *     once collection actually yields at least one accepted story
- *     (`news.payloads.length > 0`) — not merely when SOURCE_CONFIG is
- *     non-empty. The Editorial Source Registry (PR #39,
- *     collectors/sources.ts) ships every entry with `url: null` until a
- *     feed is verified, so as long as every configured source stays
- *     NOT_CONFIGURED (or simply fails), this function's behavior stays
- *     byte-for-byte identical to before this feature: WorkerRunner
- *     falls back to its own default bundled fixture events, exactly as
- *     it always has.
+ *     (`news.payloads.length > 0`) — not merely when the source list is
+ *     non-empty, so the Worker keeps falling back to its bundled
+ *     fixture events for as long as every configured source stays
+ *     unconfigured/failing (the "runtime must continue normally"
+ *     requirement).
  *   - The `dashboard` KV value gains one new, namespaced field
  *     (`newsCollector`) with Collector Health + collected/accepted/
  *     rejected/duplicates/topStory/newestStory/lastCrawlAt — every
  *     existing field on that object is untouched, and kv.ts/api.ts/
  *     worker/dashboardBuilder.ts are never modified to do this (see
  *     collectors/health.ts's docstring for why this isn't a 6th KV key).
+ *
+ * PR #41 (Registry Runtime Integration) additions:
+ *   - The default source list is no longer collectors/sources.ts's
+ *     static `SOURCE_CONFIG` — it's now loaded from
+ *     editorial-config/sources.yaml (PR #40) via
+ *     src/config-loader/factory.ts's loadSourceConfigFromYaml(), which
+ *     validates the file and never throws (a malformed row becomes a
+ *     "config_error" Collector Health entry instead of stopping the
+ *     run — "No source may crash Worker"). This only applies when the
+ *     caller doesn't pass an explicit `sources` argument; tests keep
+ *     injecting their own synthetic SourceConfig[] exactly as before.
+ *     CollectorPipeline, EditorialDesk, Workspace, Queue, Dashboard,
+ *     WorkerRunner, HealthEngine, api.ts, and kv.ts are untouched.
  */
 import { workerConfig } from "./config";
 import { EditorialKvStore } from "./kv";
@@ -38,7 +48,8 @@ import { Scheduler } from "./worker/scheduler";
 import { SourceConfig } from "./collectors/base";
 import { CollectorHealthEntry } from "./collectors/health";
 import { collectAllNews, NewsStorySummary } from "./collectors/registry";
-import { SOURCE_CONFIG } from "./collectors/sources";
+import { loadSourceConfigFromYaml } from "./config-loader/factory";
+import { EMBEDDED_SOURCES_YAML } from "./config-loader/embeddedSourcesYaml.generated";
 
 export interface NewsCollectorDashboardStats {
   collectorHealth: CollectorHealthEntry[];
@@ -55,7 +66,7 @@ export type EnrichedWorkerDashboard = WorkerDashboard & { newsCollector: NewsCol
 
 export async function runWorkerOnce(
   kvNamespace: KVNamespace,
-  sources: SourceConfig[] = SOURCE_CONFIG,
+  sources?: SourceConfig[],
   fetchImpl: typeof fetch = fetch,
 ): Promise<WorkerRunResult> {
   const store = new EditorialKvStore(kvNamespace);
@@ -64,7 +75,19 @@ export async function runWorkerOnce(
   const lastRunAt = runs.length ? runs[runs.length - 1]!.startedAt : null;
   const existingArticles = await store.getHistory();
 
-  const news = await collectAllNews(sources, fetchImpl);
+  // `sources` is only ever explicitly passed by tests, injecting their
+  // own synthetic SourceConfig[]. The Worker's real default is to load
+  // editorial-config/sources.yaml at startup (PR #41) — config errors
+  // from that file only ever apply to *this* path, since an explicit
+  // `sources` override means editorial-config wasn't even consulted
+  // for this run.
+  const usingEditorialConfig = sources === undefined;
+  const { sources: loadedSources, configErrorHealth } = usingEditorialConfig
+    ? loadSourceConfigFromYaml(EMBEDDED_SOURCES_YAML)
+    : { sources: [], configErrorHealth: [] };
+  const effectiveSources = sources ?? loadedSources;
+
+  const news = await collectAllNews(effectiveSources, fetchImpl);
 
   const scheduler = new Scheduler(workerConfig.schedule.mode);
   const logger = new WorkerLogger(workerConfig.logging.level);
@@ -76,15 +99,11 @@ export async function runWorkerOnce(
     retryBackoffSeconds: workerConfig.retry.backoffSeconds,
     // Only override the default bundled fixtures once real news has
     // actually been collected and accepted — not merely when the
-    // registry is non-empty. The Editorial Source Registry (PR #39)
-    // ships with every entry's `url: null` until a feed is verified
-    // (see sources.ts), so `sources.length > 0` alone would wrongly
-    // suppress the bundled fixtures the moment a NOT_CONFIGURED entry
-    // is added, producing zero events per run instead of falling back.
-    // Checking `news.payloads.length` keeps the Worker producing its
-    // existing bundled events for as long as collection yields nothing
-    // real — the "runtime must continue normally even if every source
-    // is NOT_CONFIGURED" requirement.
+    // effective source list is non-empty. Checking `news.payloads.length`
+    // keeps the Worker producing its existing bundled events for as
+    // long as collection yields nothing real (every configured source
+    // stays unconfigured, disabled, or failing) — the "runtime must
+    // continue normally" requirement.
     ...(news.payloads.length > 0 ? { fixtures: news.payloads } : {}),
   });
 
@@ -100,7 +119,7 @@ export async function runWorkerOnce(
       const enrichedDashboard: EnrichedWorkerDashboard = {
         ...result.dashboard,
         newsCollector: {
-          collectorHealth: news.health,
+          collectorHealth: [...news.health, ...configErrorHealth],
           collected: news.collected,
           accepted: news.accepted,
           rejected: news.rejected,
