@@ -1,0 +1,348 @@
+# Editorial Source Registry — configuration data only.
+#
+# This file describes editorial sources. It is NOT read by the Worker
+# yet (see this directory's README.md) — it exists purely to separate
+# editorial configuration from the collector engine (src/collectors/),
+# which today still owns its own copy of this same roster in
+# workers/editorial-os/src/collectors/sources.ts. Integrating the two
+# (making the Worker read this file instead of / in addition to that
+# TypeScript table) is explicitly deferred to a later PR.
+#
+# `rss` and `youtube` are nullable. No URL in this file has been
+# guessed or fabricated: every one of the 20 sources below was audited
+# (see the Phase 8.1 "Editorial Source Audit Report") and could not be
+# verified from this environment — outbound network access to any
+# public site is blocked at the network-policy level in this sandbox
+# (confirmed against unrelated control targets, not just these sites),
+# so `homepage`, `rss`, and `youtube` are `null` and `status` is
+# "unknown" for every entry until a real, verifiable URL is supplied.
+#
+# Field reference (see README.md for the full schema doc):
+#   id          - stable kebab-case identifier, matches src/collectors/sources.ts's id
+#   name        - display name of the outlet, label, artist, or channel
+#   category    - one of: international | vietnam | youtube | community
+#   homepage    - official website URL, or null if unverified
+#   rss         - official RSS feed URL, or null if unverified/not applicable
+#   youtube     - official YouTube uploads Atom feed URL
+#                 (https://www.youtube.com/feeds/videos.xml?channel_id=...),
+#                 or null if unverified/not applicable
+#   enabled     - whether this source is intended to be active once configured
+#   status      - one of: supported | not_supported | unknown
+#   verified    - true only once a human/tooling has actually confirmed a live feed
+#   verifiedAt  - ISO 8601 timestamp of that verification, or null
+#   notes       - human-readable explanation, always required when unverified
+
+sources:
+  # -----------------------------------------------------------------
+  # International
+  # -----------------------------------------------------------------
+  - id: intl-rolling-stone-music
+    name: Rolling Stone Music
+    category: international
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Outbound network access from this environment is blocked at the
+      policy level (confirmed against unrelated control targets), so no
+      homepage or feed URL could be verified. Confirm the outlet's
+      official RSS feed URL from a network-enabled environment before
+      setting rss/homepage or changing status.
+
+  - id: intl-billboard-hiphop
+    name: Billboard Hip-Hop
+    category: international
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Same environment network constraint as intl-rolling-stone-music.
+      Confirm Billboard's official Hip-Hop/R&B RSS feed URL before
+      setting rss/homepage or changing status.
+
+  - id: intl-complex-music
+    name: Complex Music
+    category: international
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Same environment network constraint as intl-rolling-stone-music.
+      Confirm Complex's official Music section RSS feed URL before
+      setting rss/homepage or changing status.
+
+  - id: intl-xxl-magazine
+    name: XXL Magazine
+    category: international
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Same environment network constraint as intl-rolling-stone-music.
+      Confirm XXL Magazine's official RSS feed URL before setting
+      rss/homepage or changing status.
+
+  # -----------------------------------------------------------------
+  # Vietnam
+  # -----------------------------------------------------------------
+  - id: vn-vie-channel-news
+    name: Vie Channel News
+    category: vietnam
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Same environment network constraint as intl-rolling-stone-music.
+      Confirm Vie Channel's official news RSS/Atom feed URL before
+      setting rss/homepage or changing status.
+
+  - id: vn-spacespeakers
+    name: SpaceSpeakers
+    category: vietnam
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Same environment network constraint as intl-rolling-stone-music.
+      Confirm SpaceSpeakers' official label/news feed URL before
+      setting rss/homepage or changing status.
+
+  # -----------------------------------------------------------------
+  # YouTube (official artist / show channels)
+  # -----------------------------------------------------------------
+  - id: yt-rap-viet-official
+    name: Rap Việt Official
+    category: youtube
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Channel ID not verified from this environment. Once confirmed,
+      set youtube to
+      https://www.youtube.com/feeds/videos.xml?channel_id=<CHANNEL_ID>.
+
+  - id: yt-16-typh
+    name: 16 Typh
+    category: youtube
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Channel ID not verified from this environment. Once confirmed,
+      set youtube to
+      https://www.youtube.com/feeds/videos.xml?channel_id=<CHANNEL_ID>.
+
+  - id: yt-hieuthuhai
+    name: HIEUTHUHAI
+    category: youtube
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Channel ID not verified from this environment. Once confirmed,
+      set youtube to
+      https://www.youtube.com/feeds/videos.xml?channel_id=<CHANNEL_ID>.
+
+  - id: yt-double2t
+    name: Double2T
+    category: youtube
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Channel ID not verified from this environment. Once confirmed,
+      set youtube to
+      https://www.youtube.com/feeds/videos.xml?channel_id=<CHANNEL_ID>.
+
+  - id: yt-mck
+    name: MCK
+    category: youtube
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Channel ID not verified from this environment. Once confirmed,
+      set youtube to
+      https://www.youtube.com/feeds/videos.xml?channel_id=<CHANNEL_ID>.
+
+  - id: yt-tlinh
+    name: tlinh
+    category: youtube
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Channel ID not verified from this environment. Once confirmed,
+      set youtube to
+      https://www.youtube.com/feeds/videos.xml?channel_id=<CHANNEL_ID>.
+
+  - id: yt-wean
+    name: WEAN
+    category: youtube
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Channel ID not verified from this environment. Once confirmed,
+      set youtube to
+      https://www.youtube.com/feeds/videos.xml?channel_id=<CHANNEL_ID>.
+
+  - id: yt-24k-right
+    name: 24K.Right
+    category: youtube
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Channel ID not verified from this environment. Once confirmed,
+      set youtube to
+      https://www.youtube.com/feeds/videos.xml?channel_id=<CHANNEL_ID>.
+
+  - id: yt-low-g
+    name: Low G
+    category: youtube
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Channel ID not verified from this environment. Once confirmed,
+      set youtube to
+      https://www.youtube.com/feeds/videos.xml?channel_id=<CHANNEL_ID>.
+
+  - id: yt-rhymastic
+    name: Rhymastic
+    category: youtube
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Channel ID not verified from this environment. Once confirmed,
+      set youtube to
+      https://www.youtube.com/feeds/videos.xml?channel_id=<CHANNEL_ID>.
+
+  - id: yt-karik
+    name: Karik
+    category: youtube
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Channel ID not verified from this environment. Once confirmed,
+      set youtube to
+      https://www.youtube.com/feeds/videos.xml?channel_id=<CHANNEL_ID>.
+
+  - id: yt-binz
+    name: Binz
+    category: youtube
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      Channel ID not verified from this environment. Once confirmed,
+      set youtube to
+      https://www.youtube.com/feeds/videos.xml?channel_id=<CHANNEL_ID>.
+
+  # -----------------------------------------------------------------
+  # Community
+  # -----------------------------------------------------------------
+  - id: community-vculture-aggregator
+    name: V-Culture Fan Aggregator
+    category: community
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      No official or community-maintained feed has been verified for
+      this source. If one exists, verify it and set rss/homepage
+      before changing status; otherwise leave disabled.
+
+  - id: community-rap-vietnam-hub
+    name: Rap Vietnam Community Hub
+    category: community
+    homepage: null
+    rss: null
+    youtube: null
+    enabled: true
+    status: unknown
+    verified: false
+    verifiedAt: null
+    notes: >
+      No official or community-maintained feed has been verified for
+      this source. If one exists, verify it and set rss/homepage
+      before changing status; otherwise leave disabled.
