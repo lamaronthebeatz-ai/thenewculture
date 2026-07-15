@@ -247,3 +247,53 @@ export const workerConfig = {
   retry: { maxAttempts: 1, backoffSeconds: 0 },
   logging: { level: "info" as "debug" | "info" | "warning" | "error" },
 };
+
+// ---------------------------------------------------------------------
+// Editorial Intelligence weights (Phase 8, News Intelligence Collector)
+// — an independent rule engine from priorityWeights/confidenceWeights
+// above (events.ts's ConfidenceEngine / editorial.ts's PriorityEngine
+// are not touched by this feature at all). Every knob a plain, named
+// weight — no magic numbers inside src/collectors/intelligence.ts.
+// ---------------------------------------------------------------------
+
+export const newsIntelligenceWeights = {
+  // Freshness: 100 at publish time, decays linearly to 0 over this many
+  // hours; unparseable/missing publishedAt scores 0 (least fresh).
+  freshnessWindowHours: 72,
+
+  // Impact: base score per source tier (0-100).
+  tierImpact: {
+    tier_1: 90,
+    tier_2: 70,
+    tier_3: 40,
+    unknown: 20,
+  } as Record<string, number>,
+
+  // Confidence: base score for a single-source story, plus a bonus per
+  // additional corroborating source (capped at 100).
+  confidenceBase: 50,
+  confidencePerExtraSource: 15,
+
+  // SourceCount / DuplicateScore: raw counts, weighted onto a 0-100 scale.
+  sourceCountWeight: 20,
+  duplicateScoreWeight: 10,
+
+  // Priority: weighted combination of freshness/impact/sourceCount
+  // (weights sum to 1.0 — a weighted average of three 0-100 metrics).
+  priorityFreshnessWeight: 0.4,
+  priorityImpactWeight: 0.4,
+  prioritySourceCountWeight: 0.2,
+
+  // EditorialScore: final weighted combination of every metric above
+  // (weights sum to 1.0). Only stories scoring >= entryThreshold enter
+  // the Queue (see src/collectors/intelligence.ts).
+  editorialScoreWeights: {
+    priority: 0.35,
+    confidence: 0.25,
+    freshness: 0.15,
+    impact: 0.15,
+    sourceCount: 0.05,
+    duplicateScore: 0.05,
+  },
+  entryThreshold: 50,
+};
