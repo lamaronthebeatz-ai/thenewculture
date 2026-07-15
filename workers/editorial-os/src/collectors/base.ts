@@ -80,7 +80,12 @@ export type CollectorHealthStatus =
   // validation (see src/config-loader/) — never became a real
   // collector, so it was never fetched, but it's still surfaced here
   // rather than silently dropped ("Worker continues running").
-  | "config_error";
+  | "config_error"
+  // Phase 10: HTTP 429 specifically — distinct from the generic
+  // "http_error" bucket so the Dashboard's Source Manager can tell an
+  // editor "this source is rate-limited, try a longer crawl interval"
+  // instead of a generic failure.
+  | "rate_limited";
 
 export interface CollectorFetchResult {
   sourceId: string;

@@ -128,6 +128,98 @@ body{
 @keyframes toast-in{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
 
 /* ==========================================================================
+   SOURCE MANAGER (Phase 10) — tabs, filters, table, modal form
+   ========================================================================== */
+.tabbar{
+  display:flex;gap:4px;padding:0 24px;background:var(--bg-elevated);
+  border-bottom:1px solid var(--line);
+}
+.tab{
+  font-family:var(--f-body);font-size:0.85rem;font-weight:600;color:var(--ink-2);
+  background:transparent;border:none;border-bottom:2px solid transparent;
+  padding:12px 6px;margin:0 8px;cursor:pointer;
+}
+.tab:hover{color:var(--ink);}
+.tab.is-active{color:var(--ink);border-bottom-color:var(--accent);}
+
+.view[hidden]{display:none;}
+
+.input,.select,.textarea{
+  font-family:var(--f-body);font-size:0.85rem;color:var(--ink);
+  background:var(--bg-subtle);border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:9px 12px;min-height:38px;
+}
+.input{min-width:220px;flex:1 1 220px;}
+.textarea{width:100%;min-height:60px;resize:vertical;font-family:var(--f-body);}
+
+.table-wrap{
+  background:var(--bg-elevated);border:1px solid var(--line);border-radius:var(--r-md);
+  overflow-x:auto;
+}
+.table{width:100%;border-collapse:collapse;font-size:0.85rem;}
+.table th,.table td{
+  text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);
+  white-space:nowrap;
+}
+.table th{color:var(--ink-3);font-family:var(--f-mono);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;}
+.table tbody tr:hover{background:var(--bg-subtle);}
+.table-empty{padding:24px;text-align:center;color:var(--ink-3);}
+
+.health-pill{
+  display:inline-block;padding:2px 8px;border-radius:999px;
+  font-family:var(--f-mono);font-size:0.72rem;border:1px solid var(--line);
+}
+.health-pill--healthy{color:var(--green);border-color:var(--green);}
+.health-pill--failed,.health-pill--invalid_feed{color:var(--red);border-color:var(--red);}
+.health-pill--rate_limited,.health-pill--timeout{color:#E0A93E;border-color:#E0A93E;}
+.health-pill--disabled,.health-pill--not_configured{color:var(--ink-3);border-color:var(--line);}
+
+.row-actions{display:flex;gap:6px;}
+.row-actions .btn{padding:6px 10px;min-height:auto;font-size:0.78rem;}
+.btn--danger{background:transparent;border-color:var(--red);color:#FCA5A5;}
+
+.toggle{
+  position:relative;display:inline-block;width:38px;height:20px;cursor:pointer;
+}
+.toggle input{position:absolute;opacity:0;width:0;height:0;}
+.toggle__track{
+  position:absolute;inset:0;background:var(--line);border-radius:999px;transition:background 0.15s ease;
+}
+.toggle__track::after{
+  content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+  background:var(--ink);transition:transform 0.15s ease;
+}
+.toggle input:checked + .toggle__track{background:var(--green);}
+.toggle input:checked + .toggle__track::after{transform:translateX(18px);}
+
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;
+  align-items:center;justify-content:center;z-index:300;padding:20px;
+}
+.modal-overlay[hidden]{display:none;}
+.modal{
+  background:var(--bg-elevated);border:1px solid var(--line);border-radius:var(--r-md);
+  width:100%;max-width:480px;max-height:90vh;overflow:auto;padding:20px;
+}
+.modal__head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.modal__head h3{margin:0;font-size:1rem;}
+.modal__close{
+  background:transparent;border:none;color:var(--ink-3);font-size:1.4rem;line-height:1;
+  cursor:pointer;padding:0 4px;
+}
+.modal__close:hover{color:var(--ink);}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;font-size:0.82rem;color:var(--ink-2);}
+.modal__error{
+  background:rgba(229,72,77,0.12);border:1px solid var(--red);color:#FCA5A5;
+  border-radius:var(--r-sm);padding:8px 10px;font-size:0.8rem;margin-bottom:14px;
+}
+.modal__foot{display:flex;justify-content:flex-end;gap:10px;}
+
+@media (max-width: 700px){
+  .table th:nth-child(4),.table td:nth-child(4){display:none;}
+}
+
+/* ==========================================================================
    RESPONSIVE
    ========================================================================== */
 @media (max-width: 900px){

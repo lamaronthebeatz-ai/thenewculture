@@ -217,6 +217,10 @@ export async function fetchRssFeed(
         lastError = { status: "http_404", message: `HTTP 404 từ ${feedUrl}` };
         continue;
       }
+      if (response.status === 429) {
+        lastError = { status: "rate_limited", message: `HTTP 429 (rate limited) từ ${feedUrl}` };
+        continue;
+      }
       if (!response.ok) {
         lastError = { status: "http_error", message: `HTTP ${response.status} từ ${feedUrl}` };
         continue;

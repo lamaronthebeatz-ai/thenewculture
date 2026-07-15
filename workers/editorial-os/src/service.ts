@@ -26,17 +26,26 @@
  *     collectors/health.ts's docstring for why this isn't a 6th KV key).
  *
  * PR #41 (Registry Runtime Integration) additions:
- *   - The default source list is no longer collectors/sources.ts's
- *     static `SOURCE_CONFIG` — it's now loaded from
- *     editorial-config/sources.yaml (PR #40) via
- *     src/config-loader/factory.ts's loadSourceConfigFromYaml(), which
- *     validates the file and never throws (a malformed row becomes a
- *     "config_error" Collector Health entry instead of stopping the
- *     run — "No source may crash Worker"). This only applies when the
- *     caller doesn't pass an explicit `sources` argument; tests keep
- *     injecting their own synthetic SourceConfig[] exactly as before.
- *     CollectorPipeline, EditorialDesk, Workspace, Queue, Dashboard,
- *     WorkerRunner, HealthEngine, api.ts, and kv.ts are untouched.
+ *   - The default source list was loaded from editorial-config/
+ *     sources.yaml via src/config-loader — CollectorPipeline,
+ *     EditorialDesk, Workspace, Queue, Dashboard, WorkerRunner,
+ *     HealthEngine, api.ts, and kv.ts stayed untouched.
+ *
+ * Phase 10 (Editorial Source Manager) additions:
+ *   - The default source list now comes from KV (via
+ *     SourceManagerStore.list(), src/source-manager/store.ts) instead
+ *     of the static embedded YAML snapshot directly — this is what
+ *     lets editors add/edit/delete sources from the Dashboard with no
+ *     redeploy. KV seeds itself from that exact same embedded snapshot
+ *     the first time it's ever read, so behavior is unchanged until an
+ *     editor actually uses the Source Manager. This only applies when
+ *     the caller doesn't pass an explicit `sources` argument; tests
+ *     keep injecting their own synthetic SourceConfig[] exactly as
+ *     before. CollectorPipeline, EditorialDesk, Workspace, Queue,
+ *     Dashboard, WorkerRunner, HealthEngine, and Cron are untouched;
+ *     kv.ts gains one additive `sources` key, api.ts gains one
+ *     additive delegating branch (see src/source-manager/routes.ts) —
+ *     every pre-existing key/route is unchanged.
  */
 import { workerConfig } from "./config";
 import { EditorialKvStore } from "./kv";
@@ -48,8 +57,7 @@ import { Scheduler } from "./worker/scheduler";
 import { SourceConfig } from "./collectors/base";
 import { CollectorHealthEntry } from "./collectors/health";
 import { collectAllNews, NewsStorySummary } from "./collectors/registry";
-import { loadSourceConfigFromYaml } from "./config-loader/factory";
-import { EMBEDDED_SOURCES_YAML } from "./config-loader/embeddedSourcesYaml.generated";
+import { SourceManagerStore, sourceRecordsToSourceConfigs } from "./source-manager/store";
 
 export interface NewsCollectorDashboardStats {
   collectorHealth: CollectorHealthEntry[];
@@ -76,16 +84,20 @@ export async function runWorkerOnce(
   const existingArticles = await store.getHistory();
 
   // `sources` is only ever explicitly passed by tests, injecting their
-  // own synthetic SourceConfig[]. The Worker's real default is to load
-  // editorial-config/sources.yaml at startup (PR #41) — config errors
-  // from that file only ever apply to *this* path, since an explicit
-  // `sources` override means editorial-config wasn't even consulted
-  // for this run.
-  const usingEditorialConfig = sources === undefined;
-  const { sources: loadedSources, configErrorHealth } = usingEditorialConfig
-    ? loadSourceConfigFromYaml(EMBEDDED_SOURCES_YAML)
-    : { sources: [], configErrorHealth: [] };
+  // own synthetic SourceConfig[]. The Worker's real default is the
+  // live Source Manager list in KV (Phase 10), which self-seeds from
+  // editorial-config/sources.yaml the first time it's ever read.
+  const usingSourceManager = sources === undefined;
+  const loadedSources = usingSourceManager
+    ? sourceRecordsToSourceConfigs(await new SourceManagerStore(store).list())
+    : [];
   const effectiveSources = sources ?? loadedSources;
+  // Every write to the Source Manager's KV-backed list is validated at
+  // write time (src/source-manager/validation.ts) — an invalid row can
+  // never end up in KV in the first place, unlike a hand-edited YAML
+  // file — so there's no more per-run "config_error" health entry to
+  // surface on this path.
+  const configErrorHealth: CollectorHealthEntry[] = [];
 
   const news = await collectAllNews(effectiveSources, fetchImpl);
 

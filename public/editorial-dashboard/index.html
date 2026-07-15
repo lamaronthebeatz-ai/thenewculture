@@ -27,55 +27,161 @@
   </div>
 </header>
 
+<nav class="tabbar" aria-label="Dashboard sections">
+  <button class="tab is-active" id="tabBtn-dashboard" type="button" data-tab="dashboard">Dashboard</button>
+  <button class="tab" id="tabBtn-sources" type="button" data-tab="sources">Sources</button>
+</nav>
+
 <main class="main">
-  <section class="toolbar">
-    <button class="btn btn--primary" id="refreshBtn" type="button">Refresh</button>
-    <button class="btn btn--accent" id="runBtn" type="button">Run Worker</button>
-    <span class="toolbar__auto">Auto refresh: <strong>30s</strong></span>
-    <span class="toolbar__loading" id="globalLoading" hidden>Đang tải…</span>
+  <section id="view-dashboard" class="view">
+    <section class="toolbar">
+      <button class="btn btn--primary" id="refreshBtn" type="button">Refresh</button>
+      <button class="btn btn--accent" id="runBtn" type="button">Run Worker</button>
+      <span class="toolbar__auto">Auto refresh: <strong>30s</strong></span>
+      <span class="toolbar__loading" id="globalLoading" hidden>Đang tải…</span>
+    </section>
+
+    <section class="panels">
+      <article class="panel" id="panel-health">
+        <header class="panel__head">
+          <h2>Health</h2>
+          <span class="panel__badge" id="health-badge"></span>
+        </header>
+        <div class="panel__error" id="health-error" hidden></div>
+        <pre class="panel__body" id="health-body">Chưa tải dữ liệu.</pre>
+      </article>
+
+      <article class="panel" id="panel-dashboard">
+        <header class="panel__head">
+          <h2>Dashboard</h2>
+          <span class="panel__badge" id="dashboard-badge"></span>
+        </header>
+        <div class="panel__error" id="dashboard-error" hidden></div>
+        <pre class="panel__body" id="dashboard-body">Chưa tải dữ liệu.</pre>
+      </article>
+
+      <article class="panel" id="panel-queue">
+        <header class="panel__head">
+          <h2>Queue</h2>
+          <span class="panel__badge" id="queue-badge"></span>
+        </header>
+        <div class="panel__error" id="queue-error" hidden></div>
+        <pre class="panel__body" id="queue-body">Chưa tải dữ liệu.</pre>
+      </article>
+
+      <article class="panel" id="panel-history">
+        <header class="panel__head">
+          <h2>History</h2>
+          <span class="panel__badge" id="history-badge"></span>
+        </header>
+        <div class="panel__error" id="history-error" hidden></div>
+        <pre class="panel__body" id="history-body">Chưa tải dữ liệu.</pre>
+      </article>
+    </section>
   </section>
 
-  <section class="panels">
-    <article class="panel" id="panel-health">
-      <header class="panel__head">
-        <h2>Health</h2>
-        <span class="panel__badge" id="health-badge"></span>
-      </header>
-      <div class="panel__error" id="health-error" hidden></div>
-      <pre class="panel__body" id="health-body">Chưa tải dữ liệu.</pre>
-    </article>
+  <section id="view-sources" class="view" hidden>
+    <section class="toolbar">
+      <input class="input" id="sources-search" type="search" placeholder="Tìm theo tên, id, ghi chú…">
+      <select class="select" id="sources-filter-category">
+        <option value="">Mọi category</option>
+        <option value="international">International</option>
+        <option value="vietnam">Vietnam</option>
+        <option value="youtube">YouTube</option>
+        <option value="community">Community</option>
+      </select>
+      <select class="select" id="sources-filter-enabled">
+        <option value="">Enabled + Disabled</option>
+        <option value="enabled">Chỉ Enabled</option>
+        <option value="disabled">Chỉ Disabled</option>
+      </select>
+      <select class="select" id="sources-sort">
+        <option value="name-asc">Tên A→Z</option>
+        <option value="name-desc">Tên Z→A</option>
+        <option value="updated-desc">Vừa sửa gần đây</option>
+        <option value="health">Health</option>
+      </select>
+      <button class="btn btn--accent" id="sources-add-btn" type="button">+ Add Source</button>
+      <span class="toolbar__loading" id="sources-loading" hidden>Đang tải…</span>
+    </section>
 
-    <article class="panel" id="panel-dashboard">
-      <header class="panel__head">
-        <h2>Dashboard</h2>
-        <span class="panel__badge" id="dashboard-badge"></span>
-      </header>
-      <div class="panel__error" id="dashboard-error" hidden></div>
-      <pre class="panel__body" id="dashboard-body">Chưa tải dữ liệu.</pre>
-    </article>
+    <div class="panel__error" id="sources-error" hidden></div>
 
-    <article class="panel" id="panel-queue">
-      <header class="panel__head">
-        <h2>Queue</h2>
-        <span class="panel__badge" id="queue-badge"></span>
-      </header>
-      <div class="panel__error" id="queue-error" hidden></div>
-      <pre class="panel__body" id="queue-body">Chưa tải dữ liệu.</pre>
-    </article>
-
-    <article class="panel" id="panel-history">
-      <header class="panel__head">
-        <h2>History</h2>
-        <span class="panel__badge" id="history-badge"></span>
-      </header>
-      <div class="panel__error" id="history-error" hidden></div>
-      <pre class="panel__body" id="history-body">Chưa tải dữ liệu.</pre>
-    </article>
+    <div class="table-wrap">
+      <table class="table" id="sources-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Category</th>
+            <th>Feed</th>
+            <th>Health</th>
+            <th>Enabled</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="sources-tbody"></tbody>
+      </table>
+      <p class="table-empty" id="sources-empty" hidden>Chưa có nguồn nào — bấm "+ Add Source" để bắt đầu.</p>
+    </div>
   </section>
 </main>
+
+<div class="modal-overlay" id="source-modal-overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="source-modal-title">
+    <header class="modal__head">
+      <h3 id="source-modal-title">Add Source</h3>
+      <button class="modal__close" id="source-modal-close" type="button" aria-label="Đóng">×</button>
+    </header>
+    <form id="source-form">
+      <input type="hidden" id="source-form-id">
+      <label class="field">
+        <span>Name</span>
+        <input class="input" id="source-form-name" type="text" required>
+      </label>
+      <label class="field">
+        <span>Type</span>
+        <select class="select" id="source-form-type" required>
+          <option value="artist">Artist</option>
+          <option value="label">Label</option>
+          <option value="crew">Crew</option>
+          <option value="show">Show</option>
+          <option value="festival">Festival</option>
+          <option value="studio">Studio</option>
+          <option value="community">Community</option>
+          <option value="media">Media</option>
+          <option value="other">Other</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Category</span>
+        <select class="select" id="source-form-category" required>
+          <option value="international">International</option>
+          <option value="vietnam">Vietnam</option>
+          <option value="youtube">YouTube</option>
+          <option value="community">Community</option>
+        </select>
+      </label>
+      <label class="field" id="source-form-url-field">
+        <span>Website, YouTube Channel, hoặc RSS Feed URL</span>
+        <input class="input" id="source-form-url" type="text" placeholder="https://…">
+      </label>
+      <label class="field">
+        <span>Notes</span>
+        <textarea class="textarea" id="source-form-notes" rows="2"></textarea>
+      </label>
+      <div class="modal__error" id="source-form-error" hidden></div>
+      <footer class="modal__foot">
+        <button class="btn" id="source-form-cancel" type="button">Hủy</button>
+        <button class="btn btn--accent" id="source-form-submit" type="submit">Lưu</button>
+      </footer>
+    </form>
+  </div>
+</div>
 
 <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
 <script src="./app.js"></script>
+<script src="./sources.js"></script>
 </body>
 </html>
