@@ -18,6 +18,8 @@ import { parse } from "yaml";
 import sourcesRaw from "../../../../editorial-config/sources.yaml?raw";
 import sourceGroupsRaw from "../../../../editorial-config/source-groups.yaml?raw";
 import sourceRulesRaw from "../../../../editorial-config/source-rules.yaml?raw";
+import { EMBEDDED_SOURCES_YAML } from "../../src/config-loader/embeddedSourcesYaml.generated";
+import { loadSourceConfigFromYaml } from "../../src/config-loader/factory";
 
 const CATEGORIES = ["international", "vietnam", "youtube", "community"] as const;
 const STATUSES = ["supported", "not_supported", "unknown"] as const;
@@ -116,6 +118,25 @@ describe("sources.yaml", () => {
       expect(source.rss).toBeNull();
       expect(source.youtube).toBeNull();
     }
+  });
+});
+
+describe("schema regression: embedded runtime snapshot vs. the live file (PR #41)", () => {
+  // src/service.ts can't import editorial-config/sources.yaml directly
+  // at runtime — @cloudflare/vitest-pool-workers can't resolve a
+  // wrangler.toml [[rules]]-typed module outside this project's root
+  // (verified directly; see embeddedSourcesYaml.generated.ts's own
+  // docstring), so src/config-loader/embeddedSourcesYaml.generated.ts
+  // carries a plain-.ts copy of this exact file instead. This test is
+  // the only thing standing between that copy and silent drift.
+  it("is byte-for-byte identical to the live editorial-config/sources.yaml", () => {
+    expect(EMBEDDED_SOURCES_YAML).toBe(sourcesRaw);
+  });
+
+  it("loads with zero schema errors and (today) zero collectors, matching sources.yaml's own audit state", () => {
+    const { sources, configErrors } = loadSourceConfigFromYaml(EMBEDDED_SOURCES_YAML);
+    expect(configErrors).toEqual([]);
+    expect(sources).toEqual([]);
   });
 });
 
