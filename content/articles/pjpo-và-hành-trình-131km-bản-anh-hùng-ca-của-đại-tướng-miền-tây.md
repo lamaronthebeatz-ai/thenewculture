@@ -3,10 +3,11 @@ title: 'PJPO và hành trình "131KM": Bản anh hùng ca của "Đại tướng
 series: tnc-records
 dek: PJPO – 131KM không đơn thuần là một album, mà là hành trình được kể lại bằng âm nhạc, nơi mỗi kilomet đều mang theo một câu chuyện.
 cover: /uploads/3747.jpg
+cover_credit: ''
 author: Lamar
 date: 10 Tháng 7, 2026
 read_time: ''
-featured: true
+featured: false
 order: 2
 tags:
   - '#TNC'
