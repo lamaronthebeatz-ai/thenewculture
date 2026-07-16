@@ -26,6 +26,25 @@
   var sourcesCache = [];
   var healthByPrefix = {}; // recordId -> CollectorHealthStatus string
   var editingUrlField = null; // "youtube" | "rss" | "homepage" | null — which field the URL input writes back to when editing
+  var DEFAULT_URL_LABEL = "Website, YouTube Channel, hoặc RSS Feed URL";
+  var URL_FIELD_LABELS = {
+    youtube: "YouTube Channel URL",
+    rss: "RSS/Atom Feed URL",
+    homepage: "Website URL",
+  };
+
+  /** Which SourceRecord field an Edit-mode URL input should read/write,
+   * based on feedType — must match how store.ts/routes.ts key their
+   * validation (youtube host check vs. generic feed/HTTP URL check),
+   * so an edit never gets misrouted into the wrong field. */
+  function urlFieldForSource(source) {
+    if (source.feedType === "youtube") return "youtube";
+    if (source.feedType === "rss" || source.feedType === "atom") return "rss";
+    if (source.feedType === "website") return "homepage";
+    if (source.youtube) return "youtube";
+    if (source.rss) return "rss";
+    return "homepage";
+  }
 
   var tabButtons = document.querySelectorAll(".tab");
   var viewDashboard = document.getElementById("view-dashboard");
@@ -248,15 +267,17 @@
       formName.value = source.name;
       formType.value = source.type;
       formCategory.value = source.category;
-      editingUrlField = (source.feedType === "rss" || source.feedType === "atom") ? "rss" : "youtube";
+      editingUrlField = urlFieldForSource(source);
       formUrlField.hidden = false;
-      formUrl.value = source.youtube || source.rss || source.homepage || "";
+      formUrlField.querySelector("span").textContent = URL_FIELD_LABELS[editingUrlField];
+      formUrl.value = source[editingUrlField] || "";
       formNotes.value = source.notes || "";
     } else {
       modalTitle.textContent = "Add Source";
       formId.value = "";
       editingUrlField = null;
       formUrlField.hidden = false;
+      formUrlField.querySelector("span").textContent = DEFAULT_URL_LABEL;
     }
     modalOverlay.hidden = false;
   }

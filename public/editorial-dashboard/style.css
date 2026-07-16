@@ -156,6 +156,7 @@ h1,h2,h3{text-wrap:balance;}
   color:#FCA5A5;border-radius:var(--r-sm);padding:8px 10px;
   font-size:0.8rem;margin-bottom:14px;
 }
+.panel__error[hidden]{display:none;}
 
 /* ----- layout: stacked by default (tablet-safe), widened at desktop ----- */
 .layout{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:16px;}
