@@ -70,8 +70,11 @@ export function buildSeedSourceRecords(now: string = new Date().toISOString()): 
  * validatedEntryToSourceConfigs() unchanged. `feedType: "manual"` and
  * `"website"` sources never produce a collector (no automated
  * collection — matches "If detection fails -> Save as Manual", and
- * Phase 8's still-standing "no website scraping" boundary), regardless
- * of what happens to be sitting in their rss/youtube fields. */
+ * Phase 8's still-standing "no website scraping" boundary). Editing a
+ * source's homepage/rss/youtube via Edit Source (source-manager/
+ * routes.ts's handleUpdateSource) recomputes feedType from the result,
+ * so a source only ever stays "manual"/"website" here for as long as it
+ * genuinely has no confirmed rss/youtube URL. */
 export function sourceRecordsToSourceConfigs(records: SourceRecord[]): SourceConfig[] {
   return records.flatMap((record) => {
     const collectible = record.feedType === "rss" || record.feedType === "atom" || record.feedType === "youtube";

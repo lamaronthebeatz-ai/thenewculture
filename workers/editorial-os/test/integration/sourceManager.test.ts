@@ -12,6 +12,7 @@ import { handleApiRequest } from "../../src/api";
 import { handleSourceManagerRequest } from "../../src/source-manager/routes";
 import { runWorkerOnce } from "../../src/service";
 import { EditorialKvStore } from "../../src/kv";
+import { sourceRecordsToSourceConfigs } from "../../src/source-manager/store";
 
 function req(path: string, init: RequestInit = {}): Request {
   return new Request(`https://worker.test${path}`, init);
@@ -169,6 +170,82 @@ describe("Edit Source", () => {
 
     const response = await putJson(`/sources/${sourceA.id}`, { homepage: "https://edit-dup-b.example.com" });
     expect(response.status).toBe(409);
+  });
+});
+
+describe("Feed type recomputation on Edit (production blocker fix)", () => {
+  it("promotes feedType away from manual once an editor pastes a real rss URL via Edit, making the source collectible", async () => {
+    const added = await postJson(
+      "/sources",
+      { name: "Recovered Source", type: "media", category: "international", pastedUrl: "https://recovered-source.example.com" },
+      noNetworkFetch,
+    );
+    const { source } = (await added.json()) as { source: { id: string; feedType: string } };
+    expect(source.feedType).toBe("manual");
+
+    const edited = await putJson(`/sources/${source.id}`, { rss: "https://recovered-source.example.com/feed.xml" });
+    expect(edited.status).toBe(200);
+    const body = (await edited.json()) as { source: { feedType: string; rss: string | null } };
+    expect(body.source.feedType).toBe("rss");
+    expect(body.source.rss).toBe("https://recovered-source.example.com/feed.xml");
+
+    const configs = sourceRecordsToSourceConfigs([body.source as never]);
+    expect(configs).toHaveLength(1);
+    expect(configs[0]).toMatchObject({ type: "rss", url: "https://recovered-source.example.com/feed.xml" });
+  });
+
+  it("promotes feedType to youtube when an editor pastes a real youtube URL via Edit", async () => {
+    const added = await postJson(
+      "/sources",
+      { name: "Recovered YT Source", type: "artist", category: "youtube", pastedUrl: "https://recovered-yt.example.com" },
+      noNetworkFetch,
+    );
+    const { source } = (await added.json()) as { source: { id: string } };
+
+    const edited = await putJson(`/sources/${source.id}`, { youtube: "https://www.youtube.com/channel/UCrecoveredYtChannel1" });
+    const body = (await edited.json()) as { source: { feedType: string } };
+    expect(body.source.feedType).toBe("youtube");
+  });
+
+  it("demotes feedType to website when only youtube is cleared but homepage remains set", async () => {
+    const added = await postJson(
+      "/sources",
+      { name: "Demote Source", type: "artist", category: "vietnam", pastedUrl: "https://www.youtube.com/channel/UCdemotedemotedemote1" },
+      noNetworkFetch,
+    );
+    const { source } = (await added.json()) as { source: { id: string; feedType: string } };
+    expect(source.feedType).toBe("youtube");
+
+    const edited = await putJson(`/sources/${source.id}`, { youtube: null });
+    const body = (await edited.json()) as { source: { feedType: string } };
+    expect(body.source.feedType).toBe("website");
+  });
+
+  it("demotes feedType all the way to manual when homepage/rss/youtube are all cleared", async () => {
+    const added = await postJson(
+      "/sources",
+      { name: "Fully Demoted Source", type: "artist", category: "vietnam", pastedUrl: "https://www.youtube.com/channel/UCfullydemoted12345" },
+      noNetworkFetch,
+    );
+    const { source } = (await added.json()) as { source: { id: string; feedType: string } };
+    expect(source.feedType).toBe("youtube");
+
+    const edited = await putJson(`/sources/${source.id}`, { youtube: null, homepage: null });
+    const body = (await edited.json()) as { source: { feedType: string } };
+    expect(body.source.feedType).toBe("manual");
+  });
+
+  it("leaves feedType untouched when the edit doesn't touch homepage/rss/youtube at all", async () => {
+    const added = await postJson(
+      "/sources",
+      { name: "Untouched Source", type: "artist", category: "vietnam", pastedUrl: "https://www.youtube.com/channel/UCuntoucheduntouched1" },
+      noNetworkFetch,
+    );
+    const { source } = (await added.json()) as { source: { id: string } };
+
+    const edited = await putJson(`/sources/${source.id}`, { notes: "just a note update" });
+    const body = (await edited.json()) as { source: { feedType: string } };
+    expect(body.source.feedType).toBe("youtube");
   });
 });
 
