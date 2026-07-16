@@ -12,6 +12,7 @@
 
 <header class="topbar">
   <div class="topbar__brand">
+    <span class="topbar__eyebrow">The New Culture</span>
     <span class="topbar__title">Editorial OS</span>
     <span class="topbar__subtitle">Worker Dashboard</span>
   </div>
@@ -22,6 +23,7 @@
   </div>
 
   <div class="topbar__meta">
+    <span class="topbar__clock" id="currentTime"></span>
     <span class="topbar__endpoint" id="workerEndpoint"></span>
     <span class="topbar__timestamp" id="lastRefreshed">Chưa refresh lần nào</span>
   </div>
@@ -34,49 +36,79 @@
 
 <main class="main">
   <section id="view-dashboard" class="view">
-    <section class="toolbar">
-      <button class="btn btn--primary" id="refreshBtn" type="button">Refresh</button>
-      <button class="btn btn--accent" id="runBtn" type="button">Run Worker</button>
-      <span class="toolbar__auto">Auto refresh: <strong>30s</strong></span>
-      <span class="toolbar__loading" id="globalLoading" hidden>Đang tải…</span>
+    <p class="section-label">System Metrics</p>
+    <section class="metrics">
+      <div class="metric">
+        <span class="metric__label">Worker Status</span>
+        <span class="metric__value" id="metric-worker-status">—</span>
+        <span class="metric__sub" id="metric-worker-sub">Chưa tải dữ liệu.</span>
+      </div>
+      <div class="metric">
+        <span class="metric__label">API Health</span>
+        <span class="metric__value" id="metric-api-health">—</span>
+        <span class="metric__sub" id="metric-api-sub">Chưa tải dữ liệu.</span>
+      </div>
+      <div class="metric">
+        <span class="metric__label">Queue Count</span>
+        <span class="metric__value" id="metric-queue-count">—</span>
+        <span class="metric__sub" id="metric-queue-sub">Chưa tải dữ liệu.</span>
+      </div>
+      <div class="metric">
+        <span class="metric__label">Stories Today</span>
+        <span class="metric__value" id="metric-stories-today">—</span>
+        <span class="metric__sub" id="metric-stories-sub">Chưa tải dữ liệu.</span>
+      </div>
+      <div class="metric">
+        <span class="metric__label">Last Run</span>
+        <span class="metric__value" id="metric-last-run">—</span>
+        <span class="metric__sub" id="metric-last-run-sub">Chưa tải dữ liệu.</span>
+      </div>
+      <div class="metric">
+        <span class="metric__label">Cron Status</span>
+        <span class="metric__value" id="metric-cron-status">—</span>
+        <span class="metric__sub" id="metric-cron-sub">ước tính từ lịch 30 phút</span>
+      </div>
     </section>
 
-    <section class="panels">
-      <article class="panel" id="panel-health">
-        <header class="panel__head">
-          <h2>Health</h2>
-          <span class="panel__badge" id="health-badge"></span>
-        </header>
-        <div class="panel__error" id="health-error" hidden></div>
-        <pre class="panel__body" id="health-body">Chưa tải dữ liệu.</pre>
-      </article>
+    <section class="action-row">
+      <button class="btn btn--primary" id="runBtn" type="button">Run Worker</button>
+      <button class="btn" id="refreshBtn" type="button">Refresh</button>
+      <span class="action-row__spacer"></span>
+      <span class="toolbar__loading" id="globalLoading" hidden>Đang tải…</span>
+      <span class="action-row__hint" id="autoRefreshHint">Auto refresh: 30s</span>
+    </section>
 
-      <article class="panel" id="panel-dashboard">
-        <header class="panel__head">
-          <h2>Dashboard</h2>
-          <span class="panel__badge" id="dashboard-badge"></span>
-        </header>
-        <div class="panel__error" id="dashboard-error" hidden></div>
-        <pre class="panel__body" id="dashboard-body">Chưa tải dữ liệu.</pre>
-      </article>
+    <div class="panel__error" id="dashboard-view-error" hidden></div>
 
+    <section class="layout">
       <article class="panel" id="panel-queue">
         <header class="panel__head">
           <h2>Queue</h2>
-          <span class="panel__badge" id="queue-badge"></span>
+          <span class="panel__count" id="queue-count-badge">0 stories</span>
         </header>
-        <div class="panel__error" id="queue-error" hidden></div>
-        <pre class="panel__body" id="queue-body">Chưa tải dữ liệu.</pre>
+        <div class="queue-list" id="queue-list"></div>
+        <p class="empty" id="queue-empty" hidden>Chưa có story nào trong Queue.</p>
       </article>
 
-      <article class="panel" id="panel-history">
-        <header class="panel__head">
-          <h2>History</h2>
-          <span class="panel__badge" id="history-badge"></span>
-        </header>
-        <div class="panel__error" id="history-error" hidden></div>
-        <pre class="panel__body" id="history-body">Chưa tải dữ liệu.</pre>
-      </article>
+      <div class="right-col">
+        <article class="panel" id="panel-top-story">
+          <header class="panel__head">
+            <h2>Today's Top Story</h2>
+          </header>
+          <div class="top-story" id="top-story-body">
+            <p class="empty">Chưa có top story.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-activity">
+      <header class="panel__head">
+        <h2>Activity Log</h2>
+        <span class="panel__count">latest run</span>
+      </header>
+      <div class="timeline" id="activity-timeline"></div>
+      <p class="empty" id="activity-empty" hidden>Chưa có hoạt động nào — chạy Worker để bắt đầu.</p>
     </section>
   </section>
 
