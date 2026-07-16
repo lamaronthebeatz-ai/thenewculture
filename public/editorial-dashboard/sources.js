@@ -25,6 +25,7 @@
 
   var sourcesCache = [];
   var healthByPrefix = {}; // recordId -> CollectorHealthStatus string
+  var editingUrlField = null; // "youtube" | "rss" | "homepage" | null — which field the URL input writes back to when editing
 
   var tabButtons = document.querySelectorAll(".tab");
   var viewDashboard = document.getElementById("view-dashboard");
@@ -247,11 +248,14 @@
       formName.value = source.name;
       formType.value = source.type;
       formCategory.value = source.category;
-      formUrlField.hidden = true; // URL re-detection isn't part of Edit — only Add auto-detects.
+      editingUrlField = (source.feedType === "rss" || source.feedType === "atom") ? "rss" : "youtube";
+      formUrlField.hidden = false;
+      formUrl.value = source.youtube || source.rss || source.homepage || "";
       formNotes.value = source.notes || "";
     } else {
       modalTitle.textContent = "Add Source";
       formId.value = "";
+      editingUrlField = null;
       formUrlField.hidden = false;
     }
     modalOverlay.hidden = false;
@@ -285,6 +289,9 @@
           pastedUrl: formUrl.value.trim(),
           notes: formNotes.value,
         };
+    if (isEdit) {
+      payload[editingUrlField || "youtube"] = formUrl.value.trim() || null;
+    }
 
     var request = isEdit
       ? apiFetch("/sources/" + encodeURIComponent(id), { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) })
