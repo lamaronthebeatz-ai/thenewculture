@@ -10,7 +10,7 @@
  * redeploy."
  */
 import { EditorialKvStore } from "../kv";
-import { ENTITY_TYPES, EntityType, FEED_TYPES, NewSourceInput, SourceRecord, SourceUpdateInput } from "./types";
+import { ENTITY_TYPES, EntityType, FEED_TYPES, FeedType, NewSourceInput, SourceRecord, SourceUpdateInput } from "./types";
 import { SourceCategory } from "../collectors/base";
 import { SourceStatus } from "../config-loader/types";
 import { SourceManagerStore } from "./store";
@@ -101,6 +101,25 @@ async function handleAddSource(request: Request, store: SourceManagerStore, fetc
   return json({ source: record, sources: updated }, 201);
 }
 
+/** Recomputes feedType from the resulting homepage/rss/youtube state
+ * whenever an edit touches any of those three fields — same youtube >
+ * rss > homepage > manual precedence Add Source's own detection already
+ * uses (store.ts's feedTypeForSeedEntry). Without this, a source whose
+ * Add-time detection failed (feedType stuck at "manual") could never
+ * become collectible again even after an editor pastes in a fully
+ * valid, verified feed URL via Edit — collection eligibility
+ * (source-manager/store.ts's sourceRecordsToSourceConfigs) is keyed off
+ * feedType, not off whether rss/youtube is actually populated. */
+function recomputedFeedType(existingRecord: SourceRecord, patch: SourceUpdateInput): FeedType {
+  const youtube = patch.youtube !== undefined ? patch.youtube : existingRecord.youtube;
+  const rss = patch.rss !== undefined ? patch.rss : existingRecord.rss;
+  const homepage = patch.homepage !== undefined ? patch.homepage : existingRecord.homepage;
+  if (youtube !== null) return "youtube";
+  if (rss !== null) return "rss";
+  if (homepage !== null) return "website";
+  return "manual";
+}
+
 async function handleUpdateSource(id: string, request: Request, store: SourceManagerStore): Promise<Response> {
   const body = await readJsonBody(request);
   if (!body) return json({ error: "Body JSON không hợp lệ." }, 400);
@@ -137,7 +156,13 @@ async function handleUpdateSource(id: string, request: Request, store: SourceMan
     }
   }
 
-  const updated = await store.update(id, patch);
+  const patchWithFeedType: SourceUpdateInput & { feedType?: FeedType } = { ...patch };
+  if (patch.homepage !== undefined || patch.rss !== undefined || patch.youtube !== undefined) {
+    const existingRecord = existing.find((s) => s.id === id);
+    if (existingRecord) patchWithFeedType.feedType = recomputedFeedType(existingRecord, patch);
+  }
+
+  const updated = await store.update(id, patchWithFeedType);
   if (updated === null) return json({ error: `Không tìm thấy nguồn với id "${id}"` }, 404);
   return json({ source: updated.find((s) => s.id === id), sources: updated });
 }
