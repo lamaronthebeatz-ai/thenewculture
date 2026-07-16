@@ -3,11 +3,12 @@ title: 'KOSMIK 2026: Khi SpaceSpeakers đưa sân khấu của mình đến Las 
 series: tnc-radar
 dek: Dàn nghệ sĩ góp mặt gần như quy tụ đầy đủ những gương mặt quen thuộc của SpaceSpeakers, bao gồm Touliver, Soobin, Binz, Rhymastic, Kimmese, Andree Right Hand, Lil Wuyn và 16 Typh,...
 cover: /uploads/3824.jpg
+cover_credit: ''
 poster: ''
 author: Lamar
 date: 10 Tháng 7, 2026
 read_time: ''
-featured: true
+featured: false
 order: 1
 tags:
   - '#Kosmik'
