@@ -8,6 +8,7 @@ badges:
   - rising
 avatar: /uploads/3781.webp
 short_desc: 2pillz (tên thật Phạm Phú Nguyên, sinh năm 1998) là DJ và nhà sản xuất âm nhạc nổi tiếng tại Việt Nam. Từ bỏ ngành công nghệ máy tính ở Mỹ để theo đuổi đam mê, anh nổi lên nhờ tạo ra các bản phối Hip-hop, Trap và Afrobeat tiệm cận quốc tế.
+spotify_artist: https://open.spotify.com/artist/0XtC2d9ZVigYA7iMy5YkW0?si=LBQvMeecQfuNk5zc5OFNQw&utm_source=copy-link
 ---
 
 Hành trình sự nghiệp và Thành tựu
