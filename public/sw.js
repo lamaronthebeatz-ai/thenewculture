@@ -1,4 +1,4 @@
-const CACHE='tnc-8ea881154ffc';
+const CACHE='tnc-dca340437858';
 self.addEventListener('install',e=>self.skipWaiting());
 self.addEventListener('activate',e=>{
   e.waitUntil(
