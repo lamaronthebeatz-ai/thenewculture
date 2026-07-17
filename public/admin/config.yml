@@ -125,13 +125,6 @@ collections:
         default: ["#TNC"]
         hint: "Các từ khóa liên quan, hiển thị cuối bài."
 
-      - label: "Spotify Artist URL"
-        name: spotify_artist
-        widget: string
-        required: false
-        default: ""
-        hint: "Chỉ áp dụng khi Series chọn là 'TNC Profiles'. Dán link trang nghệ sĩ trên Spotify (https://open.spotify.com/artist/xxxxxxxxxxxxxxxx) để nhúng trình phát Spotify Artist vào cuối bài. Để trống nếu không cần."
-
       - label: "Nội dung bài viết"
         name: body
         widget: markdown
@@ -506,6 +499,13 @@ collections:
         widget: markdown
         required: false
         hint: "Tiểu sử, dấu ấn nổi bật, thông tin chi tiết — hiển thị đầy đủ ở trang riêng của hồ sơ này."
+
+      - label: "Spotify Artist URL"
+        name: spotify_artist
+        widget: string
+        required: false
+        default: ""
+        hint: "Dán link trang nghệ sĩ trên Spotify (https://open.spotify.com/artist/xxxxxxxxxxxxxxxx) để nhúng trình phát Spotify Artist ở cuối trang hồ sơ. Để trống nếu không cần."
 
   # ============================================================
   # TNC MAGAZINE — Monthly Digital Magazine
