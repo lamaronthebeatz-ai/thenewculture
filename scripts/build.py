@@ -152,6 +152,15 @@ def _spotify_embed(url):
         return None
     return {"kind": m.group(1), "id": m.group(2)}
 
+def _spotify_artist_id(url):
+    """Trích ARTIST_ID từ trường 'spotify_artist' (Spotify Artist Embed, series
+    TNC Profiles) — dùng lại _spotify_embed(), chỉ chấp nhận kind == 'artist',
+    tự bỏ qua query string (?si=...). Trả None nếu url trống/không hợp lệ."""
+    if not url:
+        return None
+    sp = _spotify_embed(url)
+    return sp["id"] if sp and sp["kind"] == "artist" else None
+
 def _soundcloud_url(url):
     """Nhận diện link SoundCloud đứng riêng dòng (track hoặc playlist/'sets')."""
     return url if re.match(r'^https?://(www\.)?soundcloud\.com/\S+$', url) else None
@@ -376,6 +385,7 @@ def load_articles():
             "read_time": read_time,
             "cover": meta.get("cover", "") or "",
             "cover_credit": (meta.get("cover_credit") or "").strip(),
+            "spotify_artist": (meta.get("spotify_artist") or "").strip(),
             "poster": meta.get("poster", "") or "",
             "featured": bool(meta.get("featured", False)),
             "order": int(meta.get("order", 999)),
@@ -756,6 +766,7 @@ if not ARTICLES:
         "read_time": "1 phút đọc",
         "cover": "",
         "cover_credit": "",
+        "spotify_artist": "",
         "poster": "",
         "featured": True,
         "order": 1,
@@ -2798,12 +2809,39 @@ def render_series_pager(a):
       {next_html}
     </nav>"""
 
+def render_spotify_artist_block(a):
+    """Spotify Artist Player — chỉ hiển thị khi series là TNC Profiles VÀ
+    trường spotify_artist là link Spotify Artist hợp lệ. Iframe tĩnh, không
+    JavaScript. Trả "" (không render gì) trong mọi trường hợp khác, kể cả
+    khi thiếu trường hoặc link không hợp lệ — build tiếp tục bình thường."""
+    if a.get("series") != "tnc-profiles":
+        return ""
+    artist_id = _spotify_artist_id(a.get("spotify_artist") or "")
+    if not artist_id:
+        return ""
+    return f"""
+<section class="spotify-artist">
+    <h2>Nghe nghệ sĩ trên Spotify</h2>
+
+    <iframe
+        src="https://open.spotify.com/embed/artist/{artist_id}"
+        loading="lazy"
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        allowfullscreen>
+    </iframe>
+</section>"""
+
 def render_article_page(a):
     s = SERIES_BY_SLUG[a["series"]]
     # Artist Knowledge Graph V1: tự chèn internal link tới TNC Profile khi
     # tên/alias nghệ sĩ xuất hiện trong thân bài — chỉ áp dụng cho Article,
     # không áp dụng cho bio của chính Profile (tránh tự link tới chính nó).
     body = linkify_entities(render_body_blocks(a["body"]))
+    spotify_artist_html = render_spotify_artist_block(a)
+    spotify_artist_block = (
+        f'\n    <div class="container" style="max-width:680px;">{spotify_artist_html}\n    </div>\n'
+        if spotify_artist_html else ""
+    )
 
     # related — chấm điểm theo số tag trùng, ưu tiên cùng series khi hòa điểm
     def _score(x):
@@ -2868,7 +2906,7 @@ def render_article_page(a):
 {render_series_pager(a)}
 {render_inline_ad_mobile()}
   </article>
-
+{spotify_artist_block}
   <section class="section container js-reveal">
     <div class="section-head"><h2>Bài viết liên quan</h2></div>
     <div class="grid grid-3">{rel}
@@ -2908,6 +2946,11 @@ ARTICLE_CSS = """
 /* Ảnh bìa hiển thị đè lên placeholder */
 .media__zoom{width:100%;height:100%;object-fit:cover;}
 img.media__zoom{position:absolute;inset:0;z-index:1;}
+
+/* ----- SPOTIFY ARTIST EMBED (chỉ hiển thị ở series TNC Profiles) ----- */
+.spotify-artist{margin:2em 0;}
+.spotify-artist h2{font-size:var(--t-lg);margin:0 0 0.6em;}
+.spotify-artist iframe{width:100%;height:370px;border:1px solid var(--c-line);border-radius:var(--r-md);display:block;}
 
 /* ----- BẢNG XẾP HẠNG (Listicle) ----- */
 .ranking-wrap{max-width:820px;}
