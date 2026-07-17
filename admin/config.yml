@@ -125,6 +125,13 @@ collections:
         default: ["#TNC"]
         hint: "Các từ khóa liên quan, hiển thị cuối bài."
 
+      - label: "Spotify Artist URL"
+        name: spotify_artist
+        widget: string
+        required: false
+        default: ""
+        hint: "Chỉ áp dụng khi Series chọn là 'TNC Profiles'. Dán link trang nghệ sĩ trên Spotify (https://open.spotify.com/artist/xxxxxxxxxxxxxxxx) để nhúng trình phát Spotify Artist vào cuối bài. Để trống nếu không cần."
+
       - label: "Nội dung bài viết"
         name: body
         widget: markdown
