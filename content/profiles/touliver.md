@@ -8,6 +8,7 @@ badges:
   - veteran
 avatar: /uploads/3773.jpg
 short_desc: Touliver là một trong những producer tài năng và có sức ảnh hưởng nhất làng nhạc Việt hiện nay.
+spotify_artist: https://open.spotify.com/artist/5UNWQJdUbO8Gbg9Qn3r52M?si=GLY46Ob9RfO_N8ngT34tZw&utm_source=copy-link
 ---
 
 **Touliver** là một trong những **producer** tài năng và có sức ảnh hưởng nhất làng nhạc Việt hiện nay. 
