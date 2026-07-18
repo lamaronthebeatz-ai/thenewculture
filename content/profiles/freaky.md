@@ -8,6 +8,7 @@ badges:
   - underrated
 avatar: /uploads/3804.jpg
 short_desc: Freaky (tên thật là Trần Đăng Khoa, sinh năm 1999) là một nam rapper, nhạc sĩ và nhà sản xuất âm nhạc tài năng đến từ Long Xuyên. Anh chính thức bùng nổ và ghi dấu ấn mạnh mẽ trong lòng công chúng sau khi tham gia chương trình Rap Việt mùa 2 dưới sự dẫn dắt của huấn luyện viên Karik. Được khán giả ưu ái gọi với danh xưng "hot boy Rap Việt", Freaky không chỉ thu hút bởi ngoại hình sáng sân khấu mà còn bởi tư duy âm nhạc hiện đại và nhạy bén.
+spotify_artist: https://open.spotify.com/artist/3JlzPlR5FYYa402qPCCaAm?si=fXz-zNB9RHmIVdQMqHMbqg&utm_source=copy-link
 ---
 
 **Freaky** (tên thật là Trần Đăng Khoa, sinh năm 1999) là một nam rapper, nhạc sĩ và nhà sản xuất âm nhạc tài năng đến từ Long Xuyên. Anh chính thức bùng nổ và ghi dấu ấn mạnh mẽ trong lòng công chúng sau khi tham gia chương trình _Rap Việt mùa 2_ dưới sự dẫn dắt của huấn luyện viên Karik. Được khán giả ưu ái gọi với danh xưng "hot boy Rap Việt", Freaky không chỉ thu hút bởi ngoại hình sáng sân khấu mà còn bởi tư duy âm nhạc hiện đại và nhạy bén.
