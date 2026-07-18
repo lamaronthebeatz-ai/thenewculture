@@ -7,6 +7,7 @@ badges:
   - veteran
 avatar: /uploads/3819.webp
 short_desc: Rapper Nah (Nguyễn Vũ Sơn, sinh năm 1991) là một trong những tên tuổi kỳ cựu và gây tranh cãi nhất lịch sử Rap Underground Việt Nam. Anh từng được cộng đồng tôn vinh là "King Lyrics" nhờ tư duy viết lời thâm thúy, gai góc và khả năng chơi chữ đi trước thời đại.
+spotify_artist: https://open.spotify.com/artist/7jjAcAWAtaWi4YkG71Io7S?si=hN1PUV9pSSyzYo87gMWJSQ&utm_source=copy-link
 ---
 
 Rapper **Nah (Nguyễn Vũ Sơn, sinh năm 1991)** là một trong những tên tuổi kỳ cựu và gây tranh cãi nhất lịch sử Rap Underground Việt Nam. Anh từng được cộng đồng tôn vinh là **"King Lyrics"** nhờ tư duy viết lời thâm thúy, gai góc và khả năng chơi chữ đi trước thời đại.
