@@ -6,7 +6,7 @@ cover: /uploads/3934.jpg
 cover_credit: ''
 poster: ''
 author: Lamar
-date: ''
+date: 18 Tháng 7, 2026
 read_time: ''
 featured: true
 order: 1
