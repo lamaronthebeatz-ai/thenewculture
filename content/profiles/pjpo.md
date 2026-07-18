@@ -8,6 +8,7 @@ badges:
   - veteran
 avatar: /uploads/3778.webp
 short_desc: Pjpo (tên thật Nguyễn Cao Kỳ, sinh ngày 9/9/1991 tại Vĩnh Long) là rapper tài năng đại diện cho Westside – tinh thần miền Tây trong làng rap Việt.
+spotify_artist: https://open.spotify.com/artist/5kooMseQPNPTz5y1UCM5UR?si=q2WpZU9jRT6PvsSv2G4i2Q&utm_source=copy-link
 ---
 
 **Pjpo** (tên thật Nguyễn Cao Kỳ, sinh ngày 9/9/1991 tại Vĩnh Long) là rapper tài năng đại diện cho **Westside – tinh thần miền Tây** trong làng rap Việt. 
