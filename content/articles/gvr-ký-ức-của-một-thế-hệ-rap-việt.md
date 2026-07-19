@@ -6,9 +6,9 @@ cover: /uploads/3936.jpg
 cover_credit: ''
 poster: ''
 author: Lamar
-date: 19 Tháng 7, 2026
+date: ''
 read_time: ''
-featured: true
+featured: false
 order: 1
 tags:
   - '#TNC'
