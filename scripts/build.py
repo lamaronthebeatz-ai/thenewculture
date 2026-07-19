@@ -3266,6 +3266,97 @@ def build_sitemap():
     items = "\n".join(f"  <url><loc>{u}</loc></url>" for u in urls)
     return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{items}\n</urlset>'
 
+def _slim_article(a):
+    """Bản rút gọn của 1 article, đủ dùng để tham chiếu trong Editorial
+    Intelligence (JSON) — không mang theo toàn bộ `body` (block nội dung)
+    để tránh lặp dữ liệu nặng, không cần thiết cho các danh sách tham chiếu."""
+    if not a:
+        return None
+    return {"slug": a["slug"], "title": a["title"], "date": a["date"], "series": a["series"]}
+
+def compute_editor_intelligence(name, arts):
+    """Editorial Intelligence (PR3): mọi chỉ số + danh sách bên dưới được suy
+    ra 100% từ dữ liệu build-time đã có (ARTICLES/SERIES/tags) — không thêm
+    trường CMS mới, không tính bằng JavaScript ở client.
+
+    Diễn giải đã công bố (do hệ dữ liệu hiện tại không có taxonomy "category"
+    tách biệt khỏi "tag"): "category"/"Participated Categories" ở đây dùng
+    chính `tags` sẵn có của bài viết, không phát minh trường dữ liệu mới.
+
+    Hàm này KHÔNG render HTML — trang tác giả (PR1/PR2) giữ nguyên 100%,
+    không đổi layout/markup. Kết quả là dict thuần Python (JSON-serializable),
+    được main() ghi ra public/editor-intelligence.json."""
+    import datetime
+    dated = sorted(arts, key=lambda a: _parse_vn_date(a["date"]))
+    real_dates = [d for a in arts if (d := _parse_vn_date(a["date"])) != datetime.date.min]
+    years = sorted({d.year for d in real_dates})
+    series_slugs = {a["series"] for a in arts}
+    categories = sorted({t for a in arts for t in a.get("tags", [])})
+
+    # Featured Articles: ưu tiên 1) featured=true, 2) hero_priority=true,
+    # 3) mới nhất — tối đa 3, không trùng bài (tái dùng cách sắp xếp
+    # "mới nhất trước" của select_hero_articles, không phát minh lại).
+    chosen, seen = [], set()
+    for pred in (lambda a: a.get("featured"), lambda a: a.get("hero_priority")):
+        for a in sorted((x for x in arts if pred(x) and x["slug"] not in seen),
+                         key=lambda a: _parse_vn_date(a["date"]), reverse=True):
+            if len(chosen) >= 3:
+                break
+            chosen.append(a); seen.add(a["slug"])
+    for a in sorted((x for x in arts if x["slug"] not in seen),
+                     key=lambda a: _parse_vn_date(a["date"]), reverse=True):
+        if len(chosen) >= 3:
+            break
+        chosen.append(a); seen.add(a["slug"])
+
+    recent_articles = sorted(arts, key=lambda a: _parse_vn_date(a["date"]), reverse=True)[:5]
+    participated_series = [s for s in SERIES if s["slug"] in series_slugs]
+
+    timeline = []
+    for y in years:
+        y_arts = sorted((a for a in arts if _parse_vn_date(a["date"]).year == y),
+                         key=lambda a: _parse_vn_date(a["date"]))
+        timeline.append({
+            "year": y, "count": len(y_arts),
+            "articles": [_slim_article(a) for a in y_arts],
+        })
+
+    return {
+        "article_count": len(arts),
+        "series_count": len(series_slugs),
+        "category_count": len(categories),
+        "first_article": _slim_article(dated[0]) if dated else None,
+        "latest_article": _slim_article(dated[-1]) if dated else None,
+        "active_years": len(years),
+        "featured_articles": [_slim_article(a) for a in chosen],
+        "recent_articles": [_slim_article(a) for a in recent_articles],
+        "participated_series": [{"slug": s["slug"], "name": s["name"]} for s in participated_series],
+        "participated_categories": categories,
+    }
+
+def compute_related_editors(name, arts, editors_arts):
+    """Related Editors (PR3): xếp hạng theo mức độ tương đồng, ưu tiên Series
+    trước rồi đến Tags — không bao giờ random (tie-break cuối cùng theo tên,
+    ổn định/xác định). Ghi chú: hệ dữ liệu không có taxonomy "Category" tách
+    biệt khỏi "Tags" (xem compute_editor_intelligence), nên bậc "Category" mà
+    đề bài yêu cầu trùng với bậc "Tags" ở implementation này — không phát
+    minh thêm một trường tương đồng giả để lấp cho đủ 3 bậc."""
+    my_series = {a["series"] for a in arts}
+    my_tags = {t for a in arts for t in a.get("tags", [])}
+    scored = []
+    for other_name, other_arts in editors_arts.items():
+        if other_name == name:
+            continue
+        o_series = {a["series"] for a in other_arts}
+        o_tags = {t for a in other_arts for t in a.get("tags", [])}
+        shared_series = len(my_series & o_series)
+        shared_tags = len(my_tags & o_tags)
+        if shared_series == 0 and shared_tags == 0:
+            continue
+        scored.append((other_name, shared_series, shared_tags))
+    scored.sort(key=lambda t: (-t[1], -t[2], t[0]))
+    return [{"name": n, "shared_series": ss, "shared_tags": st} for n, ss, st in scored]
+
 def render_author_page(name, arts):
     """Trang hồ sơ biên tập viên: identity page căn giữa (không phải trang bài
     viết) — ảnh, tên, RoleChip, thống kê, tổ chức, Honors, Badges, quote/giới
@@ -4119,6 +4210,17 @@ self.addEventListener('fetch',e=>{
             f.write(render_author_page(name, arts))
     if skipped_authors:
         print(f"  (Chưa có trang tác giả cho: {', '.join(skipped_authors)} — thiếu hồ sơ trong content/editors/)")
+
+    # Editorial Intelligence (PR3) — chỉ số + danh sách tự sinh cho mỗi biên
+    # tập viên đã có trang (has_page trong EDITORS). Build-time only, không
+    # đổi HTML/CSS trang tác giả (PR1/PR2) — ghi ra file JSON riêng.
+    editors_arts = {n: a for n, a in authors.items() if n in EDITORS}
+    editor_intelligence = {n: compute_editor_intelligence(n, a) for n, a in editors_arts.items()}
+    for n, a in editors_arts.items():
+        editor_intelligence[n]["related_editors"] = compute_related_editors(n, a, editors_arts)
+    import json as _json
+    with open(os.path.join(OUT, "editor-intelligence.json"), "w", encoding="utf-8") as f:
+        _json.dump(editor_intelligence, f, ensure_ascii=False, indent=2)
 
     # Trang lọc theo Tag — mỗi từ khóa xuất hiện ở ít nhất 1 bài viết
     for tslug, data in TAGS_BY_SLUG.items():
