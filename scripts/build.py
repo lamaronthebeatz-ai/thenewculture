@@ -2332,8 +2332,12 @@ def render_goat_name_html(name, has_goat):
     goat_badge = '<span class="badge badge--goat" title="Đỉnh cao mọi thời đại">GOAT</span>'
     return f'<span class="profile-name--goat">{name}</span> {goat_badge}'
 
-def render_profile_card(p):
-    """Sinh HTML một 'thẻ tướng' cho lưới danh mục TNC Profiles."""
+def render_profile_card(p, reveal=False):
+    """Sinh HTML một 'thẻ tướng' cho lưới danh mục TNC Profiles.
+    `reveal=True` gắn thêm .js-reveal để mỗi thẻ tự fade/slide-in độc lập khi
+    cuộn tới (dùng cho lưới danh mục — render_profiles_series_page). Mặc định
+    False: giữ nguyên hành vi cho marquee trang chủ (render_profiles_homepage_block),
+    vốn cần opacity:1 cố định, không tham gia hệ thống scroll-reveal."""
     ptype = PROFILE_TYPES[p["type"]]
     tier = influence_tier(p["influence"])
     has_goat = "goat" in p["badges"]
@@ -2341,8 +2345,9 @@ def render_profile_card(p):
                    if p["avatar"] else '<div class="profile-card__ph"></div>')
     name_html = render_goat_name_html(p["name"], has_goat)
     badges_html = render_badges_html(p["badges"], context="card")
+    card_class = "profile-card js-reveal" if reveal else "profile-card"
     return f"""
-      <a class="profile-card" href="{profile_url(p['slug'])}" data-type="{p['type']}" data-tier="{tier}">
+      <a class="{card_class}" href="{profile_url(p['slug'])}" data-type="{p['type']}" data-tier="{tier}">
         <div class="profile-card__media">{avatar_html}
           <span class="profile-card__type eyebrow eyebrow{ptype['accent']}">{ptype['label']}</span>
         </div>
@@ -2361,7 +2366,7 @@ def render_profiles_series_page(s):
     """Trang danh mục chuyên biệt cho series TNC Profiles: lưới 'thẻ tướng'
     thay vì danh sách bài viết chuẩn. Được gọi thay cho render_series_page()
     khi phát hiện đúng slug 'tnc-profiles'."""
-    cards_html = "".join(render_profile_card(p) for p in PROFILES)
+    cards_html = "".join(render_profile_card(p, reveal=True) for p in PROFILES)
     if not PROFILES:
         cards_html = """
       <div style="grid-column:1/-1;padding:var(--s-8);text-align:center;border:1px dashed var(--c-line);">
@@ -2401,7 +2406,7 @@ def render_profiles_series_page(s):
 
     <div class="profile-filters">{filter_buttons}</div>
 
-    <div class="profile-grid js-reveal" id="profileGrid">{cards_html}
+    <div class="profile-grid" id="profileGrid">{cards_html}
     </div>
   </section>
 
