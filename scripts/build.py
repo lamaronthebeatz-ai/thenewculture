@@ -3073,14 +3073,21 @@ def build_sitemap():
     return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{items}\n</urlset>'
 
 def render_author_page(name, arts):
-    """Trang hồ sơ tác giả: ảnh, tiểu sử (từ content/editors/) + toàn bộ bài viết của họ.
-    Chỉ được gọi khi tác giả đã có hồ sơ trong EDITORS (kiểm tra ở nơi gọi trong main())."""
+    """Trang hồ sơ biên tập viên: identity page căn giữa (không phải trang bài
+    viết) — ảnh, tên, vai trò, tổ chức, quote/giới thiệu (từ content/editors/),
+    rồi tới bài viết + series của họ. Chỉ được gọi khi tác giả đã có hồ sơ
+    trong EDITORS (kiểm tra ở nơi gọi trong main()). Không có trường/dữ liệu
+    mới nào: Vai trò tái dùng số lượng bài viết đã có sẵn (trước đây hiện
+    dạng "{len(arts)} bài viết trên The New Culture."); Quote/Giới thiệu tái
+    dùng đúng trường bio sẵn có; Social Links chưa có nguồn dữ liệu trong CMS
+    nên không render gì (đúng nguyên tắc "chỉ hiện khi đã có dữ liệu")."""
     ed = EDITORS.get(name, {})
     avatar = ed.get("avatar", "")
     bio = ed.get("bio", "")
-    avatar_html = (f'<img src="{avatar}" alt="{name}" class="author-hero__avatar">'
-                   if avatar else '<div class="author-hero__avatar"></div>')
-    bio_html = f'<p class="author-hero__bio">{bio}</p>' if bio else ""
+    avatar_html = (f'<img src="{avatar}" alt="{name}" class="author-hero__avatar js-reveal">'
+                   if avatar else '<div class="author-hero__avatar js-reveal"></div>')
+    quote_html = f'<p class="author-hero__quote js-reveal">{bio}</p>' if bio else ""
+
     rows = ""
     for a in arts:
         s = SERIES_BY_SLUG[a["series"]]
@@ -3094,21 +3101,48 @@ def render_author_page(name, arts):
           <span class="byline">{a['date']} · {a['read_time']}</span>
         </div>
       </a>"""
-    inner = f"""
-  <section class="container">
-    <div class="author-hero">
-      {avatar_html}
-      <div>
-        <span class="eyebrow">Tác giả</span>
-        <h1>{name}</h1>
-        <p>{len(arts)} bài viết trên The New Culture.</p>
-        {bio_html}
+
+    # Series: chỉ những series tác giả đã thực sự có bài, theo đúng thứ tự
+    # SERIES chuẩn — dữ liệu suy ra từ `arts` đã có sẵn, không thêm trường CMS
+    # nào. Tái dùng nguyên component .series-band/.series-grid/.series-cell.
+    author_series_slugs = {a["series"] for a in arts}
+    series_cells = ""
+    for s in SERIES:
+        if s["slug"] not in author_series_slugs:
+            continue
+        series_cells += f"""
+      <a class="series-cell" href="{series_url(s['slug'])}">
+        <span class="series-cell__code">{s['code']} · {s['num']}</span>
+        <h3>{s['name']}</h3>
+      </a>"""
+    series_section = f"""
+  <section class="series-band author-series js-reveal">
+    <div class="container">
+      <div class="section-head"><h2>Series</h2></div>
+      <div class="series-grid">{series_cells}
       </div>
     </div>
-    <div class="section-head"><h2>Bài viết</h2></div>
+  </section>""" if series_cells else ""
+
+    inner = f"""
+  <section class="container author-hero js-reveal">
+    <nav class="byline author-hero__breadcrumb" aria-label="breadcrumb">
+      <a href="index.html">Trang chủ</a> / Biên tập viên
+    </nav>
+    <span class="eyebrow">Biên Tập Viên</span>
+    {avatar_html}
+    <h1 class="author-hero__name">{name}</h1>
+    <p class="author-hero__role">{len(arts)} bài viết đã xuất bản</p>
+    <p class="author-hero__org">{SITE_NAME}</p>
+    {quote_html}
+  </section>
+
+  <section class="container author-articles">
+    <div class="section-head"><h2>Bài viết gần đây</h2></div>
     <div class="grid js-reveal" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
     </div>
   </section>
+{series_section}
 """
     return page_wrap(name, bio or f"Các bài viết của {name} trên The New Culture.", inner, path=author_url(name))
 
