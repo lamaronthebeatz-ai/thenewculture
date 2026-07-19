@@ -298,6 +298,58 @@ collections:
         required: false
         hint: "Tiểu sử ngắn, hiển thị ở đầu trang hồ sơ tác giả."
 
+      - label: "Vai trò chính"
+        name: role_id
+        widget: select
+        required: false
+        default: bien-tap-vien
+        hint: "Vai trò chính của biên tập viên trong toà soạn — chỉ chọn 1. Để trống sẽ mặc định hiển thị 'Biên tập viên'."
+        options:
+          - { label: "Tổng Biên tập", value: tong-bien-tap }
+          - { label: "Phó Tổng Biên tập", value: pho-tong-bien-tap }
+          - { label: "Thư ký Tòa soạn", value: thu-ky-toa-soan }
+          - { label: "Trưởng ban Biên tập", value: truong-ban-bien-tap }
+          - { label: "Biên tập viên Cao cấp", value: bien-tap-vien-cao-cap }
+          - { label: "Biên tập viên", value: bien-tap-vien }
+          - { label: "Thực tập Biên tập", value: thuc-tap-bien-tap }
+          - { label: "Biên tập viên Âm nhạc", value: bien-tap-vien-am-nhac }
+          - { label: "Biên tập viên Văn hóa", value: bien-tap-vien-van-hoa }
+          - { label: "Biên tập viên Tin tức", value: bien-tap-vien-tin-tuc }
+          - { label: "Biên tập viên Đánh giá", value: bien-tap-vien-danh-gia }
+          - { label: "Biên tập viên Phỏng vấn", value: bien-tap-vien-phong-van }
+          - { label: "Biên tập viên Nghiên cứu", value: bien-tap-vien-nghien-cuu }
+          - { label: "Giám đốc Sáng tạo", value: giam-doc-sang-tao }
+          - { label: "Biên tập viên Hình ảnh", value: bien-tap-vien-hinh-anh }
+          - { label: "Cộng tác viên", value: cong-tac-vien }
+
+      - label: "Vinh danh (Honors)"
+        name: honor_ids
+        widget: select
+        multiple: true
+        required: false
+        hint: "Vinh danh đặc biệt — hiển thị phía TRÊN huy hiệu thường trên trang hồ sơ. Chỉ chọn ID có sẵn; nhãn/màu/hiệu ứng do hệ thống tự quyết định, không nhập tay."
+        options:
+          - { label: "Người Sáng lập", value: nguoi-sang-lap }
+          - { label: "10 Năm Cống hiến", value: "10-nam-cong-hien" }
+
+      - label: "Huy hiệu (Badges)"
+        name: badge_ids
+        widget: select
+        multiple: true
+        required: false
+        hint: "Huy hiệu đã đạt được, theo 5 nhóm: Sáng lập / Chuyên môn / Báo chí / Nội dung / Cộng đồng. Chỉ chọn ID có sẵn; nhãn/màu/hiệu ứng do hệ thống tự quyết định, không nhập tay."
+        options:
+          - { label: "Người Đồng sáng lập (Sáng lập)", value: nguoi-dong-sang-lap }
+          - { label: "Kiến trúc Nền tảng (Sáng lập)", value: kien-truc-nen-tang }
+          - { label: "Chuyên gia Hip-Hop (Chuyên môn)", value: chuyen-gia-hip-hop }
+          - { label: "Chuyên gia Văn hóa (Chuyên môn)", value: chuyen-gia-van-hoa }
+          - { label: "Đạo đức Báo chí (Báo chí)", value: dao-duc-bao-chi }
+          - { label: "Điều tra Chuyên sâu (Báo chí)", value: dieu-tra-chuyen-sau }
+          - { label: "Cây bút Nổi bật (Nội dung)", value: cay-but-noi-bat }
+          - { label: "Sản xuất Bền vững (Nội dung)", value: san-xuat-ben-vung }
+          - { label: "Người Kết nối (Cộng đồng)", value: nguoi-ket-noi }
+          - { label: "Đại sứ Cộng đồng (Cộng đồng)", value: dai-su-cong-dong }
+
   # ============================================================
   # TIẾP THỊ — Chiến dịch quảng bá (banner/video toàn site)
   # Sveltia CMS không hỗ trợ nhóm lồng nhau có tiêu đề riêng trong sidebar

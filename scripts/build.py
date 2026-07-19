@@ -451,6 +451,111 @@ def load_settings():
 SETTINGS = load_settings()
 
 # -----------------------------------------------------------------
+# EDITOR IDENTITY SYSTEM (PR2) — Role / Badge / Honor registries.
+# Thuần dữ liệu (id -> nhãn tiếng Việt/metadata), không phụ thuộc
+# content/editors/ — mọi hồ sơ biên tập viên chỉ lưu ID tham chiếu vào các
+# registry này (role_id: 1 giá trị; badge_ids/honor_ids: danh sách), không
+# bao giờ chép lại nhãn/màu/mô tả vào CMS ("Editors store only IDs. Never
+# duplicate metadata."). ID không hợp lệ hoặc bị xoá khỏi registry sau này
+# được bỏ qua an toàn ở nơi đọc (load_editors), không chặn build.
+# -----------------------------------------------------------------
+
+# "SUPPORTED roles" — mỗi biên tập viên có ĐÚNG 1 vai trò chính.
+EDITOR_ROLES = {
+    "tong-bien-tap": "Tổng Biên tập",
+    "pho-tong-bien-tap": "Phó Tổng Biên tập",
+    "thu-ky-toa-soan": "Thư ký Tòa soạn",
+    "truong-ban-bien-tap": "Trưởng ban Biên tập",
+    "bien-tap-vien-cao-cap": "Biên tập viên Cao cấp",
+    "bien-tap-vien": "Biên tập viên",
+    "thuc-tap-bien-tap": "Thực tập Biên tập",
+    "bien-tap-vien-am-nhac": "Biên tập viên Âm nhạc",
+    "bien-tap-vien-van-hoa": "Biên tập viên Văn hóa",
+    "bien-tap-vien-tin-tuc": "Biên tập viên Tin tức",
+    "bien-tap-vien-danh-gia": "Biên tập viên Đánh giá",
+    "bien-tap-vien-phong-van": "Biên tập viên Phỏng vấn",
+    "bien-tap-vien-nghien-cuu": "Biên tập viên Nghiên cứu",
+    "giam-doc-sang-tao": "Giám đốc Sáng tạo",
+    "bien-tap-vien-hinh-anh": "Biên tập viên Hình ảnh",
+    "cong-tac-vien": "Cộng tác viên",
+}
+
+# Nhóm huy hiệu (taxonomy) — mỗi badge thuộc đúng 1 nhóm.
+EDITOR_BADGE_CATEGORIES = {
+    "sang-lap": "Sáng lập",
+    "chuyen-mon": "Chuyên môn",
+    "bao-chi": "Báo chí",
+    "noi-dung": "Nội dung",
+    "cong-dong": "Cộng đồng",
+}
+
+# Màu + hoạt ảnh mặc định theo độ hiếm — mọi badge/honor kế thừa màu này trừ
+# khi tự khai báo "color" riêng ("Allow badge-specific overrides").
+EDITOR_RARITIES = {
+    "tieu-chuan": {"label": "Tiêu chuẩn", "color": "#8A9BA8"},
+    "noi-bat": {"label": "Nổi bật", "color": "#3B82F6"},
+    "xuat-sac": {"label": "Xuất sắc", "color": "#D4AF37"},
+    "huyen-thoai": {"label": "Huyền thoại", "color": "#FFD700"},
+}
+
+# id -> {label, category, rarity, desc, color(tùy chọn, ghi đè màu rarity)}
+EDITOR_BADGES = {
+    "nguoi-dong-sang-lap": {
+        "label": "Người Đồng sáng lập", "category": "sang-lap", "rarity": "huyen-thoai",
+        "desc": "Một trong những người đặt nền móng đầu tiên cho The New Culture.",
+    },
+    "kien-truc-nen-tang": {
+        "label": "Kiến trúc Nền tảng", "category": "sang-lap", "rarity": "xuat-sac",
+        "desc": "Xây dựng cấu trúc biên tập/tuyến nội dung cốt lõi của toà soạn.",
+    },
+    "chuyen-gia-hip-hop": {
+        "label": "Chuyên gia Hip-Hop", "category": "chuyen-mon", "rarity": "xuat-sac",
+        "desc": "Kiến thức chuyên sâu, được công nhận về văn hóa hip-hop underground.",
+    },
+    "chuyen-gia-van-hoa": {
+        "label": "Chuyên gia Văn hóa", "category": "chuyen-mon", "rarity": "noi-bat",
+        "desc": "Am hiểu sâu rộng về văn hóa đại chúng và các dòng chảy xã hội liên quan.",
+    },
+    "dao-duc-bao-chi": {
+        "label": "Đạo đức Báo chí", "category": "bao-chi", "rarity": "noi-bat",
+        "desc": "Tuân thủ nghiêm ngặt chuẩn mực đạo đức và kiểm chứng thông tin.",
+    },
+    "dieu-tra-chuyen-sau": {
+        "label": "Điều tra Chuyên sâu", "category": "bao-chi", "rarity": "xuat-sac",
+        "desc": "Thực hiện các bài điều tra, phân tích chuyên sâu có chiều sâu tư liệu.",
+    },
+    "cay-but-noi-bat": {
+        "label": "Cây bút Nổi bật", "category": "noi-dung", "rarity": "noi-bat",
+        "desc": "Sản xuất nội dung chất lượng cao, đều đặn và được độc giả đón nhận.",
+    },
+    "san-xuat-ben-vung": {
+        "label": "Sản xuất Bền vững", "category": "noi-dung", "rarity": "tieu-chuan",
+        "desc": "Duy trì nhịp độ xuất bản ổn định trong thời gian dài.",
+    },
+    "nguoi-ket-noi": {
+        "label": "Người Kết nối", "category": "cong-dong", "rarity": "tieu-chuan",
+        "desc": "Kết nối toà soạn với cộng đồng độc giả và nghệ sĩ.",
+    },
+    "dai-su-cong-dong": {
+        "label": "Đại sứ Cộng đồng", "category": "cong-dong", "rarity": "noi-bat",
+        "desc": "Đại diện tích cực cho tiếng nói và giá trị của cộng đồng underground.",
+    },
+}
+
+# id -> {label, rarity, desc, color(tùy chọn)} — Honor KHÔNG có category (đơn
+# giản hơn Badge theo đúng yêu cầu: "a separate Honor Registry").
+EDITOR_HONORS = {
+    "nguoi-sang-lap": {
+        "label": "Người Sáng lập", "rarity": "huyen-thoai",
+        "desc": "Vinh danh người đã khai sinh The New Culture, đặt nền móng cho toàn bộ hệ thống biên tập.",
+    },
+    "10-nam-cong-hien": {
+        "label": "10 Năm Cống hiến", "rarity": "xuat-sac",
+        "desc": "Vinh danh một thập kỷ gắn bó và đóng góp không ngừng nghỉ cho toà soạn.",
+    },
+}
+
+# -----------------------------------------------------------------
 # HỒ SƠ BIÊN TẬP VIÊN — đọc từ content/editors/*.md
 # Chỉ tác giả có hồ sơ tại đây mới được sinh trang tác giả và hiện link
 # trong bài viết. Tên trong trường "name" phải khớp chính xác (kể cả
@@ -469,13 +574,81 @@ def load_editors():
         if not name:
             print(f"  ! Bỏ qua hồ sơ {os.path.basename(path)} (thiếu tên)")
             continue
+
+        role_id = (meta.get("role_id") or "").strip()
+        if role_id and role_id not in EDITOR_ROLES:
+            print(f"  ! Hồ sơ {os.path.basename(path)}: role_id '{role_id}' không hợp lệ, bỏ qua")
+            role_id = ""
+
+        raw_badge_ids = meta.get("badge_ids") or []
+        if not isinstance(raw_badge_ids, list):
+            raw_badge_ids = []
+        badge_ids = [b for b in raw_badge_ids if b in EDITOR_BADGES]
+        invalid_badges = set(raw_badge_ids) - set(badge_ids)
+        if invalid_badges:
+            print(f"  ! Hồ sơ {os.path.basename(path)}: badge_ids không hợp lệ bị bỏ qua: {', '.join(sorted(invalid_badges))}")
+
+        raw_honor_ids = meta.get("honor_ids") or []
+        if not isinstance(raw_honor_ids, list):
+            raw_honor_ids = []
+        honor_ids = [h for h in raw_honor_ids if h in EDITOR_HONORS]
+        invalid_honors = set(raw_honor_ids) - set(honor_ids)
+        if invalid_honors:
+            print(f"  ! Hồ sơ {os.path.basename(path)}: honor_ids không hợp lệ bị bỏ qua: {', '.join(sorted(invalid_honors))}")
+
         editors[name] = {
             "name": name,
             "avatar": (meta.get("avatar") or "").strip(),
             "bio": (meta.get("bio") or "").strip(),
             "slug": os.path.splitext(os.path.basename(path))[0],
+            "role_id": role_id,
+            "badge_ids": badge_ids,
+            "honor_ids": honor_ids,
         }
     return editors
+
+# ----- Components: RoleChip / BadgeChip / HonorChip -----
+# Mọi hàm nhận ID, tự tra registry, trả "" nếu ID không tồn tại (an toàn khi
+# thiếu/ID bị xoá về sau — không bao giờ raise).
+
+def render_role_chip(role_id):
+    """RoleChip — vai trò chính của biên tập viên."""
+    label = EDITOR_ROLES.get(role_id)
+    if not label:
+        return ""
+    return f'<span class="role-chip">{label}</span>'
+
+def _render_identity_chip(entry_id, registry, css_class):
+    """Dùng chung cho BadgeChip/HonorChip: áp màu/hoạt ảnh theo rarity (có thể
+    override bằng "color" riêng của từng mục), kèm BadgeTooltip (hover, CSS
+    thuần) + BadgePopover (click, JS toggler .is-open — xem footer())."""
+    entry = registry.get(entry_id)
+    if not entry:
+        return ""
+    rarity_id = entry.get("rarity", "tieu-chuan")
+    rarity = EDITOR_RARITIES.get(rarity_id, EDITOR_RARITIES["tieu-chuan"])
+    color = entry.get("color") or rarity["color"]
+    category_label = EDITOR_BADGE_CATEGORIES.get(entry.get("category", ""), "")
+    desc = entry.get("desc", "")
+    category_html = f'<span class="badge-chip__popover-category">{category_label}</span>' if category_label else ""
+    return (
+        f'<span class="{css_class} {css_class}--{rarity_id}" style="--chip-color:{color};" tabindex="0">'
+        f'{entry["label"]}'
+        f'<span class="badge-chip__tooltip">{desc}</span>'
+        f'<span class="badge-chip__popover">{category_html}'
+        f'<span class="badge-chip__popover-rarity">{rarity["label"]}</span>'
+        f'<span class="badge-chip__popover-desc">{desc}</span></span>'
+        f'</span>'
+    )
+
+def render_badge_chip(badge_id):
+    """BadgeChip — 1 huy hiệu biên tập viên."""
+    return _render_identity_chip(badge_id, EDITOR_BADGES, "badge-chip")
+
+def render_honor_chip(honor_id):
+    """HonorChip — 1 vinh danh. Luôn được render TRƯỚC badges ở nơi gọi
+    (render_author_page): section .editor-honors đứng trước .editor-badges."""
+    return _render_identity_chip(honor_id, EDITOR_HONORS, "honor-chip")
 
 EDITORS = load_editors()
 
@@ -1799,6 +1972,27 @@ if('serviceWorker' in navigator){
     });
   }
 })();
+// BadgePopover: bấm vào BadgeChip/HonorChip để mở popover chi tiết (nhóm/độ
+// hiếm/mô tả) — bấm lại hoặc bấm ra ngoài để đóng. Tooltip (hover) xử lý
+// thuần bằng CSS, không cần JS.
+(function(){
+  var openChip=null;
+  function closeOpen(){
+    if(openChip){openChip.classList.remove('is-open');openChip=null;}
+  }
+  document.addEventListener('click',function(e){
+    var chip=e.target.closest('.badge-chip,.honor-chip');
+    if(chip){
+      var wasOpen=chip.classList.contains('is-open');
+      closeOpen();
+      if(!wasOpen){chip.classList.add('is-open');openChip=chip;}
+      e.stopPropagation();
+      return;
+    }
+    closeOpen();
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeOpen();});
+})();
 </script>
 """ + analytics_script_tag() + """
 </body>
@@ -3074,19 +3268,27 @@ def build_sitemap():
 
 def render_author_page(name, arts):
     """Trang hồ sơ biên tập viên: identity page căn giữa (không phải trang bài
-    viết) — ảnh, tên, vai trò, tổ chức, quote/giới thiệu (từ content/editors/),
-    rồi tới bài viết + series của họ. Chỉ được gọi khi tác giả đã có hồ sơ
-    trong EDITORS (kiểm tra ở nơi gọi trong main()). Không có trường/dữ liệu
-    mới nào: Vai trò tái dùng số lượng bài viết đã có sẵn (trước đây hiện
-    dạng "{len(arts)} bài viết trên The New Culture."); Quote/Giới thiệu tái
-    dùng đúng trường bio sẵn có; Social Links chưa có nguồn dữ liệu trong CMS
-    nên không render gì (đúng nguyên tắc "chỉ hiện khi đã có dữ liệu")."""
+    viết) — ảnh, tên, RoleChip, thống kê, tổ chức, Honors, Badges, quote/giới
+    thiệu (Editor Identity System, PR2), rồi tới bài viết + series của họ.
+    Chỉ được gọi khi tác giả đã có hồ sơ trong EDITORS (kiểm tra ở nơi gọi
+    trong main()). Quote/Giới thiệu tái dùng đúng trường bio sẵn có; Social
+    Links chưa có nguồn dữ liệu trong CMS nên không render gì (đúng nguyên
+    tắc "chỉ hiện khi đã có dữ liệu")."""
     ed = EDITORS.get(name, {})
     avatar = ed.get("avatar", "")
     bio = ed.get("bio", "")
     avatar_html = (f'<img src="{avatar}" alt="{name}" class="author-hero__avatar js-reveal">'
                    if avatar else '<div class="author-hero__avatar js-reveal"></div>')
     quote_html = f'<p class="author-hero__quote js-reveal">{bio}</p>' if bio else ""
+
+    # Editor Identity System (PR2): role_id không có/không hợp lệ -> mặc định
+    # "Biên tập viên" (vai trò phổ biến nhất) thay vì để trống, đúng nguyên
+    # tắc "Missing IDs handled safely" — không crash, không để trống Hero.
+    role_chip_html = render_role_chip(ed.get("role_id") or "bien-tap-vien")
+    honors_html = "".join(render_honor_chip(h) for h in ed.get("honor_ids", []))
+    honors_section = f'<div class="editor-honors">{honors_html}</div>' if honors_html else ""
+    badges_html = "".join(render_badge_chip(b) for b in ed.get("badge_ids", []))
+    badges_section = f'<div class="editor-badges">{badges_html}</div>' if badges_html else ""
 
     rows = ""
     for a in arts:
@@ -3132,8 +3334,11 @@ def render_author_page(name, arts):
     <span class="eyebrow">Biên Tập Viên</span>
     {avatar_html}
     <h1 class="author-hero__name">{name}</h1>
-    <p class="author-hero__role">{len(arts)} bài viết đã xuất bản</p>
+    <div class="author-hero__role">{role_chip_html}</div>
+    <p class="author-hero__stat">{len(arts)} bài viết đã xuất bản</p>
     <p class="author-hero__org">{SITE_NAME}</p>
+    {honors_section}
+    {badges_section}
     {quote_html}
   </section>
 
