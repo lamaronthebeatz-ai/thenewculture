@@ -652,6 +652,17 @@ def render_honor_chip(honor_id):
 
 EDITORS = load_editors()
 
+# Editor Discovery System (PR4): chứa kết quả Editorial Intelligence (PR3) đã
+# tính sẵn cho MỌI biên tập viên, được main() điền vào (populate) một lần,
+# trước khi render bất kỳ trang tác giả nào — để các component dùng chung
+# (EditorCard, Related Editors, Prev/Next Editor) có thể tra cứu dữ liệu của
+# BẤT KỲ editor nào mà không cần tính lại (không đổi compute_editor_intelligence
+# / compute_related_editors của PR3 — chỉ thêm nơi lưu trữ kết quả dùng chung).
+EDITOR_INTELLIGENCE = {}
+# Thứ tự xác định (không random) toàn bộ editor có trang, dùng cho Previous/Next
+# Editor — sắp theo tên (a-z), main() điền vào trước khi render trang tác giả.
+EDITOR_ORDER = []
+
 # -----------------------------------------------------------------
 # TIẾP THỊ — Chiến dịch quảng bá, đọc từ content/campaigns/*.md
 # Đúng NGÀY BUILD (không phải ngày người dùng xem trang) quyết định chiến
@@ -1993,6 +2004,27 @@ if('serviceWorker' in navigator){
   });
   document.addEventListener('keydown',function(e){if(e.key==='Escape')closeOpen();});
 })();
+// Editor article filter (PR4): chỉ ẩn/hiện các hàng bài viết theo
+// data-series/data-year/data-categories đã render sẵn — không tính toán lại
+// bất kỳ số liệu biên tập nào (mọi số liệu vẫn do build.py sinh).
+(function(){
+  var filterBar=document.querySelector('.editor-filter');
+  if(!filterBar) return;
+  var rows=document.querySelectorAll('[data-series]');
+  var selects=filterBar.querySelectorAll('select[data-filter]');
+  function apply(){
+    var f={};
+    selects.forEach(function(s){f[s.dataset.filter]=s.value;});
+    rows.forEach(function(row){
+      var okSeries=!f.series || row.dataset.series===f.series;
+      var okYear=!f.year || row.dataset.year===f.year;
+      var cats=(row.dataset.categories||'').split('|');
+      var okCategories=!f.categories || cats.indexOf(f.categories)>-1;
+      row.hidden=!(okSeries&&okYear&&okCategories);
+    });
+  }
+  selects.forEach(function(s){s.addEventListener('change',apply);});
+})();
 </script>
 """ + analytics_script_tag() + """
 </body>
@@ -3186,8 +3218,8 @@ img.media__zoom{position:absolute;inset:0;z-index:1;}
 # -----------------------------------------------------------------
 # RENDER: TRANG PHỤ
 # -----------------------------------------------------------------
-def page_wrap(title, desc, inner, path=""):
-    return head(title, desc, path=path) + masthead() + f"<main>\n{inner}\n</main>\n" + newsletter() + footer()
+def page_wrap(title, desc, inner, path="", image="", og_type="website", schema_json=""):
+    return head(title, desc, path=path, image=image, og_type=og_type, schema_json=schema_json) + masthead() + f"<main>\n{inner}\n</main>\n" + newsletter() + footer()
 
 def render_search_page():
     """Trang tìm kiếm — tải search-index.json và lọc bằng JS trên trình duyệt."""
@@ -3379,22 +3411,112 @@ def compute_related_editors(name, arts, editors_arts):
     scored.sort(key=lambda t: (-t[1], -t[2], t[0]))
     return [{"name": n, "shared_series": ss, "shared_tags": st} for n, ss, st in scored]
 
-def render_author_page(name, arts, intel):
+def compute_featured_series(arts, series_collection, limit=5):
+    """PR4 (Discovery): xếp hạng series theo số bài viết (nhiều nhất trước),
+    dùng cho khối 'Featured Series'. KHÔNG đổi/không nhân bản editor.series
+    của PR3 — chỉ suy ra một thứ tự xếp hạng mới từ cùng `arts` đã có sẵn.
+    Tie-break ổn định theo đúng thứ tự SERIES chuẩn (không random)."""
+    counts = {}
+    for a in arts:
+        counts[a["series"]] = counts.get(a["series"], 0) + 1
+    ranked = sorted(series_collection, key=lambda s: -counts.get(s["slug"], 0))
+    return [dict(s, article_count=counts.get(s["slug"], 0)) for s in ranked[:limit]]
+
+def compute_frequent_categories(arts, limit=8):
+    """PR4 (Discovery): xếp hạng tag/category theo tần suất xuất hiện (nhiều
+    nhất trước), tie-break theo tên (a-z, ổn định/không random). Dùng cho
+    khối 'Chuyên mục đóng góp nhiều nhất'."""
+    counts = {}
+    for a in arts:
+        for t in a.get("tags", []):
+            counts[t] = counts.get(t, 0) + 1
+    ranked = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    return [{"name": t, "count": c} for t, c in ranked[:limit]]
+
+def render_editor_card(name):
+    """EditorCard (PR4) — component thẻ biên tập viên compact tái sử dụng
+    được (avatar, tên, RoleChip, số bài viết): dùng cho Related Editors ở
+    PR4, sẵn sàng tái dùng cho Team/Search/các tính năng tương lai. Chỉ đọc
+    dữ liệu đã tính sẵn (EDITORS + EDITOR_INTELLIGENCE) — không tính toán gì
+    mới, không phá vỡ nguyên tắc 'template chỉ render'."""
+    ed = EDITORS.get(name, {})
+    metrics = EDITOR_INTELLIGENCE.get(name, {}).get("metrics", {})
+    avatar = ed.get("avatar", "")
+    avatar_html = (f'<img src="{avatar}" alt="" class="editor-card__avatar">' if avatar
+                   else '<span class="editor-card__avatar" aria-hidden="true"></span>')
+    role_html = render_role_chip(ed.get("role_id") or "bien-tap-vien")
+    count = metrics.get("article_count", 0)
+    return f"""
+      <a class="editor-card" href="{author_url(name)}">
+        {avatar_html}
+        <span class="editor-card__name">{name}</span>
+        <span class="editor-card__role">{role_html}</span>
+        <span class="editor-card__stat">{count} bài viết</span>
+      </a>"""
+
+def render_editor_pager(prev_name, next_name):
+    """Previous Editor / Next Editor (PR4) — điều hướng xác định (không
+    random), thứ tự lấy từ EDITOR_ORDER (main()). Tái dùng nguyên component
+    CSS .series-pager (đã có sẵn cho điều hướng bài-trước/bài-sau), không
+    tạo CSS mới cho cùng một khuôn mẫu điều hướng trước/sau."""
+    if not prev_name and not next_name:
+        return ""
+
+    def _link(other_name, direction):
+        label = "← Biên tập viên trước" if direction == "prev" else "Biên tập viên sau →"
+        return (f'<a class="series-pager__link series-pager__link--{direction}" href="{author_url(other_name)}">'
+                f'<span class="series-pager__label">{label}</span>'
+                f'<span class="series-pager__title">{other_name}</span></a>')
+
+    prev_html = _link(prev_name, "prev") if prev_name else '<span class="series-pager__link series-pager__link--empty"></span>'
+    next_html = _link(next_name, "next") if next_name else '<span class="series-pager__link series-pager__link--empty"></span>'
+    return f"""
+    <nav class="container series-pager" aria-label="Điều hướng biên tập viên">
+      {prev_html}
+      {next_html}
+    </nav>"""
+
+def editor_schema_json(name, ed, intel):
+    """JSON-LD Person schema cho SEO rich snippet (PR4) — cùng khuôn mẫu với
+    article_schema_json, dùng dữ liệu đã có sẵn (EDITORS + intel.metrics),
+    không thêm trường CMS mới."""
+    import json as _json
+    avatar = ed.get("avatar", "")
+    img_url = avatar if avatar.startswith("http") else f"{SITE_URL}/{avatar.lstrip('/')}" if avatar else f"{SITE_URL}/og-default.png"
+    role_label = EDITOR_ROLES.get(ed.get("role_id") or "", "Biên tập viên")
+    data = {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": name,
+        "description": ed.get("bio", ""),
+        "image": img_url,
+        "url": f"{SITE_URL}/{author_url(name)}",
+        "jobTitle": role_label,
+        "worksFor": {"@type": "Organization", "name": SITE_NAME},
+    }
+    return f'<script type="application/ld+json">{_json.dumps(data, ensure_ascii=False)}</script>'
+
+def render_author_page(name, arts, intel, nav_editors=(None, None)):
     """Trang hồ sơ biên tập viên: identity page căn giữa (không phải trang bài
     viết) — ảnh, tên, RoleChip, thống kê, tổ chức, Honors, Badges, quote/giới
-    thiệu (Editor Identity System, PR2), rồi tới bài viết + series của họ.
-    Chỉ được gọi khi tác giả đã có hồ sơ trong EDITORS (kiểm tra ở nơi gọi
-    trong main()). Quote/Giới thiệu tái dùng đúng trường bio sẵn có; Social
-    Links chưa có nguồn dữ liệu trong CMS nên không render gì (đúng nguyên
-    tắc "chỉ hiện khi đã có dữ liệu").
+    thiệu (Editor Identity System, PR2), rồi tới bài viết + series của họ,
+    và (PR4) quick nav + bộ lọc + Chuyên mục/Dòng thời gian/Khám phá/điều
+    hướng Biên tập viên trước-sau + SEO tự sinh. Chỉ được gọi khi tác giả đã
+    có hồ sơ trong EDITORS (kiểm tra ở nơi gọi trong main()). Quote/Giới
+    thiệu tái dùng đúng trường bio sẵn có; Social Links chưa có nguồn dữ liệu
+    trong CMS nên không render gì (đúng nguyên tắc "chỉ hiện khi đã có dữ liệu").
 
-    `intel`: object Editorial Intelligence đã tính sẵn ở build.py (PR3.1) —
-    hàm này CHỈ render, không tính/lọc/sắp xếp lại collection nào của intel
-    (dùng thẳng intel["series"] cho dải Series). Riêng khối "Bài viết gần
-    đây" cố tình vẫn lặp trực tiếp qua `arts` (thứ tự `order` thủ công có
-    từ PR1) thay vì dùng intel["recent_articles"] (top-5 theo ngày thật) —
-    để giữ đúng nguyên tắc "build output unchanged" của PR3.1; xem báo cáo
-    PR3.1 để biết lý do."""
+    `intel`: object Editorial Intelligence đã tính sẵn ở build.py (PR3/PR3.1)
+    — hàm này CHỈ render, không tính/lọc/sắp xếp lại collection nào của intel
+    (dùng thẳng intel["series"]/intel["categories"]/intel["timeline"]/
+    intel["related_editors"]). Riêng khối "Bài viết gần đây" cố tình vẫn lặp
+    trực tiếp qua `arts` (thứ tự `order` thủ công có từ PR1) thay vì dùng
+    intel["recent_articles"] (top-5 theo ngày thật) — để giữ nguyên hành vi
+    đã có từ PR1/PR3.1; PR4 chỉ thêm data-attribute lọc lên đúng các hàng đó,
+    không đổi nội dung/thứ tự hiển thị.
+
+    `nav_editors`: tuple (prev_name, next_name) — thứ tự xác định (EDITOR_ORDER
+    ở main()), dùng cho Previous/Next Editor."""
     ed = EDITORS.get(name, {})
     avatar = ed.get("avatar", "")
     bio = ed.get("bio", "")
@@ -3405,17 +3527,26 @@ def render_author_page(name, arts, intel):
     # Editor Identity System (PR2): role_id không có/không hợp lệ -> mặc định
     # "Biên tập viên" (vai trò phổ biến nhất) thay vì để trống, đúng nguyên
     # tắc "Missing IDs handled safely" — không crash, không để trống Hero.
-    role_chip_html = render_role_chip(ed.get("role_id") or "bien-tap-vien")
+    role_id = ed.get("role_id") or "bien-tap-vien"
+    role_chip_html = render_role_chip(role_id)
     honors_html = "".join(render_honor_chip(h) for h in ed.get("honor_ids", []))
     honors_section = f'<div class="editor-honors">{honors_html}</div>' if honors_html else ""
     badges_html = "".join(render_badge_chip(b) for b in ed.get("badge_ids", []))
     badges_section = f'<div class="editor-badges">{badges_html}</div>' if badges_html else ""
+    # PR4: bọc chung Honors+Badges (nguyên markup/CSS PR2, không đổi) trong 1
+    # khối có id="thanh-tuu" để mục điều hướng nhanh "Thành tựu" có nơi nhảy tới.
+    achievements_section = (f'<div id="thanh-tuu" tabindex="-1">{honors_section}{badges_section}</div>'
+                             if (honors_section or badges_section) else "")
 
+    # Bài viết gần đây: giữ nguyên vòng lặp qua `arts` — chỉ thêm data-* cho
+    # bộ lọc PR4 (Series/Chuyên mục/Năm), không đổi nội dung/thứ tự hiển thị.
     rows = ""
     for a in arts:
         s = SERIES_BY_SLUG[a["series"]]
+        year = _parse_vn_date(a["date"]).year
+        cats_attr = "|".join(a.get("tags", []))
         rows += f"""
-      <a class="card" href="{article_url(a['slug'])}" style="flex-direction:row;gap:var(--s-5);align-items:center;">
+      <a class="card" href="{article_url(a['slug'])}" style="flex-direction:row;gap:var(--s-5);align-items:center;" data-series="{s['slug']}" data-year="{year}" data-categories="{cats_attr}">
         <div class="media media--3-2" style="flex:0 0 220px;">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
         <div>
           <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
@@ -3424,6 +3555,28 @@ def render_author_page(name, arts, intel):
           <span class="byline">{a['date']} · {a['read_time']}</span>
         </div>
       </a>"""
+
+    # Bộ lọc bài viết (PR4): chỉ hiện khi có > 1 bài. Options lấy thẳng từ
+    # intel["series"]/intel["categories"]/intel["timeline"] (đã tính sẵn ở
+    # PR3) — không tính lại danh sách distinct ở đây. Lọc chạy bằng JS thuần
+    # ẩn/hiện DOM theo data-attribute có sẵn — không tính toán số liệu.
+    filter_html = ""
+    if len(arts) > 1:
+        series_opts = "".join(f'<option value="{s["slug"]}">{s["name"]}</option>' for s in intel["series"])
+        cat_opts = "".join(f'<option value="{c}">{c}</option>' for c in intel["categories"])
+        year_opts = "".join(f'<option value="{t["year"]}">{t["year"]}</option>' for t in intel["timeline"])
+        filter_html = f"""
+    <div class="editor-filter" role="group" aria-label="Lọc bài viết">
+      <label class="editor-filter__field"><span>Series</span>
+        <select data-filter="series" aria-label="Lọc theo Series"><option value="">Tất cả Series</option>{series_opts}</select>
+      </label>
+      <label class="editor-filter__field"><span>Chuyên mục</span>
+        <select data-filter="categories" aria-label="Lọc theo Chuyên mục"><option value="">Tất cả Chuyên mục</option>{cat_opts}</select>
+      </label>
+      <label class="editor-filter__field"><span>Năm</span>
+        <select data-filter="year" aria-label="Lọc theo Năm xuất bản"><option value="">Tất cả các năm</option>{year_opts}</select>
+      </label>
+    </div>"""
 
     # Series: intel["series"] (PR3.1) đã được build.py tính sẵn — đúng những
     # series tác giả thực sự có bài, theo thứ tự SERIES chuẩn. Template chỉ
@@ -3437,13 +3590,117 @@ def render_author_page(name, arts, intel):
         <h3>{s['name']}</h3>
       </a>"""
     series_section = f"""
-  <section class="series-band author-series js-reveal">
+  <section id="series" tabindex="-1" class="series-band author-series js-reveal">
     <div class="container">
       <div class="section-head"><h2>Series</h2></div>
       <div class="series-grid">{series_cells}
       </div>
     </div>
   </section>""" if series_cells else ""
+
+    # Chuyên mục (PR4): danh sách đầy đủ intel["categories"] (đã có sẵn từ
+    # PR3), liên kết tới trang tag đã tồn tại — không thêm dữ liệu mới.
+    category_links = "".join(f'<a href="{tag_url(slugify(c))}" class="tag">{c}</a>' for c in intel["categories"])
+    categories_section = f"""
+  <section id="chuyen-muc" tabindex="-1" class="container author-categories js-reveal">
+    <div class="section-head"><h2>Chuyên mục</h2></div>
+    <div class="author-categories__list">{category_links}
+    </div>
+  </section>""" if intel["categories"] else ""
+
+    # Dòng thời gian (PR4): render trực tiếp intel["timeline"] (PR3), mới
+    # nhất trước — khớp thói quen "gần đây trước" của các khối khác.
+    timeline_years = ""
+    for year_block in reversed(intel["timeline"]):
+        items = "".join(
+            f'<li><a href="{article_url(a["slug"])}">{a["title"]}</a> <span class="byline">{a["date"]}</span></li>'
+            for a in year_block["articles"]
+        )
+        timeline_years += f"""
+      <div class="editor-timeline__year">
+        <h3>{year_block['year']} <span class="byline">· {year_block['count']} bài</span></h3>
+        <ul>{items}</ul>
+      </div>"""
+    timeline_section = f"""
+  <section id="dong-thoi-gian" tabindex="-1" class="container author-timeline js-reveal">
+    <div class="section-head"><h2>Dòng thời gian</h2></div>
+    <div class="editor-timeline">{timeline_years}
+    </div>
+  </section>""" if intel["timeline"] else ""
+
+    # Khám phá (PR4): Related Editors (EditorCard, dùng intel["related_editors"]
+    # đã xếp hạng sẵn ở PR3 — không xếp lại), Featured Series + Chuyên mục
+    # đóng góp nhiều nhất (2 hàm PR4 mới, không đụng vào hàm/data model PR3).
+    related_cards = "".join(render_editor_card(r["name"]) for r in intel.get("related_editors", []))
+    related_block = f"""
+      <div class="discovery-block">
+        <h3>Biên tập viên liên quan</h3>
+        <div class="editor-card-grid">{related_cards}
+        </div>
+      </div>""" if related_cards else ""
+
+    featured_series = compute_featured_series(arts, intel["series"])
+    featured_series_cells = "".join(
+        f'<a class="series-cell" href="{series_url(s["slug"])}">'
+        f'<span class="series-cell__code">{s["code"]} · {s["num"]}</span><h3>{s["name"]}</h3>'
+        f'<span class="byline">{s["article_count"]} bài</span></a>'
+        for s in featured_series
+    )
+    featured_series_block = f"""
+      <div class="discovery-block">
+        <h3>Series nổi bật</h3>
+        <div class="series-grid">{featured_series_cells}
+        </div>
+      </div>""" if featured_series_cells else ""
+
+    frequent_categories = compute_frequent_categories(arts)
+    frequent_cat_links = "".join(
+        f'<a href="{tag_url(slugify(c["name"]))}" class="tag">{c["name"]} <span class="tag-count">{c["count"]}</span></a>'
+        for c in frequent_categories
+    )
+    frequent_cat_block = f"""
+      <div class="discovery-block">
+        <h3>Chuyên mục đóng góp nhiều nhất</h3>
+        <div class="author-categories__list">{frequent_cat_links}
+        </div>
+      </div>""" if frequent_cat_links else ""
+
+    discovery_section = f"""
+  <section class="container author-discovery js-reveal">
+    <div class="section-head"><h2>Khám phá</h2></div>
+    {related_block}
+    {featured_series_block}
+    {frequent_cat_block}
+  </section>""" if (related_block or featured_series_block or frequent_cat_block) else ""
+
+    # Điều hướng nhanh (PR4): chỉ liệt kê mục có section thực sự tồn tại trên
+    # trang — đúng nguyên tắc "render only if data exists".
+    nav_targets = [
+        ("bai-viet", "Bài viết", True),
+        ("series", "Series", bool(series_section)),
+        ("chuyen-muc", "Chuyên mục", bool(categories_section)),
+        ("dong-thoi-gian", "Dòng thời gian", bool(timeline_section)),
+        ("thanh-tuu", "Thành tựu", bool(achievements_section)),
+    ]
+    quicknav_items = "".join(f'<li><a href="#{anchor}">{label}</a></li>' for anchor, label, show in nav_targets if show)
+    quicknav_section = f"""
+  <nav class="container editor-quicknav" aria-label="Điều hướng nhanh hồ sơ">
+    <ul>{quicknav_items}
+    </ul>
+  </nav>""" if quicknav_items else ""
+
+    pager_section = render_editor_pager(*nav_editors)
+
+    # SEO (PR4): meta title/description tự sinh từ dữ liệu đã có (role +
+    # bio + editor.metrics) — không thêm trường CMS mới. JSON-LD Person cùng
+    # khuôn mẫu article_schema_json. og_type="profile" thay vì "website" mặc
+    # định của page_wrap.
+    role_label = EDITOR_ROLES.get(role_id, "Biên tập viên")
+    m = intel["metrics"]
+    seo_title = f"{name} — {role_label}"
+    seo_desc = bio or (f"{name} — {role_label} tại {SITE_NAME}. "
+                        f"{m['article_count']} bài viết đã xuất bản trên {m['series_count']} series.")
+    schema = editor_schema_json(name, ed, intel)
 
     inner = f"""
   <section class="container author-hero js-reveal">
@@ -3456,19 +3713,23 @@ def render_author_page(name, arts, intel):
     <div class="author-hero__role">{role_chip_html}</div>
     <p class="author-hero__stat">{len(arts)} bài viết đã xuất bản</p>
     <p class="author-hero__org">{SITE_NAME}</p>
-    {honors_section}
-    {badges_section}
+    {achievements_section}
     {quote_html}
   </section>
-
-  <section class="container author-articles">
+{quicknav_section}
+  <section id="bai-viet" tabindex="-1" class="container author-articles">
     <div class="section-head"><h2>Bài viết gần đây</h2></div>
+    {filter_html}
     <div class="grid js-reveal" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
     </div>
   </section>
 {series_section}
+{categories_section}
+{timeline_section}
+{discovery_section}
+{pager_section}
 """
-    return page_wrap(name, bio or f"Các bài viết của {name} trên The New Culture.", inner, path=author_url(name))
+    return page_wrap(seo_title, seo_desc, inner, path=author_url(name), image=avatar, og_type="profile", schema_json=schema)
 
 def render_tag_page(tslug, tag_name, arts):
     """Trang lọc theo từ khóa: liệt kê mọi bài viết gắn thẻ này, không giới hạn
@@ -4238,14 +4499,23 @@ self.addEventListener('fetch',e=>{
     editor_intelligence = {n: compute_editor_intelligence(n, a) for n, a in editors_arts.items()}
     for n, a in editors_arts.items():
         editor_intelligence[n]["related_editors"] = compute_related_editors(n, a, editors_arts)
+    # PR4: xuất bản kết quả ra global dùng chung (EDITOR_INTELLIGENCE) trước
+    # khi render bất kỳ trang tác giả nào, để EditorCard/Related Editors có
+    # thể tra cứu dữ liệu của BẤT KỲ editor nào. EDITOR_ORDER: thứ tự xác
+    # định (a-z theo tên) cho Previous/Next Editor — không random.
+    EDITOR_INTELLIGENCE.update(editor_intelligence)
+    EDITOR_ORDER[:] = sorted(editors_arts.keys())
 
     skipped_authors = []
     for name, arts in authors.items():
         if name not in EDITORS:
             skipped_authors.append(name)
             continue
+        idx = EDITOR_ORDER.index(name)
+        prev_name = EDITOR_ORDER[idx - 1] if idx > 0 else None
+        next_name = EDITOR_ORDER[idx + 1] if idx + 1 < len(EDITOR_ORDER) else None
         with open(os.path.join(OUT, author_url(name)),"w",encoding="utf-8") as f:
-            f.write(render_author_page(name, arts, editor_intelligence[name]))
+            f.write(render_author_page(name, arts, editor_intelligence[name], nav_editors=(prev_name, next_name)))
     if skipped_authors:
         print(f"  (Chưa có trang tác giả cho: {', '.join(skipped_authors)} — thiếu hồ sơ trong content/editors/)")
 
