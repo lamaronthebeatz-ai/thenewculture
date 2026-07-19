@@ -111,6 +111,13 @@ collections:
         default: false
         hint: "Bật nếu muốn bài này làm bài lớn nhất trên trang chủ. Chỉ nên bật 1 bài."
 
+      - label: "Hero Priority"
+        name: hero_priority
+        widget: boolean
+        default: false
+        required: false
+        hint: "Ưu tiên hiển thị bài này trong Hero trang chủ (luôn có đúng 3 bài). Mặc định, Hero hiển thị 3 bài mới nhất — bật cờ này để ghim bài vào Hero bất kể ngày đăng; các bài Hero Priority luôn hiển thị trước, sắp theo ngày mới nhất, phần còn lại lấp bằng bài mới nhất khác."
+
       - label: "Thứ tự ưu tiên"
         name: order
         widget: number
