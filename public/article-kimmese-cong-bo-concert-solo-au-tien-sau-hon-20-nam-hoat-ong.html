@@ -159,14 +159,17 @@
     </div>
 
     <div class="container" style="max-width:680px;">
-      <div class="author-box">
+      <a class="author-box" href="author-lamar.html" aria-label="Xem hồ sơ biên tập viên Lamar">
         <img src="/uploads/3445.png" alt="Lamar" class="author-box__avatar">
         <div class="author-box__body">
           <span class="author-box__label">Về tác giả</span>
-          <a href="author-lamar.html" class="author-box__name">Lamar</a>
+          <span class="author-box__name">Lamar</span>
+          <div class="author-box__role"><span class="role-chip">Tổng Biên tập</span></div>
+          <div class="author-box__honor"><span class="honor-chip honor-chip--huyen-thoai" style="--chip-color:#FFD700;" tabindex="0">Người Sáng lập<span class="badge-chip__tooltip">Vinh danh người đã khai sinh The New Culture, đặt nền móng cho toàn bộ hệ thống biên tập.</span><span class="badge-chip__popover"><span class="badge-chip__popover-rarity">Huyền thoại</span><span class="badge-chip__popover-desc">Vinh danh người đã khai sinh The New Culture, đặt nền móng cho toàn bộ hệ thống biên tập.</span></span></span></div>
+          <div class="author-box__badges"><span class="badge-chip badge-chip--xuat-sac" style="--chip-color:#D4AF37;" tabindex="0">Kiến trúc Nền tảng<span class="badge-chip__tooltip">Xây dựng cấu trúc biên tập/tuyến nội dung cốt lõi của toà soạn.</span><span class="badge-chip__popover"><span class="badge-chip__popover-category">Sáng lập</span><span class="badge-chip__popover-rarity">Xuất sắc</span><span class="badge-chip__popover-desc">Xây dựng cấu trúc biên tập/tuyến nội dung cốt lõi của toà soạn.</span></span></span><span class="badge-chip badge-chip--xuat-sac" style="--chip-color:#D4AF37;" tabindex="0">Chuyên gia Hip-Hop<span class="badge-chip__tooltip">Kiến thức chuyên sâu, được công nhận về văn hóa hip-hop underground.</span><span class="badge-chip__popover"><span class="badge-chip__popover-category">Chuyên môn</span><span class="badge-chip__popover-rarity">Xuất sắc</span><span class="badge-chip__popover-desc">Kiến thức chuyên sâu, được công nhận về văn hóa hip-hop underground.</span></span></span><span class="badge-chip badge-chip--noi-bat" style="--chip-color:#3B82F6;" tabindex="0">Đại sứ Cộng đồng<span class="badge-chip__tooltip">Đại diện tích cực cho tiếng nói và giá trị của cộng đồng underground.</span><span class="badge-chip__popover"><span class="badge-chip__popover-category">Cộng đồng</span><span class="badge-chip__popover-rarity">Nổi bật</span><span class="badge-chip__popover-desc">Đại diện tích cực cho tiếng nói và giá trị của cộng đồng underground.</span></span></span></div>
           <p class="author-box__bio">Founder & Editor-in-Chief của The New Culture. Theo dõi và ghi chép văn hóa hip-hop underground Việt Nam từ những ngày đầu.</p>
         </div>
-      </div>
+      </a>
     </div>
 
     <nav class="container series-pager" aria-label="Điều hướng bài viết trong series TNC Radar">
@@ -852,6 +855,15 @@ if('serviceWorker' in navigator){
   }
   selects.forEach(function(s){s.addEventListener('change',apply);});
 })();
+// Author Card (PR4.1): cả khung .author-box là 1 link tới trang hồ sơ, nhưng
+// BadgeChip/HonorChip bên trong cần click độc lập để mở đúng BadgePopover
+// hiện có (không điều hướng nhầm sang trang hồ sơ). Không đổi BadgePopover/
+// BadgeTooltip hiện có — chỉ chặn hành vi điều hướng mặc định của <a> bao
+// ngoài khi click trúng chip, ở capture phase (chạy trước khi <a> điều hướng).
+document.addEventListener('click',function(e){
+  var chip=e.target.closest('.author-box .badge-chip,.author-box .honor-chip');
+  if(chip) e.preventDefault();
+},true);
 </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "6b80305f19b5403ea2a03d427a03dcb7"}'></script>
 </body>

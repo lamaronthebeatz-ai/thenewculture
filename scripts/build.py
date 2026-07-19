@@ -650,6 +650,26 @@ def render_honor_chip(honor_id):
     (render_author_page): section .editor-honors đứng trước .editor-badges."""
     return _render_identity_chip(honor_id, EDITOR_HONORS, "honor-chip")
 
+def render_badge_overflow_chip(hidden_badge_ids):
+    """+N (PR4.1, Author Card): chip gộp các badge còn lại khi vượt quá số
+    lượng hiển thị tối đa. Tái dùng NGUYÊN class .badge-chip/.badge-chip__tooltip/
+    .badge-chip__popover (CSS rarity "tieu-chuan" + JS click-toggle .is-open đã
+    có sẵn từ PR2, xem footer()) — không tạo component/CSS/JS mới, chỉ khác nội
+    dung: liệt kê tên các badge còn lại thay vì mô tả 1 badge."""
+    names = [EDITOR_BADGES[b]["label"] for b in hidden_badge_ids if b in EDITOR_BADGES]
+    if not names:
+        return ""
+    desc = ", ".join(names)
+    return (
+        f'<span class="badge-chip badge-chip--tieu-chuan" tabindex="0">'
+        f'+{len(names)}'
+        f'<span class="badge-chip__tooltip">{desc}</span>'
+        f'<span class="badge-chip__popover">'
+        f'<span class="badge-chip__popover-rarity">Huy hiệu khác</span>'
+        f'<span class="badge-chip__popover-desc">{desc}</span></span>'
+        f'</span>'
+    )
+
 EDITORS = load_editors()
 
 # Editor Discovery System (PR4): chứa kết quả Editorial Intelligence (PR3) đã
@@ -2025,6 +2045,15 @@ if('serviceWorker' in navigator){
   }
   selects.forEach(function(s){s.addEventListener('change',apply);});
 })();
+// Author Card (PR4.1): cả khung .author-box là 1 link tới trang hồ sơ, nhưng
+// BadgeChip/HonorChip bên trong cần click độc lập để mở đúng BadgePopover
+// hiện có (không điều hướng nhầm sang trang hồ sơ). Không đổi BadgePopover/
+// BadgeTooltip hiện có — chỉ chặn hành vi điều hướng mặc định của <a> bao
+// ngoài khi click trúng chip, ở capture phase (chạy trước khi <a> điều hướng).
+document.addEventListener('click',function(e){
+  var chip=e.target.closest('.author-box .badge-chip,.author-box .honor-chip');
+  if(chip) e.preventDefault();
+},true);
 </script>
 """ + analytics_script_tag() + """
 </body>
@@ -2105,25 +2134,50 @@ def author_byline_html(author_name):
 
 def author_bio_box_html(author_name):
     """Sinh khung giới thiệu đầy đủ biên tập viên, đặt cuối mỗi bài viết:
-    ảnh đại diện cỡ lớn, tên (dạng liên kết tới trang hồ sơ), và trọn vẹn
-    tiểu sử. Chỉ hiển thị khi tác giả đã có hồ sơ đầy đủ trong CMS
-    (content/editors/) — tự ẩn hoàn toàn nếu thiếu, tránh khung trống
-    hoặc thông tin không đầy đủ."""
+    ảnh đại diện cỡ lớn, tên, Editor Identity System (RoleChip/HonorChip/
+    BadgeChip — PR4.1, tái dùng NGUYÊN VẸN component/CSS/JS từ PR2, không
+    tạo hệ thống thứ hai), và trọn vẹn tiểu sử. Chỉ hiển thị khi tác giả đã
+    có hồ sơ đầy đủ trong CMS (content/editors/) — tự ẩn hoàn toàn nếu
+    thiếu, tránh khung trống hoặc thông tin không đầy đủ. Đọc thẳng
+    EDITORS[author_name] — không nhân đôi dữ liệu, không thêm trường CMS.
+
+    Toàn bộ khung là 1 link duy nhất tới trang hồ sơ (author_url) — chưa có
+    route "/editors/{slug}" riêng trong kiến trúc site tĩnh này nên tái dùng
+    đúng route hiện có, không phát minh route mới. Badge/Honor bên trong vẫn
+    click/hover độc lập để mở đúng BadgeTooltip/BadgePopover hiện có (không
+    điều hướng nhầm) — xem guard JS trong footer()."""
     ed = EDITORS.get(author_name)
     if not ed or not ed.get("bio"):
         return ""
     avatar_html = (f'<img src="{ed["avatar"]}" alt="{author_name}" class="author-box__avatar">'
                    if ed["avatar"] else '<div class="author-box__avatar"></div>')
+
+    role_chip_html = render_role_chip(ed.get("role_id") or "bien-tap-vien")
+
+    # Honor "(nếu có)": khung compact cuối bài chỉ hiện 1 vinh danh (khác với
+    # Editor Profile Hero hiện TẤT CẢ honors) — vinh danh đầu tiên đã nhập.
+    honor_ids = ed.get("honor_ids", [])
+    honor_html = render_honor_chip(honor_ids[0]) if honor_ids else ""
+    honor_section = f'<div class="author-box__honor">{honor_html}</div>' if honor_html else ""
+
+    # Badge: tối đa 3, phần còn lại gộp vào chip "+N" (render_badge_overflow_chip).
+    badge_ids = ed.get("badge_ids", [])
+    badges_html = "".join(render_badge_chip(b) for b in badge_ids[:3]) + render_badge_overflow_chip(badge_ids[3:])
+    badges_section = f'<div class="author-box__badges">{badges_html}</div>' if badges_html else ""
+
     return f"""
     <div class="container" style="max-width:680px;">
-      <div class="author-box">
+      <a class="author-box" href="{author_url(author_name)}" aria-label="Xem hồ sơ biên tập viên {author_name}">
         {avatar_html}
         <div class="author-box__body">
           <span class="author-box__label">Về tác giả</span>
-          <a href="{author_url(author_name)}" class="author-box__name">{author_name}</a>
+          <span class="author-box__name">{author_name}</span>
+          <div class="author-box__role">{role_chip_html}</div>
+          {honor_section}
+          {badges_section}
           <p class="author-box__bio">{ed['bio']}</p>
         </div>
-      </div>
+      </a>
     </div>"""
 
 def share_bar(a, path):
