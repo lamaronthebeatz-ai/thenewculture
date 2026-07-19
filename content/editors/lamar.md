@@ -6,9 +6,7 @@ role_id: tong-bien-tap
 honor_ids:
   - nguoi-sang-lap
 badge_ids:
-  - nguoi-dong-sang-lap
+  - kien-truc-nen-tang
   - chuyen-gia-hip-hop
-  - dao-duc-bao-chi
-  - cay-but-noi-bat
   - dai-su-cong-dong
 ---
