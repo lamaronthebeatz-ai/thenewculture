@@ -727,7 +727,8 @@ a:hover .media__zoom{transform:scale(1.04);box-shadow:inset 0 -120px 90px -50px 
   border:1px solid var(--c-line);object-fit:cover;display:block;margin-top:var(--s-3);
 }
 .author-hero__name{font-size:var(--t-3xl);margin:var(--s-4) 0 0;}
-.author-hero__role{color:var(--c-ink-2);font-size:var(--t-sm);margin:var(--s-2) 0 0;}
+.author-hero__role{margin:var(--s-3) 0 0;}
+.author-hero__stat{color:var(--c-ink-2);font-size:var(--t-sm);margin:var(--s-2) 0 0;}
 .author-hero__org{color:var(--c-ink-3);font-size:var(--t-xs);font-family:var(--f-mono);text-transform:uppercase;letter-spacing:0.06em;margin:2px 0 0;}
 .author-hero__quote{max-width:640px;margin:var(--s-5) auto 0;font-style:italic;color:var(--c-ink-2);font-size:var(--t-md);line-height:1.7;}
 
@@ -748,6 +749,101 @@ a:hover .media__zoom{transform:scale(1.04);box-shadow:inset 0 -120px 90px -50px 
 .author-series .section-head{justify-content:center;text-align:center;}
 
 @media (max-width:520px){.author-hero__avatar{width:96px;height:96px;}}
+
+/* ==========================================================================
+   EDITOR IDENTITY SYSTEM (PR2) — RoleChip / BadgeChip / HonorChip,
+   màu + hoạt ảnh theo độ hiếm (rarity), Tooltip (hover) + Popover (click).
+   ========================================================================== */
+
+/* ----- RoleChip ----- */
+.role-chip{
+  display:inline-flex;align-items:center;font-family:var(--f-mono);font-weight:700;
+  font-size:var(--t-xs);letter-spacing:0.04em;color:var(--c-ink-2);
+  padding:4px 12px;border:1px solid var(--c-line-strong);border-radius:var(--r-pill);
+  background:var(--c-bg-subtle);
+}
+
+/* ----- BadgeChip / HonorChip — khối dùng chung, màu điều khiển qua biến
+   --chip-color (mặc định theo rarity, có thể override theo từng badge). ----- */
+.editor-honors,.editor-badges{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:var(--s-3);}
+.badge-chip,.honor-chip{
+  position:relative;display:inline-flex;align-items:center;
+  font-family:var(--f-mono);font-weight:700;font-size:10px;letter-spacing:0.05em;
+  text-transform:uppercase;padding:5px 12px;border-radius:var(--r-pill);
+  line-height:1.4;white-space:nowrap;cursor:default;
+  color:var(--chip-color,var(--c-ink));border:1px solid var(--chip-color,var(--c-line-strong));
+  background:var(--c-bg);transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease);
+}
+.honor-chip{font-size:11px;padding:6px 14px;}
+
+/* Rarity: Tiêu chuẩn — chỉ phản ứng khi hover, không có hoạt ảnh chờ sẵn. */
+.badge-chip--tieu-chuan:hover,.honor-chip--tieu-chuan:hover{
+  transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,0.14);
+}
+
+/* Rarity: Nổi bật — viền "chạy" (border shimmer). */
+.badge-chip--noi-bat,.honor-chip--noi-bat{
+  border-color:transparent;
+  background:
+    linear-gradient(var(--c-bg),var(--c-bg)) padding-box,
+    linear-gradient(90deg,var(--chip-color) 0%,transparent 35%,var(--chip-color) 65%,transparent 100%) border-box;
+  background-size:220% 100%;
+  animation:chipBorderShimmer 3.2s linear infinite;
+}
+@keyframes chipBorderShimmer{0%{background-position:0 0;}100%{background-position:-220% 0;}}
+
+/* Rarity: Xuất sắc — gradient dịch chuyển trên nền chip. */
+.badge-chip--xuat-sac,.honor-chip--xuat-sac{
+  color:#171307;border-color:var(--chip-color);
+  background:linear-gradient(100deg,var(--chip-color) 0%,#fff 50%,var(--chip-color) 100%);
+  background-size:220% auto;animation:chipGradientShift 3.6s ease-in-out infinite;
+}
+@keyframes chipGradientShift{0%,100%{background-position:0 center;}50%{background-position:100% center;}}
+
+/* Rarity: Huyền thoại — phát sáng nhịp thở (breathing glow), tái dùng đúng
+   nhịp @keyframes profileGlowPulse đã dùng cho tier "legendary" của Profile. */
+.badge-chip--huyen-thoai,.honor-chip--huyen-thoai{
+  color:#171307;border-color:var(--chip-color);background:var(--chip-color);
+  animation:profileGlowPulse 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion:reduce){
+  .badge-chip,.honor-chip{animation:none !important;}
+  .badge-chip--tieu-chuan:hover,.honor-chip--tieu-chuan:hover{transform:none;}
+}
+
+/* ----- BadgeTooltip: hover, CSS thuần — mô tả ngắn phía trên chip. ----- */
+.badge-chip__tooltip{
+  position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%) translateY(4px);
+  background:var(--c-ink);color:var(--c-bg);font-family:var(--f-body);font-weight:400;
+  text-transform:none;letter-spacing:normal;font-size:var(--t-xs);line-height:1.5;
+  padding:7px 11px;border-radius:var(--r-sm);white-space:normal;width:max-content;max-width:220px;
+  opacity:0;pointer-events:none;transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease);
+  z-index:var(--z-content);
+}
+.badge-chip:hover .badge-chip__tooltip,.honor-chip:hover .badge-chip__tooltip{
+  opacity:1;transform:translateX(-50%) translateY(0);
+}
+
+/* ----- BadgePopover: click (JS gắn .is-open, xem footer()) — chi tiết đầy đủ
+   hơn tooltip: nhóm + độ hiếm + mô tả. Ẩn tooltip khi popover đang mở. ----- */
+.badge-chip__popover{
+  position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%) translateY(-4px);
+  background:var(--c-bg);border:1px solid var(--c-line-strong);border-radius:var(--r-md);
+  padding:var(--s-4);width:max-content;min-width:180px;max-width:260px;
+  text-align:left;text-transform:none;letter-spacing:normal;font-weight:400;
+  font-family:var(--f-body);font-size:var(--t-sm);color:var(--c-ink);
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease);
+  z-index:var(--z-content);box-shadow:0 10px 30px rgba(0,0,0,0.16);
+}
+.badge-chip.is-open .badge-chip__popover,.honor-chip.is-open .badge-chip__popover{
+  opacity:1;visibility:visible;pointer-events:auto;transform:translateX(-50%) translateY(0);
+}
+.badge-chip.is-open .badge-chip__tooltip,.honor-chip.is-open .badge-chip__tooltip{opacity:0;}
+.badge-chip__popover-category{display:block;font-family:var(--f-mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--chip-color,var(--c-ink-3));margin-bottom:4px;}
+.badge-chip__popover-rarity{display:block;font-family:var(--f-mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--c-ink-3);margin-bottom:6px;}
+.badge-chip__popover-desc{display:block;line-height:1.55;color:var(--c-ink-2);}
 
 /* ==========================================================================
    V3.0 — GIF HERO + SPOTIFY BLOCK

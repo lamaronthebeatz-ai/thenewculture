@@ -746,6 +746,27 @@ if('serviceWorker' in navigator){
     });
   }
 })();
+// BadgePopover: bấm vào BadgeChip/HonorChip để mở popover chi tiết (nhóm/độ
+// hiếm/mô tả) — bấm lại hoặc bấm ra ngoài để đóng. Tooltip (hover) xử lý
+// thuần bằng CSS, không cần JS.
+(function(){
+  var openChip=null;
+  function closeOpen(){
+    if(openChip){openChip.classList.remove('is-open');openChip=null;}
+  }
+  document.addEventListener('click',function(e){
+    var chip=e.target.closest('.badge-chip,.honor-chip');
+    if(chip){
+      var wasOpen=chip.classList.contains('is-open');
+      closeOpen();
+      if(!wasOpen){chip.classList.add('is-open');openChip=chip;}
+      e.stopPropagation();
+      return;
+    }
+    closeOpen();
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeOpen();});
+})();
 </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "6b80305f19b5403ea2a03d427a03dcb7"}'></script>
 </body>
