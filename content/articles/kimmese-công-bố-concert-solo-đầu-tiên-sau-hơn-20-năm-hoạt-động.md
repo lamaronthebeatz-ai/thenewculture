@@ -8,7 +8,7 @@ poster: ''
 author: Lamar
 date: 16 Tháng 7, 2026
 read_time: ''
-featured: true
+featured: false
 order: 1
 tags:
   - '#TNC'
