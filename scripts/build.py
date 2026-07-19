@@ -387,6 +387,7 @@ def load_articles():
             "cover_credit": (meta.get("cover_credit") or "").strip(),
             "poster": meta.get("poster", "") or "",
             "featured": bool(meta.get("featured", False)),
+            "hero_priority": bool(meta.get("hero_priority", False)),
             "order": int(meta.get("order", 999)),
             "tags": meta.get("tags", []) or [],
             "ranking": _normalize_ranking(meta.get("ranking")),
@@ -768,6 +769,7 @@ if not ARTICLES:
         "cover_credit": "",
         "poster": "",
         "featured": True,
+        "hero_priority": False,
         "order": 1,
         "tags": [],
         "ranking": [],
@@ -2053,34 +2055,46 @@ def render_ranking_spotlight():
   </section>
 """
 
-def render_index():
-    if not ARTICLES:
-        # Không có bài nào: vẫn dựng trang chủ với phần Series, bỏ phần bài viết
-        hero = None
-    else:
-        hero = ARTICLES[0]
+def select_hero_articles(articles, count=3):
+    """Chọn đúng `count` bài (mặc định 3) cho Hero trang chủ, theo 2 bước:
+    Bước 1: mọi bài có hero_priority=true, mới nhất trước (tái dùng
+    _parse_vn_date — cùng cách sắp xếp "mới nhất trước" đã dùng cho
+    PROFILE_ARTICLES, không phát minh lại logic ngày tháng).
+    Bước 2: nếu chưa đủ `count`, lấp các vị trí còn lại bằng bài mới nhất
+    trong số CÒN LẠI (chưa được chọn ở bước 1) — không bao giờ trùng bài.
+    Nếu nhiều hơn `count` bài có hero_priority=true, chỉ lấy `count` bài mới
+    nhất trong số đó (không tràn ra bước 2).
+    Articles không có khái niệm draft/published riêng (khác Magazine Issue) —
+    mọi bài trong `articles` (đã qua load_articles()) coi như đã xuất bản,
+    nên không cần lọc trạng thái ở đây."""
+    priority = sorted(
+        (a for a in articles if a.get("hero_priority")),
+        key=lambda a: _parse_vn_date(a["date"]),
+        reverse=True,
+    )
+    hero = priority[:count]
+    if len(hero) < count:
+        chosen = {a["slug"] for a in hero}
+        rest = sorted(
+            (a for a in articles if a["slug"] not in chosen),
+            key=lambda a: _parse_vn_date(a["date"]),
+            reverse=True,
+        )
+        hero += rest[: count - len(hero)]
+    return hero
 
+def render_index():
     def _get(i):
         # lấy bài thứ i an toàn: nếu thiếu thì quay vòng, nếu rỗng trả None
         if not ARTICLES:
             return None
         return ARTICLES[i % len(ARTICLES)]
 
-    hs = SERIES_BY_SLUG[hero["series"]] if hero else None
-    s2 = _get(1); s2s = SERIES_BY_SLUG[s2["series"]] if s2 else None
-    s3 = _get(2); s3s = SERIES_BY_SLUG[s3["series"]] if s3 else None
     feat = _get(4); fs = SERIES_BY_SLUG[feat["series"]] if feat else None
 
-    # Khung hero trái giờ là slideshow chứa 3 bài mới nhất: hero (0), s2 (1), s3 (2)
-    slide_articles = [a for a in (hero, s2, s3) if a]
-    # loại trùng slug nếu ARTICLES có ít hơn 3 bài (đã quay vòng ở _get)
-    seen_slides = set()
-    slides_unique = []
-    for a in slide_articles:
-        if a["slug"] not in seen_slides:
-            seen_slides.add(a["slug"])
-            slides_unique.append(a)
-    slide_articles = slides_unique
+    # Hero trang chủ: luôn đúng 3 bài, chọn theo hero_priority rồi mới nhất
+    # (select_hero_articles — đã tự loại trùng, không cần lọc thêm ở đây).
+    slide_articles = select_hero_articles(ARTICLES)
 
     # Cột phải: 5 bài viết tiếp theo, không trùng với các bài đã dùng cho slide
     side = ""
