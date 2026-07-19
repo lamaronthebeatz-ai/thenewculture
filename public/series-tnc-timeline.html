@@ -824,6 +824,15 @@ if('serviceWorker' in navigator){
   }
   selects.forEach(function(s){s.addEventListener('change',apply);});
 })();
+// Author Card (PR4.1): cả khung .author-box là 1 link tới trang hồ sơ, nhưng
+// BadgeChip/HonorChip bên trong cần click độc lập để mở đúng BadgePopover
+// hiện có (không điều hướng nhầm sang trang hồ sơ). Không đổi BadgePopover/
+// BadgeTooltip hiện có — chỉ chặn hành vi điều hướng mặc định của <a> bao
+// ngoài khi click trúng chip, ở capture phase (chạy trước khi <a> điều hướng).
+document.addEventListener('click',function(e){
+  var chip=e.target.closest('.author-box .badge-chip,.author-box .honor-chip');
+  if(chip) e.preventDefault();
+},true);
 </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "6b80305f19b5403ea2a03d427a03dcb7"}'></script>
 </body>

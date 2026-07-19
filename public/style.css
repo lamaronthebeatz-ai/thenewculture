@@ -1214,6 +1214,7 @@ html{scroll-behavior:smooth;}
   display:flex;gap:var(--s-5);align-items:flex-start;
   margin-top:var(--s-7);padding:var(--s-6);
   background:var(--c-bg-subtle);border:1px solid var(--c-line);border-radius:6px;
+  text-decoration:none;color:inherit;
 }
 .author-box__avatar{
   width:72px;height:72px;border-radius:50%;flex-shrink:0;
@@ -1228,11 +1229,17 @@ html{scroll-behavior:smooth;}
   font-family:var(--f-display);font-weight:800;font-size:var(--t-md);
   margin-bottom:6px;transition:color var(--dur) var(--ease);
 }
-.author-box__name:hover{color:var(--c-red);}
+/* PR4.1: cả khung là 1 link (author-box) — tên không còn là <a> riêng
+   (tránh <a> lồng <a>), nên hover đổi màu tên chuyển sang khi hover cả khung.
+   Cùng màu/thời lượng transition như trước, không thêm animation mới. */
+.author-box:hover .author-box__name{color:var(--c-red);}
+.author-box__role{margin-bottom:6px;}
+.author-box__honor,.author-box__badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
 .author-box__bio{font-size:var(--t-sm);color:var(--c-ink-2);line-height:1.6;}
 @media (max-width:560px){
   .author-box{flex-direction:column;align-items:center;text-align:center;}
   .author-box__body{align-items:center;}
+  .author-box__role,.author-box__honor,.author-box__badges{justify-content:center;}
 }
 
 /* ==========================================================================
