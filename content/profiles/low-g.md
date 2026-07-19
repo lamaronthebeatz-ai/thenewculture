@@ -7,6 +7,7 @@ badges:
   - hot
 avatar: /uploads/3780.webp
 short_desc: 'Low G (tên thật: Nguyễn Hoàng Long, sinh năm 1997) là một rapper, nhạc sĩ kiêm vũ công nổi bật tại Việt Nam. Xuất thân từ nhóm nhảy Last Fire Crew, anh thành công rực rỡ nhờ chất giọng trầm đặc trưng, khả năng đi flow mượt mà và tư duy âm nhạc đậm chất đường phố.'
+spotify_artist: https://open.spotify.com/artist/6TITnFVRcl0AcZ4syE7Toe?si=-PdLC2hiRdGGWCnbMFvIMA&utm_source=copy-link
 ---
 
 - **Phong cách âm nhạc:** Rap hiện đại với lyric (lời bài hát) độc lạ, chơi chữ sáng tạo và mang tính châm biếm sâu cay nhưng hài hước. Các ca khúc thường khai thác cuộc sống giới trẻ, tình yêu hoặc các chủ đề đời thường. 

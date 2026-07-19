@@ -8,6 +8,7 @@ badges:
   - veteran
 avatar: /uploads/3825.webp
 short_desc: B Ray (Trần Thiện Thanh Bảo, sinh năm 1993) là một nam rapper và nhạc sĩ nổi tiếng của Việt Nam. Anh sở hữu kỹ thuật rap điêu luyện, khả năng viết lời sắc bén và tư duy chơi chữ thông minh.
+spotify_artist: https://open.spotify.com/artist/1WvNgEoB66jmHodcj15Zi9?si=EVfqESpXQ62ZzF7fRruT8g&utm_source=copy-link
 ---
 
 **B Ray** (Trần Thiện Thanh Bảo, sinh năm 1993) là một nam rapper và nhạc sĩ nổi tiếng của Việt Nam. Anh sở hữu kỹ thuật rap điêu luyện, khả năng viết lời sắc bén và tư duy chơi chữ thông minh.

@@ -8,6 +8,7 @@ badges:
   - verified
 avatar: /uploads/3772.jpg
 short_desc: Binz (tên thật Lê Nguyễn Trung Đan, sinh ngày 24/5/1988 tại Gia Lai) là một trong những rapper, ca sĩ kiêm sáng tác hàng đầu của làng nhạc Việt Nam.
+spotify_artist: https://open.spotify.com/artist/2nSO7JYDbJrYbJmP39qUzj?si=LT14zRu6SKep2kf6rq0gnQ&utm_source=copy-link
 ---
 
 Anh bắt đầu hoạt động trong cộng đồng underground từ năm 2008, từng sống và học kiến trúc tại Texas (Mỹ) trước khi về nước năm 2018 phát triển sự nghiệp. Là thành viên nòng cốt của SpaceSpeakers, Binz nổi tiếng với biệt danh Binz Da Poet – “nhà thơ của rap Việt” nhờ lời rap giàu chất thơ, lãng mạn kết hợp phong cách bad boy thời thượng.

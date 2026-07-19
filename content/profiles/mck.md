@@ -7,6 +7,7 @@ badges:
   - hot
 avatar: /uploads/3779.png
 short_desc: MCK (tên thật Trần Lê Hoàng Long, sinh năm 2000) là rapper Gen Z tài năng, nổi bật nhờ flow mượt, melody rap cảm xúc và hit liên tục như Tại Vì Sao, Chỉ Một Đêm Nữa Thôi. Anh là một trong những gương mặt sáng giá của RPT, đại diện cho làn sóng rap trẻ hiện đại, gần gũi và chuyên nghiệp của Việt Nam.
+spotify_artist: https://open.spotify.com/artist/1zSv9qZANOWB4HRE8sxeTL?si=wXi45tPUSwe3gkL35d4UWQ&utm_source=copy-link
 ---
 
 Anh tiếp tục là một trong những rapper hot nhất Gen Z Việt Nam, với lượng nghe streaming ổn định cao trên các nền tảng.

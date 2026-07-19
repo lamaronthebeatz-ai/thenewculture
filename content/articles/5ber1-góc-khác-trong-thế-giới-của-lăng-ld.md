@@ -3,12 +3,13 @@ title: '5BER1: Góc khác trong thế giới của Lăng LD'
 series: tnc-breakdown
 dek: Điều làm nên sức hút của 5BER1 không nằm ở việc sử dụng ngôn từ mạnh hay hình tượng giang hồ. Giá trị của dự án nằm ở khả năng biến những câu chuyện rất đời thường thành những lát cắt mang tính phản chiếu.
 cover: /uploads/3803.jpg
+cover_credit: ''
 poster: ''
 author: TNC Editorial
 date: 10 Tháng 7, 2026
 read_time: ''
 featured: false
-order: 1
+order: 3
 tags:
   - '#TNC'
   - '#TNCBreakdown'
