@@ -1,21 +1,24 @@
 {
   "Lamar": {
-    "article_count": 18,
-    "series_count": 8,
-    "category_count": 43,
-    "first_article": {
-      "slug": "viet-dragon-vd-vi-vua-gangsta-rap-viet-nam-va-di-san-bat-diet-cua-viet-rap",
-      "title": "Viet Dragon: \"VD là Ví Dụ của Rap Việt\"",
-      "date": "1 Tháng 7, 2026",
-      "series": "tnc-origins"
+    "metrics": {
+      "article_count": 18,
+      "series_count": 8,
+      "category_count": 43,
+      "first_article": {
+        "slug": "viet-dragon-vd-vi-vua-gangsta-rap-viet-nam-va-di-san-bat-diet-cua-viet-rap",
+        "title": "Viet Dragon: \"VD là Ví Dụ của Rap Việt\"",
+        "date": "1 Tháng 7, 2026",
+        "series": "tnc-origins"
+      },
+      "latest_article": {
+        "slug": "gvr-ky-uc-cua-mot-the-he-rap-viet",
+        "title": "GVR - Ký ức của một thế hệ rap Việt",
+        "date": "19 Tháng 7, 2026",
+        "series": "tnc-origins"
+      },
+      "active_years": 1,
+      "published_since": 2026
     },
-    "latest_article": {
-      "slug": "gvr-ky-uc-cua-mot-the-he-rap-viet",
-      "title": "GVR - Ký ức của một thế hệ rap Việt",
-      "date": "19 Tháng 7, 2026",
-      "series": "tnc-origins"
-    },
-    "active_years": 1,
     "featured_articles": [
       {
         "slug": "dsk-khi-ua-con-cua-mat-troi-cat-tieng",
@@ -68,41 +71,81 @@
         "series": "tnc-radar"
       }
     ],
-    "participated_series": [
+    "series": [
       {
         "slug": "tnc-origins",
-        "name": "TNC Origins"
+        "num": "01",
+        "name": "TNC Origins",
+        "desc": "Những con người, tập thể và cột mốc đặt nền móng cho underground Việt Nam.",
+        "tag_color": "red",
+        "code": "TNC·TNC",
+        "accent": ""
       },
       {
         "slug": "tnc-records",
-        "name": "TNC Records"
+        "num": "03",
+        "name": "TNC Records",
+        "desc": "Phân tích và lưu trữ những album, EP, mixtape có giá trị.",
+        "tag_color": "red",
+        "code": "TNC·TNC",
+        "accent": "--green"
       },
       {
         "slug": "tnc-breakdown",
-        "name": "TNC Breakdown"
+        "num": "05",
+        "name": "TNC Breakdown",
+        "desc": "Phân tích chuyên sâu về hiện tượng, xu hướng, sản phẩm và các vấn đề trong công nghiệp âm nhạc.",
+        "tag_color": "red",
+        "code": "TNC·TNC",
+        "accent": "--amber"
       },
       {
         "slug": "tnc-editorial",
-        "name": "TNC Editorial"
+        "num": "06",
+        "name": "TNC Editorial",
+        "desc": "Góc nhìn, quan điểm và bài bình luận của ban biên tập về những chủ đề đáng quan tâm.",
+        "tag_color": "gold",
+        "code": "TNC·TNC",
+        "accent": ""
       },
       {
         "slug": "tnc-reviews",
-        "name": "TNC Reviews"
+        "num": "07",
+        "name": "TNC Reviews",
+        "desc": "Đánh giá album, EP, MV, concert, showcase, festival và các sản phẩm âm nhạc.",
+        "tag_color": "red",
+        "code": "TNC·TNC",
+        "accent": "--blue"
       },
       {
         "slug": "tnc-community",
-        "name": "TNC Community"
+        "num": "11",
+        "name": "TNC Community",
+        "desc": "Phản ánh hoạt động của cộng đồng, sự kiện, workshop, cypher, showcase và các dự án đáng chú ý.",
+        "tag_color": "red",
+        "code": "TNC·TNC",
+        "accent": ""
       },
       {
         "slug": "tnc-radar",
-        "name": "TNC Radar"
+        "num": "12",
+        "name": "TNC Radar",
+        "desc": "Cập nhật những xu hướng, nghệ sĩ, sản phẩm và chuyển động mới trong underground.",
+        "tag_color": "gold",
+        "code": "TNC·TNC",
+        "accent": "--blue"
       },
       {
         "slug": "tnc-music-101",
-        "name": "TNC Music 101"
+        "num": "14",
+        "name": "TNC Music 101",
+        "desc": "Chia sẻ kiến thức về rap, hip hop, sản xuất âm nhạc và công nghiệp âm nhạc theo cách dễ tiếp cận.",
+        "tag_color": "gold",
+        "code": "TNC·TNC",
+        "accent": "--purple"
       }
     ],
-    "participated_categories": [
+    "categories": [
       "#131km",
       "#24k.right",
       "#Album",
@@ -146,6 +189,122 @@
       "#TNCReview",
       "#Vietdragon",
       "#Vietdragon #TNCOrigins #Lamar"
+    ],
+    "timeline": [
+      {
+        "year": 2026,
+        "count": 18,
+        "articles": [
+          {
+            "slug": "viet-dragon-vd-vi-vua-gangsta-rap-viet-nam-va-di-san-bat-diet-cua-viet-rap",
+            "title": "Viet Dragon: \"VD là Ví Dụ của Rap Việt\"",
+            "date": "1 Tháng 7, 2026",
+            "series": "tnc-origins"
+          },
+          {
+            "slug": "kosmik-2026-khi-spacespeakers-ua-san-khau-cua-minh-en-las-vegas",
+            "title": "KOSMIK 2026: Khi SpaceSpeakers đưa sân khấu của mình đến Las Vegas",
+            "date": "10 Tháng 7, 2026",
+            "series": "tnc-radar"
+          },
+          {
+            "slug": "ladykillah-va-mot-chuong-khong-the-thieu-cua-rap-viet",
+            "title": "LadyKillah và một chương không thể thiếu của rap Việt.",
+            "date": "10 Tháng 7, 2026",
+            "series": "tnc-origins"
+          },
+          {
+            "slug": "hieu-thu-nhat-phia-sau-hieuthuhai",
+            "title": "Hiếu thứ nhất phía sau HIEUTHUHAI",
+            "date": "10 Tháng 7, 2026",
+            "series": "tnc-radar"
+          },
+          {
+            "slug": "pjpo-va-hanh-trinh-131km-ban-anh-hung-ca-cua-ai-tuong-mien-tay",
+            "title": "PJPO và hành trình \"131KM\": Bản anh hùng ca của \"Đại tướng Miền Tây\"",
+            "date": "10 Tháng 7, 2026",
+            "series": "tnc-records"
+          },
+          {
+            "slug": "gap-lai-cua-binz-hanh-trinh-tro-ve-voi-chinh-minh-sau-anh-hao-quang",
+            "title": "\"Gặp Lại\" của Binz: Hành trình trở về với chính mình sau ánh hào quang",
+            "date": "10 Tháng 7, 2026",
+            "series": "tnc-records"
+          },
+          {
+            "slug": "tnc-community-he-sinh-thai-danh-rieng-cho-nhung-nguoi-ban-cua-the-new-culture",
+            "title": "TNC Community - Hệ sinh thái \"dành riêng\" cho những người bạn của The New Culture",
+            "date": "10 Tháng 7, 2026",
+            "series": "tnc-community"
+          },
+          {
+            "slug": "back-2-da-culture",
+            "title": "BACK 2 DA CULTURE 🚀",
+            "date": "10 Tháng 7, 2026",
+            "series": "tnc-community"
+          },
+          {
+            "slug": "kts2026-khi-hanh-or-rocky-cde-va-freaky-ke-cau-chuyen-ve-khu-tao-song",
+            "title": "KTS2026: Khi Hành Or, Rocky CDE và Freaky kể câu chuyện về \"khu tao sống\"",
+            "date": "10 Tháng 7, 2026",
+            "series": "tnc-reviews"
+          },
+          {
+            "slug": "g-family-khi-southside-viet-tiep-cau-chuyen-cua-chinh-minh",
+            "title": "G Family - Khi Southside viết tiếp câu chuyện của chính mình",
+            "date": "12 Tháng 7, 2026",
+            "series": "tnc-origins"
+          },
+          {
+            "slug": "24k-right-tu-def-jam-en-con-uong-tro-thanh-nguoi-inh-hinh-the-he-nghe-si-tiep-theo",
+            "title": "24k.Right: Từ Def Jam đến con đường trở thành người định hình thế hệ nghệ sĩ tiếp theo",
+            "date": "13 Tháng 7, 2026",
+            "series": "tnc-radar"
+          },
+          {
+            "slug": "rap-viet-a-lon-hon-nhung-he-sinh-thai-van-chua-theo-kip",
+            "title": "Rap Việt đã lớn hơn, nhưng hệ sinh thái vẫn chưa theo kịp",
+            "date": "13 Tháng 7, 2026",
+            "series": "tnc-breakdown"
+          },
+          {
+            "slug": "kimmese-cong-bo-concert-solo-au-tien-sau-hon-20-nam-hoat-ong",
+            "title": "Kimmese công bố concert solo đầu tiên sau hơn 20 năm hoạt động",
+            "date": "16 Tháng 7, 2026",
+            "series": "tnc-radar"
+          },
+          {
+            "slug": "southside-va-northside-hai-dong-chay-ang-cung-inh-hinh-rap-viet",
+            "title": "Southside và Northside: Hai dòng chảy đang cùng định hình rap Việt",
+            "date": "16 Tháng 7, 2026",
+            "series": "tnc-breakdown"
+          },
+          {
+            "slug": "amapiano-xu-huong-toan-cau-hay-chi-la-mot-con-song-ngan-tai-viet-nam",
+            "title": "Amapiano: Xu hướng toàn cầu hay chỉ là một cơn sóng ngắn tại Việt Nam?",
+            "date": "18 Tháng 7, 2026",
+            "series": "tnc-editorial"
+          },
+          {
+            "slug": "mot-album-uoc-trien-khai-nhu-the-nao-trong-nganh-cong-nghiep-am-nhac-hien-ai",
+            "title": "Một album được triển khai như thế nào trong ngành công nghiệp âm nhạc hiện đại?",
+            "date": "18 Tháng 7, 2026",
+            "series": "tnc-music-101"
+          },
+          {
+            "slug": "dsk-khi-ua-con-cua-mat-troi-cat-tieng",
+            "title": "DSK: Khi \"đứa con của mặt trời\" cất tiếng",
+            "date": "19 Tháng 7, 2026",
+            "series": "tnc-origins"
+          },
+          {
+            "slug": "gvr-ky-uc-cua-mot-the-he-rap-viet",
+            "title": "GVR - Ký ức của một thế hệ rap Việt",
+            "date": "19 Tháng 7, 2026",
+            "series": "tnc-origins"
+          }
+        ]
+      }
     ],
     "related_editors": []
   }

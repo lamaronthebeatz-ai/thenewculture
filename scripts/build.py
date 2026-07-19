@@ -3275,17 +3275,34 @@ def _slim_article(a):
     return {"slug": a["slug"], "title": a["title"], "date": a["date"], "series": a["series"]}
 
 def compute_editor_intelligence(name, arts):
-    """Editorial Intelligence (PR3): mọi chỉ số + danh sách bên dưới được suy
-    ra 100% từ dữ liệu build-time đã có (ARTICLES/SERIES/tags) — không thêm
-    trường CMS mới, không tính bằng JavaScript ở client.
+    """Editorial Intelligence (PR3, chuẩn hóa kiến trúc ở PR3.1): mọi chỉ số
+    + danh sách bên dưới được suy ra 100% từ dữ liệu build-time đã có
+    (ARTICLES/SERIES/tags) — không thêm trường CMS mới, không tính bằng
+    JavaScript ở client. Toàn bộ scan/aggregate/sort/rank chỉ chạy Ở ĐÂY,
+    một lần duy nhất mỗi editor — template chỉ được render, không được tính
+    lại/lọc/sắp xếp bất cứ collection nào trong kết quả trả về.
 
     Diễn giải đã công bố (do hệ dữ liệu hiện tại không có taxonomy "category"
-    tách biệt khỏi "tag"): "category"/"Participated Categories" ở đây dùng
-    chính `tags` sẵn có của bài viết, không phát minh trường dữ liệu mới.
+    tách biệt khỏi "tag"): "categories" ở đây dùng chính `tags` sẵn có của
+    bài viết, không phát minh trường dữ liệu mới.
 
-    Hàm này KHÔNG render HTML — trang tác giả (PR1/PR2) giữ nguyên 100%,
-    không đổi layout/markup. Kết quả là dict thuần Python (JSON-serializable),
-    được main() ghi ra public/editor-intelligence.json."""
+    Trả về MỘT object chuẩn hóa (dict thuần Python, JSON-serializable), theo
+    đúng data model PR3.1 — mọi chỉ số nằm trong `metrics`, mỗi danh sách là
+    một khóa riêng ngang hàng:
+        {
+          "metrics": {article_count, series_count, category_count,
+                      first_article, latest_article, active_years,
+                      published_since},
+          "featured_articles": [...],
+          "recent_articles": [...],
+          "series": [...],       # full SERIES dict, đúng thứ tự chuẩn — sẵn
+                                  # sàng để template render thẳng, không cần
+                                  # tra cứu/lọc lại SERIES lần nữa.
+          "categories": [...],
+          "timeline": [...],
+        }
+    `related_editors` được main() gắn thêm vào object này sau (cần dữ liệu
+    chéo giữa các editor, xem compute_related_editors)."""
     import datetime
     dated = sorted(arts, key=lambda a: _parse_vn_date(a["date"]))
     real_dates = [d for a in arts if (d := _parse_vn_date(a["date"])) != datetime.date.min]
@@ -3310,7 +3327,7 @@ def compute_editor_intelligence(name, arts):
         chosen.append(a); seen.add(a["slug"])
 
     recent_articles = sorted(arts, key=lambda a: _parse_vn_date(a["date"]), reverse=True)[:5]
-    participated_series = [s for s in SERIES if s["slug"] in series_slugs]
+    series_collection = [s for s in SERIES if s["slug"] in series_slugs]
 
     timeline = []
     for y in years:
@@ -3321,17 +3338,22 @@ def compute_editor_intelligence(name, arts):
             "articles": [_slim_article(a) for a in y_arts],
         })
 
-    return {
+    metrics = {
         "article_count": len(arts),
         "series_count": len(series_slugs),
         "category_count": len(categories),
         "first_article": _slim_article(dated[0]) if dated else None,
         "latest_article": _slim_article(dated[-1]) if dated else None,
         "active_years": len(years),
+        "published_since": years[0] if years else None,
+    }
+    return {
+        "metrics": metrics,
         "featured_articles": [_slim_article(a) for a in chosen],
         "recent_articles": [_slim_article(a) for a in recent_articles],
-        "participated_series": [{"slug": s["slug"], "name": s["name"]} for s in participated_series],
-        "participated_categories": categories,
+        "series": series_collection,
+        "categories": categories,
+        "timeline": timeline,
     }
 
 def compute_related_editors(name, arts, editors_arts):
@@ -3357,14 +3379,22 @@ def compute_related_editors(name, arts, editors_arts):
     scored.sort(key=lambda t: (-t[1], -t[2], t[0]))
     return [{"name": n, "shared_series": ss, "shared_tags": st} for n, ss, st in scored]
 
-def render_author_page(name, arts):
+def render_author_page(name, arts, intel):
     """Trang hồ sơ biên tập viên: identity page căn giữa (không phải trang bài
     viết) — ảnh, tên, RoleChip, thống kê, tổ chức, Honors, Badges, quote/giới
     thiệu (Editor Identity System, PR2), rồi tới bài viết + series của họ.
     Chỉ được gọi khi tác giả đã có hồ sơ trong EDITORS (kiểm tra ở nơi gọi
     trong main()). Quote/Giới thiệu tái dùng đúng trường bio sẵn có; Social
     Links chưa có nguồn dữ liệu trong CMS nên không render gì (đúng nguyên
-    tắc "chỉ hiện khi đã có dữ liệu")."""
+    tắc "chỉ hiện khi đã có dữ liệu").
+
+    `intel`: object Editorial Intelligence đã tính sẵn ở build.py (PR3.1) —
+    hàm này CHỈ render, không tính/lọc/sắp xếp lại collection nào của intel
+    (dùng thẳng intel["series"] cho dải Series). Riêng khối "Bài viết gần
+    đây" cố tình vẫn lặp trực tiếp qua `arts` (thứ tự `order` thủ công có
+    từ PR1) thay vì dùng intel["recent_articles"] (top-5 theo ngày thật) —
+    để giữ đúng nguyên tắc "build output unchanged" của PR3.1; xem báo cáo
+    PR3.1 để biết lý do."""
     ed = EDITORS.get(name, {})
     avatar = ed.get("avatar", "")
     bio = ed.get("bio", "")
@@ -3395,14 +3425,12 @@ def render_author_page(name, arts):
         </div>
       </a>"""
 
-    # Series: chỉ những series tác giả đã thực sự có bài, theo đúng thứ tự
-    # SERIES chuẩn — dữ liệu suy ra từ `arts` đã có sẵn, không thêm trường CMS
-    # nào. Tái dùng nguyên component .series-band/.series-grid/.series-cell.
-    author_series_slugs = {a["series"] for a in arts}
+    # Series: intel["series"] (PR3.1) đã được build.py tính sẵn — đúng những
+    # series tác giả thực sự có bài, theo thứ tự SERIES chuẩn. Template chỉ
+    # render, không tính/lọc lại. Tái dùng nguyên component
+    # .series-band/.series-grid/.series-cell.
     series_cells = ""
-    for s in SERIES:
-        if s["slug"] not in author_series_slugs:
-            continue
+    for s in intel["series"]:
         series_cells += f"""
       <a class="series-cell" href="{series_url(s['slug'])}">
         <span class="series-cell__code">{s['code']} · {s['num']}</span>
@@ -4201,23 +4229,26 @@ self.addEventListener('fetch',e=>{
     authors = {}
     for a in ARTICLES:
         authors.setdefault(a["author"], []).append(a)
+
+    # Editorial Intelligence (PR3; chuẩn hóa kiến trúc PR3.1) — chỉ số +
+    # collection tự sinh cho mỗi biên tập viên đã có trang, tính MỘT LẦN ở
+    # đây (build.py) rồi tái dùng cho cả trang tác giả lẫn file JSON — không
+    # quét/tính lại ARTICLES lần thứ hai cho cùng một editor.
+    editors_arts = {n: a for n, a in authors.items() if n in EDITORS}
+    editor_intelligence = {n: compute_editor_intelligence(n, a) for n, a in editors_arts.items()}
+    for n, a in editors_arts.items():
+        editor_intelligence[n]["related_editors"] = compute_related_editors(n, a, editors_arts)
+
     skipped_authors = []
     for name, arts in authors.items():
         if name not in EDITORS:
             skipped_authors.append(name)
             continue
         with open(os.path.join(OUT, author_url(name)),"w",encoding="utf-8") as f:
-            f.write(render_author_page(name, arts))
+            f.write(render_author_page(name, arts, editor_intelligence[name]))
     if skipped_authors:
         print(f"  (Chưa có trang tác giả cho: {', '.join(skipped_authors)} — thiếu hồ sơ trong content/editors/)")
 
-    # Editorial Intelligence (PR3) — chỉ số + danh sách tự sinh cho mỗi biên
-    # tập viên đã có trang (has_page trong EDITORS). Build-time only, không
-    # đổi HTML/CSS trang tác giả (PR1/PR2) — ghi ra file JSON riêng.
-    editors_arts = {n: a for n, a in authors.items() if n in EDITORS}
-    editor_intelligence = {n: compute_editor_intelligence(n, a) for n, a in editors_arts.items()}
-    for n, a in editors_arts.items():
-        editor_intelligence[n]["related_editors"] = compute_related_editors(n, a, editors_arts)
     import json as _json
     with open(os.path.join(OUT, "editor-intelligence.json"), "w", encoding="utf-8") as f:
         _json.dump(editor_intelligence, f, ensure_ascii=False, indent=2)
