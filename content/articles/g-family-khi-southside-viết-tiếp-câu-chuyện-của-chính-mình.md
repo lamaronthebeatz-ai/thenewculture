@@ -9,7 +9,7 @@ author: Lamar
 date: 12 Tháng 7, 2026
 read_time: ''
 featured: false
-order: 1
+order: 5
 tags:
   - '#TNC'
   - '#TNCOrigins'
