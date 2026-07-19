@@ -1,0 +1,152 @@
+{
+  "Lamar": {
+    "article_count": 18,
+    "series_count": 8,
+    "category_count": 43,
+    "first_article": {
+      "slug": "viet-dragon-vd-vi-vua-gangsta-rap-viet-nam-va-di-san-bat-diet-cua-viet-rap",
+      "title": "Viet Dragon: \"VD là Ví Dụ của Rap Việt\"",
+      "date": "1 Tháng 7, 2026",
+      "series": "tnc-origins"
+    },
+    "latest_article": {
+      "slug": "gvr-ky-uc-cua-mot-the-he-rap-viet",
+      "title": "GVR - Ký ức của một thế hệ rap Việt",
+      "date": "19 Tháng 7, 2026",
+      "series": "tnc-origins"
+    },
+    "active_years": 1,
+    "featured_articles": [
+      {
+        "slug": "dsk-khi-ua-con-cua-mat-troi-cat-tieng",
+        "title": "DSK: Khi \"đứa con của mặt trời\" cất tiếng",
+        "date": "19 Tháng 7, 2026",
+        "series": "tnc-origins"
+      },
+      {
+        "slug": "gvr-ky-uc-cua-mot-the-he-rap-viet",
+        "title": "GVR - Ký ức của một thế hệ rap Việt",
+        "date": "19 Tháng 7, 2026",
+        "series": "tnc-origins"
+      },
+      {
+        "slug": "amapiano-xu-huong-toan-cau-hay-chi-la-mot-con-song-ngan-tai-viet-nam",
+        "title": "Amapiano: Xu hướng toàn cầu hay chỉ là một cơn sóng ngắn tại Việt Nam?",
+        "date": "18 Tháng 7, 2026",
+        "series": "tnc-editorial"
+      }
+    ],
+    "recent_articles": [
+      {
+        "slug": "dsk-khi-ua-con-cua-mat-troi-cat-tieng",
+        "title": "DSK: Khi \"đứa con của mặt trời\" cất tiếng",
+        "date": "19 Tháng 7, 2026",
+        "series": "tnc-origins"
+      },
+      {
+        "slug": "gvr-ky-uc-cua-mot-the-he-rap-viet",
+        "title": "GVR - Ký ức của một thế hệ rap Việt",
+        "date": "19 Tháng 7, 2026",
+        "series": "tnc-origins"
+      },
+      {
+        "slug": "amapiano-xu-huong-toan-cau-hay-chi-la-mot-con-song-ngan-tai-viet-nam",
+        "title": "Amapiano: Xu hướng toàn cầu hay chỉ là một cơn sóng ngắn tại Việt Nam?",
+        "date": "18 Tháng 7, 2026",
+        "series": "tnc-editorial"
+      },
+      {
+        "slug": "mot-album-uoc-trien-khai-nhu-the-nao-trong-nganh-cong-nghiep-am-nhac-hien-ai",
+        "title": "Một album được triển khai như thế nào trong ngành công nghiệp âm nhạc hiện đại?",
+        "date": "18 Tháng 7, 2026",
+        "series": "tnc-music-101"
+      },
+      {
+        "slug": "kimmese-cong-bo-concert-solo-au-tien-sau-hon-20-nam-hoat-ong",
+        "title": "Kimmese công bố concert solo đầu tiên sau hơn 20 năm hoạt động",
+        "date": "16 Tháng 7, 2026",
+        "series": "tnc-radar"
+      }
+    ],
+    "participated_series": [
+      {
+        "slug": "tnc-origins",
+        "name": "TNC Origins"
+      },
+      {
+        "slug": "tnc-records",
+        "name": "TNC Records"
+      },
+      {
+        "slug": "tnc-breakdown",
+        "name": "TNC Breakdown"
+      },
+      {
+        "slug": "tnc-editorial",
+        "name": "TNC Editorial"
+      },
+      {
+        "slug": "tnc-reviews",
+        "name": "TNC Reviews"
+      },
+      {
+        "slug": "tnc-community",
+        "name": "TNC Community"
+      },
+      {
+        "slug": "tnc-radar",
+        "name": "TNC Radar"
+      },
+      {
+        "slug": "tnc-music-101",
+        "name": "TNC Music 101"
+      }
+    ],
+    "participated_categories": [
+      "#131km",
+      "#24k.right",
+      "#Album",
+      "#Amapiano",
+      "#Andreerighthand",
+      "#Back2daculture",
+      "#Binz",
+      "#DSK",
+      "#Dasunkid",
+      "#Defjam",
+      "#Evnets",
+      "#ForMe'se",
+      "#Freaky",
+      "#GVR",
+      "#Gaplai",
+      "#Gfamily",
+      "#HanhOr",
+      "#Justatee",
+      "#KTS2026",
+      "#Kewtiie",
+      "#Kimmese",
+      "#Kosmik",
+      "#LK",
+      "#Ladykillah",
+      "#Lamar",
+      "#Northside",
+      "#Pjpo",
+      "#Producer",
+      "#Records",
+      "#RockyCDE",
+      "#Southside",
+      "#Spacespeakers",
+      "#TNC",
+      "#TNCBreakdown",
+      "#TNCCommunity",
+      "#TNCEditorial",
+      "#TNCMusic101",
+      "#TNCOrigins",
+      "#TNCRadar",
+      "#TNCRecords",
+      "#TNCReview",
+      "#Vietdragon",
+      "#Vietdragon #TNCOrigins #Lamar"
+    ],
+    "related_editors": []
+  }
+}
