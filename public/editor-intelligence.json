@@ -1,7 +1,7 @@
 {
   "Lamar": {
     "metrics": {
-      "article_count": 18,
+      "article_count": 19,
       "series_count": 8,
       "category_count": 43,
       "first_article": {
@@ -11,15 +11,21 @@
         "series": "tnc-origins"
       },
       "latest_article": {
-        "slug": "gvr-ky-uc-cua-mot-the-he-rap-viet",
-        "title": "GVR - Ký ức của một thế hệ rap Việt",
-        "date": "19 Tháng 7, 2026",
-        "series": "tnc-origins"
+        "slug": "tru-bao-ha-noi-2026-hanh-trinh-tiep-theo-cua-mot-thu-nghiem-san-khau-rap-a-giac-quan",
+        "title": "TRÚ:BÃO Hà Nội 2026: Hành trình tiếp theo của một thử nghiệm sân khấu rap đa giác quan",
+        "date": "21 Tháng 7, 2026",
+        "series": "tnc-radar"
       },
       "active_years": 1,
       "published_since": 2026
     },
     "featured_articles": [
+      {
+        "slug": "tru-bao-ha-noi-2026-hanh-trinh-tiep-theo-cua-mot-thu-nghiem-san-khau-rap-a-giac-quan",
+        "title": "TRÚ:BÃO Hà Nội 2026: Hành trình tiếp theo của một thử nghiệm sân khấu rap đa giác quan",
+        "date": "21 Tháng 7, 2026",
+        "series": "tnc-radar"
+      },
       {
         "slug": "dsk-khi-ua-con-cua-mat-troi-cat-tieng",
         "title": "DSK: Khi \"đứa con của mặt trời\" cất tiếng",
@@ -31,15 +37,15 @@
         "title": "GVR - Ký ức của một thế hệ rap Việt",
         "date": "19 Tháng 7, 2026",
         "series": "tnc-origins"
-      },
-      {
-        "slug": "amapiano-xu-huong-toan-cau-hay-chi-la-mot-con-song-ngan-tai-viet-nam",
-        "title": "Amapiano: Xu hướng toàn cầu hay chỉ là một cơn sóng ngắn tại Việt Nam?",
-        "date": "18 Tháng 7, 2026",
-        "series": "tnc-editorial"
       }
     ],
     "recent_articles": [
+      {
+        "slug": "tru-bao-ha-noi-2026-hanh-trinh-tiep-theo-cua-mot-thu-nghiem-san-khau-rap-a-giac-quan",
+        "title": "TRÚ:BÃO Hà Nội 2026: Hành trình tiếp theo của một thử nghiệm sân khấu rap đa giác quan",
+        "date": "21 Tháng 7, 2026",
+        "series": "tnc-radar"
+      },
       {
         "slug": "dsk-khi-ua-con-cua-mat-troi-cat-tieng",
         "title": "DSK: Khi \"đứa con của mặt trời\" cất tiếng",
@@ -63,12 +69,6 @@
         "title": "Một album được triển khai như thế nào trong ngành công nghiệp âm nhạc hiện đại?",
         "date": "18 Tháng 7, 2026",
         "series": "tnc-music-101"
-      },
-      {
-        "slug": "kimmese-cong-bo-concert-solo-au-tien-sau-hon-20-nam-hoat-ong",
-        "title": "Kimmese công bố concert solo đầu tiên sau hơn 20 năm hoạt động",
-        "date": "16 Tháng 7, 2026",
-        "series": "tnc-radar"
       }
     ],
     "series": [
@@ -193,7 +193,7 @@
     "timeline": [
       {
         "year": 2026,
-        "count": 18,
+        "count": 19,
         "articles": [
           {
             "slug": "viet-dragon-vd-vi-vua-gangsta-rap-viet-nam-va-di-san-bat-diet-cua-viet-rap",
@@ -302,6 +302,12 @@
             "title": "GVR - Ký ức của một thế hệ rap Việt",
             "date": "19 Tháng 7, 2026",
             "series": "tnc-origins"
+          },
+          {
+            "slug": "tru-bao-ha-noi-2026-hanh-trinh-tiep-theo-cua-mot-thu-nghiem-san-khau-rap-a-giac-quan",
+            "title": "TRÚ:BÃO Hà Nội 2026: Hành trình tiếp theo của một thử nghiệm sân khấu rap đa giác quan",
+            "date": "21 Tháng 7, 2026",
+            "series": "tnc-radar"
           }
         ]
       }
