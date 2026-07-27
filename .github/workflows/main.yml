@@ -38,17 +38,21 @@ jobs:
           python-version: "3.12"
       - run: pip install pyyaml markdown
       - run: python scripts/build.py
+        env:
+          # articles/series/authors/tags giờ đọc trực tiếp từ Supabase (xem
+          # load_articles()/load_series()/load_editors() trong scripts/
+          # build.py) thay vì content/articles/*.md + content/editors/*.md.
+          # Thiếu 2 biến này, build.py raise lỗi rõ ràng ngay khi gọi
+          # Supabase thay vì âm thầm build ra site rỗng/lỗi.
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
       - run: |
           git config user.name "TNC Build Bot"
           git config user.email "bot@thenewculture.local"
-          # "content" phải được add cùng "public": khi một bài viết thiếu
-          # date, build.py chỉ gán ngày publish MỘT LẦN DUY NHẤT rồi ghi
-          # thẳng vào content/articles/*.md để bất biến từ đó về sau (xem
-          # _assign_date_once trong scripts/build.py). Nếu bước này chỉ add
-          # "public", lần ghi đó không bao giờ được commit -> mỗi lần CI
-          # build lại, bài viết đó bị coi là "vẫn thiếu date" và ngày publish
-          # tiếp tục trôi theo đúng ngày build, phá vỡ tính bất biến.
-          git add public content
+          # build.py không còn ghi ngược vào content/ (bài viết/tác giả giờ
+          # sống trên Supabase, không phải file .md tự cập nhật ngày publish
+          # nữa) — chỉ "public" (output tĩnh) có thể đổi sau mỗi lần build.
+          git add public
           if git diff --staged --quiet; then
             echo "Khong co thay doi."
           else
