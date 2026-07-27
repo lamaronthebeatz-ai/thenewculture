@@ -10,16 +10,25 @@ sinh bởi `scripts/build.py`) — không build vào `public/`, không được 
 vào `.github/workflows/main.yml`. Deploy riêng (vd một project Cloudflare
 Pages khác trỏ vào thư mục `dashboard/`).
 
-## Giai đoạn 1 (hiện tại)
+## Giai đoạn 1 (hiện tại) — hoàn thành cả 6 module
 
 - Đăng nhập bằng Supabase Auth (email/mật khẩu).
 - Chỉ tài khoản có hồ sơ `authors` đang active (khớp email) mới vào được —
   xem `public.is_active_editor()` trong `database/migrate_rev5_dashboard_access.sql`.
-- Module **Articles**: CRUD đầy đủ (danh sách + lọc trạng thái/tìm kiếm, tạo/
-  sửa mọi cột, gắn/gỡ tag, soft-delete + khôi phục, upload ảnh cover/poster
-  lên Supabase Storage bucket `media`).
-- Authors/Categories/Series/Tags/Media: mới có khung điều hướng, hiện
-  "sắp ra mắt" — sẽ triển khai ở các đợt tiếp theo.
+- **Articles**: danh sách + lọc trạng thái/tìm kiếm, tạo/sửa mọi cột, gắn/gỡ
+  tag, soft-delete + khôi phục, upload ảnh cover/poster lên Storage.
+- **Authors**: tạo/sửa hồ sơ biên tập viên — vai trò (role_id tiếng Việt +
+  giá trị chung), vinh danh, huy hiệu (chip chọn từ registry mirror của
+  `EDITOR_ROLES`/`EDITOR_HONORS`/`EDITOR_BADGES` trong `scripts/build.py`,
+  xem `src/lib/editorRegistries.js`), avatar upload, is_active, soft-delete.
+- **Categories**: cây phân cấp qua `parent_id` (chọn danh mục cha, tự loại
+  chính nó khỏi danh sách), sort_order, soft-delete.
+- **Series**: slug/code/tên/mô tả, ảnh bìa upload, accent_color, sort_order,
+  soft-delete.
+- **Tags**: sửa nhanh dạng inline (bảng đơn giản, không cần trang riêng).
+- **Media**: thư viện media — upload trực tiếp cho `image`/`gif` (khớp
+  `allowed_mime_types` của bucket), nhập URL thủ công cho `video`/`audio`/
+  `document` (bucket chỉ nhận ảnh); gắn với author/article tuỳ chọn.
 
 ## Thiết lập
 
@@ -56,9 +65,14 @@ hay bất kỳ đâu trong `dashboard/`.
   (Rev 5), không bao giờ dùng `service_role`.
 - `src/auth/AuthContext.jsx` — quản lý session + gọi RPC `is_active_editor`
   sau khi đăng nhập để quyết định cho vào Dashboard hay không.
-- `src/pages/ArticlesList.jsx` / `ArticleForm.jsx` — module Articles đầy đủ.
+- `src/pages/*List.jsx` / `*Form.jsx` — mỗi module 1 cặp danh sách + form
+  (Tags dùng form inline ngay trong list vì chỉ có 2 cột).
 - `src/components/ImageUploader.jsx` — upload ảnh lên bucket `media`, validate
   mime-type/dung lượng khớp giới hạn đã cấu hình ở Rev 5.
+- `src/lib/editorRegistries.js` — mirror thủ công của `EDITOR_ROLES`/
+  `EDITOR_HONORS`/`EDITOR_BADGES` trong `scripts/build.py` để hiện nhãn tiếng
+  Việt trong form Authors. Đây là bản sao CHỈ ĐỂ HIỂN THỊ — nếu build.py đổi/
+  thêm role/badge/honor, cập nhật lại đúng file này.
 
 ## Đã biết, chưa xử lý
 
