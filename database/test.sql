@@ -87,6 +87,39 @@ begin
   perform pg_temp.test_assert(cnt = 0, 'seed: mọi media.article_id trỏ đúng article còn tồn tại');
 end $$;
 
+-- Login + Membership: membership_plans luôn có (không phụ thuộc auth.users).
+-- profiles/memberships tuỳ thuộc project đã có user đăng ký thật hay chưa —
+-- SKIP an toàn (không FAIL) khi chưa có ai đăng ký, đúng như thiết kế seed.sql.
+do $$
+declare
+  cnt int;
+  profile_cnt int;
+begin
+  select count(*) into cnt from public.membership_plans where deleted_at is null;
+  perform pg_temp.test_assert(cnt = 3, format('seed: đủ 3 membership_plans (đang có %s)', cnt));
+
+  select count(*) into cnt from public.membership_plans where deleted_at is null and is_active = true;
+  perform pg_temp.test_assert(cnt >= 1, 'seed: có ít nhất 1 membership_plan đang active');
+
+  select count(*) into profile_cnt from public.profiles;
+  if profile_cnt = 0 then
+    raise notice 'SKIP: chưa có profiles nào (auth.users rỗng) — bỏ qua kiểm tra seed profiles/memberships; đây là trạng thái hợp lệ trên project Supabase chưa có ai đăng ký.';
+  else
+    select count(*) into cnt from public.memberships m
+      left join public.profiles p on p.id = m.profile_id
+      left join public.membership_plans mp on mp.id = m.plan_id
+      where p.id is null or mp.id is null;
+    perform pg_temp.test_assert(cnt = 0, 'seed: mọi membership trỏ đúng profile/plan còn tồn tại');
+
+    select count(*) into cnt from (
+      select profile_id from public.memberships
+      where status in ('trialing', 'active') and deleted_at is null
+      group by profile_id having count(*) > 1
+    ) x;
+    perform pg_temp.test_assert(cnt = 0, 'seed: không có profile nào có nhiều hơn 1 membership active/trialing cùng lúc');
+  end if;
+end $$;
+
 -- ============================================================================
 -- PHẦN B — KIỂM TRA CƠ CHẾ RÀNG BUỘC (dữ liệu tạm, tự rollback)
 -- ============================================================================
@@ -328,7 +361,7 @@ begin
     where slug in ('zz-test-rls-draft', 'zz-test-rls-published');
   perform pg_temp.test_assert(cnt_all = 2, 'RLS setup: cả 2 bài test (draft + published) đã insert thành công');
 
-  set role tnc_test_anon;
+  set local role tnc_test_anon;
   select count(*) into cnt_anon from public.articles
     where slug in ('zz-test-rls-draft', 'zz-test-rls-published');
   reset role;
@@ -344,6 +377,253 @@ rollback;
 -- Dọn vai trò test RLS. Bình thường B7 đã bị ROLLBACK cùng cả transaction nên
 -- lệnh này chỉ là lưới an toàn (sẽ báo "does not exist, skipping" — không lỗi).
 drop role if exists tnc_test_anon;
+
+-- ============================================================================
+-- PHẦN C — LOGIN + MEMBERSHIP (Rev 3): profiles / membership_plans / memberships
+--
+-- Nguyên tắc giống Phần B: dữ liệu tạm ("zz-test-..."), tự rollback. RIÊNG
+-- với profiles: KHÔNG BAO GIỜ insert trực tiếp vào auth.users trong file này
+-- — tạo tài khoản là trách nhiệm của Supabase Auth API, không phải seed/test
+-- script (insert tay vào auth.users trên project Supabase thật có thể vi
+-- phạm ràng buộc nội bộ của GoTrue mà schema.sql không kiểm soát được). Vì
+-- vậy mọi test cần 1 profile thật đều dùng PROFILE ĐÃ CÓ SẴN (từ seed.sql
+-- hoặc signup thật) và SKIP an toàn (không FAIL) nếu project chưa có ai
+-- đăng ký — đúng nguyên tắc đã áp dụng cho seed.sql.
+-- ============================================================================
+begin;
+
+-- C1. FOREIGN KEY: profiles.id phải trỏ auth.users có thật -------------------
+do $$
+begin
+  begin
+    insert into public.profiles (id) values ('00000000-0000-0000-0000-000000000000');
+    perform pg_temp.test_assert(false, 'FK: profiles.id không tồn tại trong auth.users phải bị từ chối');
+  exception when foreign_key_violation then
+    perform pg_temp.test_assert(true, 'FK: profiles.id không có trong auth.users bị từ chối đúng');
+  end;
+end $$;
+
+-- C2. FOREIGN KEY: memberships.profile_id phải trỏ profiles có thật ----------
+do $$
+declare
+  v_plan uuid;
+begin
+  select id into v_plan from public.membership_plans where slug = 'doc-gia-mien-phi';
+  begin
+    insert into public.memberships (profile_id, plan_id, status)
+    values ('00000000-0000-0000-0000-000000000000', v_plan, 'active');
+    perform pg_temp.test_assert(false, 'FK: memberships.profile_id không tồn tại phải bị từ chối');
+  exception when foreign_key_violation then
+    perform pg_temp.test_assert(true, 'FK: memberships.profile_id không có trong profiles bị từ chối đúng');
+  end;
+end $$;
+
+-- C3. CHECK CONSTRAINT trên membership_plans (không phụ thuộc auth.users) ----
+do $$
+begin
+  begin
+    insert into public.membership_plans (slug, name, price_cents) values ('zz-test-plan-bad-price', 'Bad', -1000);
+    perform pg_temp.test_assert(false, 'CHECK: membership_plans.price_cents âm phải bị từ chối');
+  exception when check_violation then
+    perform pg_temp.test_assert(true, 'CHECK: membership_plans.price_cents âm bị từ chối đúng');
+  end;
+
+  begin
+    insert into public.membership_plans (slug, name, billing_interval) values ('zz-test-plan-bad-interval', 'Bad', 'weekly');
+    perform pg_temp.test_assert(false, 'CHECK: membership_plans.billing_interval ngoài enum phải bị từ chối');
+  exception when check_violation then
+    perform pg_temp.test_assert(true, 'CHECK: membership_plans.billing_interval ngoài enum bị từ chối đúng');
+  end;
+
+  begin
+    insert into public.membership_plans (slug, name, currency) values ('zz-test-plan-bad-currency', 'Bad', 'vnd');
+    perform pg_temp.test_assert(false, 'CHECK: membership_plans.currency sai định dạng (chữ thường) phải bị từ chối');
+  exception when check_violation then
+    perform pg_temp.test_assert(true, 'CHECK: membership_plans.currency sai định dạng bị từ chối đúng');
+  end;
+end $$;
+
+-- C4. SOFT DELETE + PARTIAL UNIQUE INDEX trên membership_plans.slug ----------
+do $$
+declare
+  v_id uuid;
+begin
+  insert into public.membership_plans (slug, name) values ('zz-test-plan', 'Zz Test Plan') returning id into v_id;
+  update public.membership_plans set deleted_at = now() where id = v_id;
+  perform pg_temp.test_assert(
+    (select count(*) from public.membership_plans where slug = 'zz-test-plan') = 1,
+    'SOFT DELETE: membership_plans vẫn còn tồn tại vật lý sau khi soft-delete'
+  );
+
+  insert into public.membership_plans (slug, name) values ('zz-test-plan', 'Zz Test Plan Mới');
+  perform pg_temp.test_assert(
+    (select count(*) from public.membership_plans where slug = 'zz-test-plan') = 2,
+    'PARTIAL UNIQUE INDEX: tái sử dụng slug membership_plans sau soft-delete thành công'
+  );
+
+  begin
+    insert into public.membership_plans (slug, name) values ('zz-test-plan', 'Zz Test Plan Trùng');
+    perform pg_temp.test_assert(false, 'PARTIAL UNIQUE INDEX: 2 membership_plans active cùng slug phải bị từ chối');
+  exception when unique_violation then
+    perform pg_temp.test_assert(true, 'PARTIAL UNIQUE INDEX: chỉ 1 membership_plan active/slug — đúng');
+  end;
+end $$;
+
+-- C5-C8: cần 1 profile CÓ THẬT (không tạo giả) — SKIP an toàn nếu project
+-- chưa có user nào đăng ký.
+do $$
+declare
+  v_profile    uuid;
+  v_plan_free  uuid;
+  v_plan_paid  uuid;
+  v_membership uuid;
+begin
+  select id into v_profile from public.profiles order by created_at limit 1;
+  if v_profile is null then
+    raise notice 'SKIP: chưa có profile thật nào — bỏ qua C5-C8 (RESTRICT/CHECK/Partial-unique/CASCADE liên quan tới 1 profile cụ thể).';
+    return;
+  end if;
+
+  select id into v_plan_free from public.membership_plans where slug = 'doc-gia-mien-phi';
+
+  -- Tạo 1 plan test riêng để xoá thử (không đụng plan thật đang dùng trong seed)
+  insert into public.membership_plans (slug, name) values ('zz-test-restrict-plan', 'Zz Restrict Plan')
+  returning id into v_plan_paid;
+
+  insert into public.memberships (profile_id, plan_id, status)
+  values (v_profile, v_plan_paid, 'canceled')  -- canceled: không đụng ràng buộc "1 active/profile"
+  returning id into v_membership;
+
+  -- C5. RESTRICT: xoá plan đang có membership tham chiếu phải bị chặn
+  begin
+    delete from public.membership_plans where id = v_plan_paid;
+    perform pg_temp.test_assert(false, 'RESTRICT: xoá membership_plan đang có membership tham chiếu phải bị từ chối');
+  exception when foreign_key_violation then
+    perform pg_temp.test_assert(true, 'RESTRICT: membership_plans đang được memberships tham chiếu -> chặn xoá đúng');
+  end;
+
+  -- C6. CHECK: memberships.status ngoài enum
+  begin
+    update public.memberships set status = 'not-a-real-status' where id = v_membership;
+    perform pg_temp.test_assert(false, 'CHECK: memberships.status ngoài enum phải bị từ chối');
+  exception when check_violation then
+    perform pg_temp.test_assert(true, 'CHECK: memberships.status ngoài enum bị từ chối đúng');
+  end;
+
+  -- C7. PARTIAL UNIQUE INDEX: tối đa 1 active/trialing mỗi profile.
+  -- Chuyển tạm mọi active/trialing hiện có của profile này sang 'canceled'
+  -- (trong transaction sẽ rollback, không ảnh hưởng dữ liệu thật) để có
+  -- trạng thái xác định trước khi test.
+  update public.memberships set status = 'canceled'
+    where profile_id = v_profile and status in ('trialing', 'active');
+
+  insert into public.memberships (profile_id, plan_id, status) values (v_profile, v_plan_paid, 'active');
+  perform pg_temp.test_assert(
+    true, 'PARTIAL UNIQUE INDEX (memberships): profile không có active/trialing nào khác -> insert active đầu tiên thành công'
+  );
+
+  begin
+    insert into public.memberships (profile_id, plan_id, status) values (v_profile, v_plan_free, 'trialing');
+    perform pg_temp.test_assert(false, 'PARTIAL UNIQUE INDEX (memberships): thêm active/trialing thứ 2 cho cùng profile phải bị từ chối');
+  exception when unique_violation then
+    perform pg_temp.test_assert(true, 'PARTIAL UNIQUE INDEX (memberships): chỉ 1 active/trialing / profile — đúng');
+  end;
+
+  -- C8. CASCADE: xoá profile -> memberships của profile đó bị xoá theo
+  perform pg_temp.test_assert(
+    (select count(*) from public.memberships where profile_id = v_profile) > 0,
+    'CASCADE (trước khi xoá): profile test đang có ít nhất 1 membership'
+  );
+  delete from public.profiles where id = v_profile;
+  perform pg_temp.test_assert(
+    (select count(*) from public.memberships where profile_id = v_profile) = 0,
+    'ON DELETE CASCADE: xoá profile -> memberships liên quan bị xoá theo'
+  );
+end $$;
+
+rollback;
+
+-- C9. TRIGGER updated_at (membership_plans — cùng hàm dùng chung với mọi
+-- bảng khác, đã chứng minh tổng quát ở B6; test lại 1 lần trên bảng MỚI để
+-- xác nhận wiring trigger đúng cho bảng này). Autocommit + dọn bằng DELETE
+-- thật, lý do giống hệt B6 (now() đứng yên suốt 1 transaction).
+do $$
+declare
+  v_id uuid;
+  v_created timestamptz;
+  v_updated_before timestamptz;
+begin
+  insert into public.membership_plans (slug, name) values ('zz-test-trigger-plan', 'Zz Trigger Plan')
+  returning id, created_at, updated_at into v_id, v_created, v_updated_before;
+  perform pg_temp.test_assert(v_created = v_updated_before, 'TRIGGER (membership_plans): lúc mới tạo, created_at = updated_at');
+end $$;
+
+select pg_sleep(0.05);
+
+do $$
+declare
+  v_updated_after timestamptz;
+  v_created timestamptz;
+  v_updated_before timestamptz;
+begin
+  select created_at, updated_at into v_created, v_updated_before
+    from public.membership_plans where slug = 'zz-test-trigger-plan';
+
+  update public.membership_plans set name = 'Zz Trigger Plan Mới' where slug = 'zz-test-trigger-plan';
+
+  select updated_at into v_updated_after from public.membership_plans where slug = 'zz-test-trigger-plan';
+
+  perform pg_temp.test_assert(v_updated_after > v_updated_before, 'TRIGGER (membership_plans): updated_at tự tăng sau UPDATE');
+  perform pg_temp.test_assert(
+    (select created_at from public.membership_plans where slug = 'zz-test-trigger-plan') = v_created,
+    'TRIGGER (membership_plans): created_at KHÔNG đổi sau UPDATE'
+  );
+end $$;
+
+delete from public.membership_plans where slug = 'zz-test-trigger-plan';
+
+-- C10. ROW LEVEL SECURITY cho profiles/membership_plans/memberships --------
+-- Dùng đúng vai trò/cơ chế thật của Supabase: role "authenticated" +
+-- auth.uid() đọc từ GUC "request.jwt.claim.sub" (định nghĩa auth.uid() thật
+-- của Supabase). "anon" = chưa đăng nhập. SKIP an toàn nếu chưa có profile
+-- thật nào để giả lập đăng nhập.
+begin;
+
+do $$
+declare
+  v_profile uuid;
+  cnt int;
+begin
+  select id into v_profile from public.profiles order by created_at limit 1;
+  if v_profile is null then
+    raise notice 'SKIP: chưa có profile thật nào — bỏ qua kiểm tra RLS cho profiles/memberships.';
+    return;
+  end if;
+
+  -- membership_plans: đọc công khai, kể cả chưa đăng nhập (role anon)
+  set local role anon;
+  select count(*) into cnt from public.membership_plans where is_active = true and deleted_at is null;
+  perform pg_temp.test_assert(cnt > 0, 'RLS: role anon (chưa đăng nhập) vẫn đọc được membership_plans đang active');
+  reset role;
+
+  -- profiles: user chỉ thấy đúng hồ sơ của chính mình
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', v_profile::text, true);
+
+  select count(*) into cnt from public.profiles where id = v_profile;
+  perform pg_temp.test_assert(cnt = 1, 'RLS: user thấy đúng profile của chính mình (auth.uid() = id)');
+
+  select count(*) into cnt from public.profiles where id <> v_profile;
+  perform pg_temp.test_assert(cnt = 0, 'RLS: user KHÔNG thấy profile của người khác');
+
+  -- memberships: user không bao giờ thấy membership của profile khác mình
+  select count(*) into cnt from public.memberships where profile_id <> v_profile;
+  perform pg_temp.test_assert(cnt = 0, 'RLS: user KHÔNG thấy memberships của người khác');
+
+  reset role;
+end $$;
+
+rollback;
 
 -- ============================================================================
 -- HẾT TEST SUITE — nếu không có dòng "ERROR: FAIL" nào ở trên, mọi ràng buộc

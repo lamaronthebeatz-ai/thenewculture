@@ -392,4 +392,54 @@ from public.authors a, public.articles art
 where a.slug = 'minh-khoi' and art.slug = 'phong-van-doc-quyen-g-family'
 on conflict (url) where deleted_at is null do nothing;
 
+-- ----------------------------------------------------------------------------
+-- 8. MEMBERSHIP_PLANS (3 gói — không phụ thuộc auth.users/profiles, luôn
+--    seed được ngay cả trên project Supabase chưa có user nào đăng ký)
+-- ----------------------------------------------------------------------------
+insert into public.membership_plans (slug, name, description, price_cents, currency, billing_interval, sort_order) values
+  ('doc-gia-mien-phi', 'Độc giả', 'Đọc miễn phí toàn bộ bài viết công khai của The New Culture.', 0, 'VND', 'month', 1),
+  ('doc-gia-than-thiet-thang', 'Độc giả thân thiết (tháng)', 'Ủng hộ TNC hàng tháng, nhận nội dung/ưu đãi dành riêng cho thành viên.', 49000, 'VND', 'month', 2),
+  ('doc-gia-than-thiet-nam', 'Độc giả thân thiết (năm)', 'Ủng hộ TNC theo năm, tiết kiệm hơn so với gói tháng.', 490000, 'VND', 'year', 3)
+on conflict (slug) where deleted_at is null do nothing;
+
+-- ----------------------------------------------------------------------------
+-- 9. PROFILES + MEMBERSHIPS (demo, CHỈ áp dụng cho user THẬT sự đã tồn tại
+--    trong auth.users — qua đăng ký thật hoặc user giả tạo trong môi trường
+--    dev cục bộ). KHÔNG insert trực tiếp vào auth.users tại đây: tạo tài
+--    khoản đăng nhập là trách nhiệm của Supabase Auth API, không phải của
+--    seed script. Trên 1 project Supabase mới toanh (chưa ai đăng ký), 2
+--    khối dưới đây chỉ đơn giản là không chèn được dòng nào — không lỗi.
+--    profiles cho mỗi user mới cũng đã được trigger on_auth_user_created
+--    tự tạo sẵn; đoạn dưới chỉ bổ sung username/display_name mẫu cho tối đa
+--    3 user CHƯA có username, để có dữ liệu demo tương tác được.
+-- ----------------------------------------------------------------------------
+with candidates as (
+  select p.id, row_number() over (order by p.created_at) as rn
+  from public.profiles p
+  where p.username is null
+  limit 3
+)
+update public.profiles p
+set username = 'doc_gia_' || c.rn
+from candidates c
+where p.id = c.id;
+
+-- Gán thử 1 membership "đang active" cho ĐÚNG 1 profile cố định (profile
+-- được tạo sớm nhất) — minh hoạ luồng dữ liệu profiles -> memberships ->
+-- membership_plans hoạt động đúng. Cố định vào 1 profile xác định (thay vì
+-- "profile bất kỳ chưa có membership") để idempotent thật sự: chạy lại
+-- nhiều lần luôn nhắm đúng 1 profile đó, không tự động cấp thêm membership
+-- cho các profile khác ở những lần chạy sau.
+insert into public.memberships (profile_id, plan_id, status, current_period_end, provider, provider_reference)
+select p.id, mp.id, 'active', now() + interval '30 days', 'manual', 'seed-demo'
+from (select id from public.profiles order by created_at limit 1) p
+cross join lateral (
+  select id from public.membership_plans
+  where slug = 'doc-gia-than-thiet-thang' and deleted_at is null
+) mp
+where not exists (
+  select 1 from public.memberships m
+  where m.profile_id = p.id and m.deleted_at is null
+);
+
 commit;

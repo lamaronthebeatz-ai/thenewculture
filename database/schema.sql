@@ -13,6 +13,14 @@
 -- Rev 2 (kèm seed.sql/test.sql): mở rộng articles.status từ 3 lên 5 giá trị
 -- (draft/review/scheduled/published/archived) — xem giải thích tại chỗ định
 -- nghĩa cột bên dưới. Không có thay đổi schema nào khác.
+--
+-- Rev 3 — Nền tảng Login + Membership: thêm 3 bảng MỚI (profiles,
+-- membership_plans, memberships) + trigger tự tạo profile khi có user đăng
+-- ký qua Supabase Auth + RLS/policy cho cả 3. KHÔNG sửa 7 bảng lõi ở trên
+-- (authors/categories/series/tags/articles/article_tags/media) — đúng theo
+-- yêu cầu "giữ nguyên schema khác nếu không bắt buộc phải sửa". Xem chi tiết
+-- lý do thiết kế ở phần "10. LOGIN + MEMBERSHIP" bên dưới và trong
+-- DATABASE_DOCUMENTATION.md.
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
@@ -285,5 +293,193 @@ create policy "Public read media" on public.media
   for select using (deleted_at is null);
 
 -- ============================================================================
--- HẾT — 7 bảng, đầy đủ PK/FK/UNIQUE/INDEX/CHECK/DEFAULT/timestamps/RLS.
+-- 10. LOGIN + MEMBERSHIP (Rev 3) — 3 bảng mới: profiles, membership_plans,
+-- memberships. Không sửa 7 bảng lõi ở trên. Phạm vi CHỈ Login + Membership —
+-- không có Dashboard/API/UI ở đây.
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 10.1 profiles — liên kết 1-1 với auth.users (do Supabase Auth quản lý)
+--
+-- Thiết kế 1-1: id CHÍNH LÀ khóa chính, đồng thời là khóa ngoại tới
+-- auth.users(id) — đây là cách chuẩn/idiomatic của Supabase để đảm bảo 1-1
+-- thật sự (không dùng thêm 1 cột user_id + UNIQUE riêng), và ON DELETE CASCADE
+-- để xoá auth.users kéo theo xoá đúng 1 profile tương ứng.
+--
+-- KHÔNG lưu lại `email` ở đây (đã có trong auth.users, tránh trùng lặp/lệch
+-- dữ liệu — auth.users là nguồn sự thật duy nhất cho email/mật khẩu).
+--
+-- KHÔNG có deleted_at (khác với quy ước soft-delete ở 7 bảng lõi): vòng đời
+-- của profiles gắn chặt 1-1 với auth.users (Supabase quản lý), xoá profile
+-- độc lập với việc xoá tài khoản đăng nhập không có ý nghĩa sản phẩm rõ ràng.
+-- Dùng `is_active` (cùng mẫu với authors.is_active) khi cần "vô hiệu hoá" mà
+-- không xoá.
+-- ----------------------------------------------------------------------------
+create table if not exists public.profiles (
+  id            uuid primary key references auth.users (id) on delete cascade,
+  username      text,
+  display_name  text,
+  avatar_url    text,
+  bio           text,
+  is_active     boolean not null default true,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  constraint profiles_username_format check (
+    username is null or username ~ '^[a-z0-9_]{3,30}$'
+  )
+);
+
+-- username không bắt buộc (NULL cho tới khi user tự chọn) nhưng nếu đã đặt
+-- thì phải duy nhất. Không cần partial index (không có deleted_at ở bảng
+-- này) — UNIQUE thường của Postgres đã cho phép nhiều NULL cùng lúc.
+create unique index if not exists profiles_username_key on public.profiles (username);
+create index if not exists profiles_is_active_idx on public.profiles (is_active);
+
+drop trigger if exists trg_profiles_updated_at on public.profiles;
+create trigger trg_profiles_updated_at
+  before update on public.profiles
+  for each row execute function public.set_updated_at();
+
+-- Tự động tạo 1 profile mỗi khi có user đăng ký mới qua Supabase Auth.
+-- security definer + search_path cố định: bắt buộc để trigger (chạy dưới
+-- quyền nội bộ của Supabase Auth khi insert vào auth.users) có thể ghi được
+-- vào public.profiles, đồng thời tránh rủi ro search_path bị thao túng.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, display_name)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1))
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- ----------------------------------------------------------------------------
+-- 10.2 membership_plans — danh mục các gói thành viên (Free/Premium/...)
+-- Không phụ thuộc auth.users/profiles — có thể seed ngay, độc lập.
+-- ----------------------------------------------------------------------------
+create table if not exists public.membership_plans (
+  id                uuid primary key default gen_random_uuid(),
+  slug              text not null,
+  name              text not null,
+  description       text,
+  price_cents       integer not null default 0 check (price_cents >= 0),
+  currency          text not null default 'VND' check (currency ~ '^[A-Z]{3}$'),
+  billing_interval  text not null default 'month'
+                    check (billing_interval in ('month', 'year', 'lifetime')),
+  is_active         boolean not null default true,
+  sort_order        integer not null default 0,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now(),
+  deleted_at        timestamptz
+);
+
+create unique index if not exists membership_plans_slug_key on public.membership_plans (slug) where deleted_at is null;
+create index if not exists membership_plans_deleted_at_idx on public.membership_plans (deleted_at);
+create index if not exists membership_plans_is_active_idx on public.membership_plans (is_active) where is_active = true;
+
+drop trigger if exists trg_membership_plans_updated_at on public.membership_plans;
+create trigger trg_membership_plans_updated_at
+  before update on public.membership_plans
+  for each row execute function public.set_updated_at();
+
+-- ----------------------------------------------------------------------------
+-- 10.3 memberships — gói thành viên của từng profile (đăng ký/gia hạn)
+--
+-- FK profile_id -> ON DELETE CASCADE: xoá tài khoản (kéo theo xoá profile)
+-- thì lịch sử membership của tài khoản đó không còn ý nghĩa độc lập.
+-- FK plan_id -> ON DELETE RESTRICT: đúng mẫu đã dùng cho articles.author_id
+-- — không cho xoá cứng 1 plan đang có membership tham chiếu, buộc dùng
+-- membership_plans.deleted_at (soft delete) để "ngừng bán" 1 gói thay vì
+-- xoá hẳn, tránh mất lịch sử giao dịch.
+-- ----------------------------------------------------------------------------
+create table if not exists public.memberships (
+  id                  uuid primary key default gen_random_uuid(),
+  profile_id          uuid not null references public.profiles (id) on delete cascade,
+  plan_id             uuid not null references public.membership_plans (id) on delete restrict,
+  status              text not null default 'active'
+                      check (status in ('trialing', 'active', 'past_due', 'canceled', 'expired')),
+  started_at          timestamptz not null default now(),
+  current_period_end  timestamptz,
+  canceled_at         timestamptz,
+  provider            text,             -- vd 'stripe', 'momo', 'manual'
+  provider_reference  text,             -- id giao dịch/subscription phía provider
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now(),
+  deleted_at          timestamptz
+);
+
+-- Quy tắc nghiệp vụ ép ở tầng CSDL: mỗi profile chỉ có TỐI ĐA 1 membership
+-- đang ở trạng thái active/trialing tại một thời điểm (partial unique index,
+-- không phải UNIQUE thường — vì cho phép nhiều bản ghi lịch sử ở trạng thái
+-- khác như canceled/expired).
+create unique index if not exists memberships_one_active_per_profile
+  on public.memberships (profile_id)
+  where status in ('trialing', 'active') and deleted_at is null;
+
+create index if not exists memberships_profile_id_idx on public.memberships (profile_id);
+create index if not exists memberships_plan_id_idx on public.memberships (plan_id);
+create index if not exists memberships_status_idx on public.memberships (status);
+create index if not exists memberships_current_period_end_idx on public.memberships (current_period_end);
+create index if not exists memberships_deleted_at_idx on public.memberships (deleted_at);
+
+drop trigger if exists trg_memberships_updated_at on public.memberships;
+create trigger trg_memberships_updated_at
+  before update on public.memberships
+  for each row execute function public.set_updated_at();
+
+-- ----------------------------------------------------------------------------
+-- 10.4 RLS + POLICY cho profiles/membership_plans/memberships
+--
+-- profiles: người dùng chỉ đọc/sửa được đúng hồ sơ của chính mình
+-- (auth.uid() = id). Không có policy cho phép đọc hồ sơ người khác — "User
+-- Profile công khai" là tính năng KHÁC, chưa nằm trong phạm vi bước này.
+--
+-- membership_plans: đọc công khai (bảng giá) cho gói đang active/chưa xoá —
+-- cùng mẫu với "Public read categories/series/tags" đã có.
+--
+-- memberships: người dùng chỉ đọc được đúng membership của chính mình.
+-- KHÔNG có policy ghi cho client — tạo/sửa membership phải qua service_role
+-- (backend xử lý thanh toán/webhook), đúng nguyên tắc bảo mật-mặc định đã
+-- áp dụng cho toàn schema từ Rev 1.
+-- ----------------------------------------------------------------------------
+alter table public.profiles         enable row level security;
+alter table public.membership_plans enable row level security;
+alter table public.memberships      enable row level security;
+
+drop policy if exists "Users can view own profile" on public.profiles;
+create policy "Users can view own profile" on public.profiles
+  for select using (auth.uid() = id);
+
+drop policy if exists "Users can insert own profile" on public.profiles;
+create policy "Users can insert own profile" on public.profiles
+  for insert with check (auth.uid() = id);
+
+drop policy if exists "Users can update own profile" on public.profiles;
+create policy "Users can update own profile" on public.profiles
+  for update using (auth.uid() = id) with check (auth.uid() = id);
+
+drop policy if exists "Public read active membership plans" on public.membership_plans;
+create policy "Public read active membership plans" on public.membership_plans
+  for select using (deleted_at is null and is_active = true);
+
+drop policy if exists "Users can view own memberships" on public.memberships;
+create policy "Users can view own memberships" on public.memberships
+  for select using (auth.uid() = profile_id);
+
+-- ============================================================================
+-- HẾT — 10 bảng (7 lõi + 3 Login/Membership), đầy đủ
+-- PK/FK/UNIQUE/INDEX/CHECK/DEFAULT/timestamps/trigger/RLS.
 -- ============================================================================
