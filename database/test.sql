@@ -3,28 +3,46 @@
 -- Chạy SAU khi đã có: database/schema.sql rồi database/seed.sql.
 --
 -- PHẦN A: kiểm tra tính hợp lý của dữ liệu seed (chỉ đọc, không sửa gì).
--- PHẦN B: kiểm tra cơ chế ràng buộc của schema — FK, UNIQUE, CHECK,
---         Soft Delete, Cascade/Restrict, Trigger updated_at, Partial Unique
---         Index, RLS — bằng dữ liệu tạm (slug bắt đầu "zz-test-"), toàn bộ
---         nằm trong 1 transaction ROLLBACK ở cuối. Không để lại dấu vết,
---         không đụng tới dữ liệu seed, có thể chạy lại bao nhiêu lần cũng
---         được.
+-- PHẦN B/C: kiểm tra cơ chế ràng buộc của schema — FK, UNIQUE, CHECK,
+--           Soft Delete, Cascade/Restrict, Trigger updated_at, Partial
+--           Unique Index, RLS — bằng dữ liệu tạm (slug bắt đầu "zz-test-"),
+--           cô lập bằng SAVEPOINT (không phải BEGIN/ROLLBACK riêng — xem lý
+--           do ngay dưới đây). Không để lại dấu vết, không đụng tới dữ liệu
+--           seed, có thể chạy lại bao nhiêu lần cũng được.
+--
+-- QUAN TRỌNG — khác biệt với psql chạy cục bộ: Supabase SQL Editor chạy
+-- TOÀN BỘ nội dung dán vào như MỘT transaction duy nhất (không tự tách
+-- từng câu lệnh thành các transaction autocommit riêng như một kết nối
+-- psql thông thường). Hệ quả:
+--   1. Không thể dùng nhiều cặp `begin; ... rollback;` độc lập trong cùng
+--      1 lần chạy — `begin;` thứ 2 trở đi chỉ là no-op (đã ở trong 1
+--      transaction), và `rollback;` sẽ huỷ TOÀN BỘ transaction từ đầu file
+--      (kể cả CREATE FUNCTION _tnc_test_assert phía trên!), không chỉ phần
+--      dữ liệu tạm vừa chèn. Đây chính là nguyên nhân lỗi
+--      "function public._tnc_test_assert(...) does not exist" khi chạy
+--      trên Supabase. Thay vào đó, dùng SAVEPOINT/ROLLBACK TO SAVEPOINT —
+--      cơ chế duy nhất hoạt động đúng bất kể có đang ở trong 1 transaction
+--      bao trùm sẵn hay không, và chỉ huỷ đúng phần sau savepoint đó.
+--   2. now() (transaction_timestamp()) đứng yên trong SUỐT quá trình chạy
+--      cả file (không chỉ trong 1 khối begin/rollback nhỏ) — nên test
+--      trigger `updated_at` KHÔNG thể dựa vào việc so sánh 2 lần gọi now()
+--      cách nhau bằng pg_sleep(). Thay vào đó: cố tình gán updated_at về
+--      1 mốc cũ cố định ngay trong câu UPDATE, rồi kiểm tra trigger có ép
+--      nó về lại "hiện tại" hay không — cách này đúng bất kể now() có trôi
+--      giữa các câu lệnh hay không.
 --
 -- Cách đọc kết quả: mỗi dòng "NOTICE: PASS: ..." là một khẳng định đã đúng.
 -- Nếu có bug, script dừng ngay tại dòng lỗi với "ERROR: FAIL: ..." — sửa
 -- seed.sql/schema rồi chạy lại từ đầu (schema.sql -> seed.sql -> test.sql).
 -- ============================================================================
 
--- Hàm khẳng định dùng chung. KHÔNG dùng pg_temp (schema tạm theo session) —
--- trên Supabase SQL Editor, "schema pg_temp does not exist" xảy ra vì
--- CREATE FUNCTION nhắm thẳng vào pg_temp cần schema tạm đã được khởi tạo
--- sẵn trong session đó, điều không đảm bảo đúng lúc gọi CREATE FUNCTION;
--- CREATE TEMP TABLE tự khởi tạo được schema đó, nhưng CREATE FUNCTION nhắm
--- thẳng tên "pg_temp" thì không. Thay vào đó, tạo 1 hàm THẬT trong schema
--- public (không phải object tạm) và DROP FUNCTION tường minh ở cuối file
--- để không để lại object nào sau khi chạy xong — tương đương hiệu ứng "tự
--- dọn" của pg_temp nhưng hoạt động đúng trên mọi môi trường Postgres, kể cả
--- Supabase Cloud.
+begin;
+
+-- Hàm khẳng định dùng chung — một hàm THẬT trong schema public (không phải
+-- pg_temp: CREATE FUNCTION nhắm thẳng vào pg_temp không tự khởi tạo được
+-- schema tạm của session, gây lỗi "schema pg_temp does not exist" trên
+-- Supabase SQL Editor). Được DROP tường minh ở cuối file để không để lại
+-- object nào sau khi chạy xong.
 create or replace function public._tnc_test_assert(condition boolean, label text)
 returns void
 language plpgsql
@@ -129,9 +147,10 @@ begin
 end $$;
 
 -- ============================================================================
--- PHẦN B — KIỂM TRA CƠ CHẾ RÀNG BUỘC (dữ liệu tạm, tự rollback)
+-- PHẦN B — KIỂM TRA CƠ CHẾ RÀNG BUỘC CỦA 7 BẢNG LÕI (dữ liệu tạm, cô lập
+-- bằng SAVEPOINT — xem giải thích ở đầu file)
 -- ============================================================================
-begin;
+savepoint sp_part_b;
 
 -- B1. FOREIGN KEY --------------------------------------------------------------
 do $$
@@ -280,53 +299,33 @@ begin
   );
 end $$;
 
-rollback;
-
--- B6. TRIGGER updated_at -----------------------------------------------------------
--- QUAN TRỌNG: trong Postgres, now() trả về THỜI ĐIỂM BẮT ĐẦU TRANSACTION
--- (transaction_timestamp()), không đổi trong suốt 1 transaction. Vì vậy test
--- này KHÔNG được đặt trong 1 transaction bao trùm như B1-B5/B7 (nếu insert
--- và update cùng 1 transaction, trigger sẽ gán updated_at = now() giống hệt
--- created_at, không thể quan sát được sự thay đổi). Chạy autocommit (mỗi
--- lệnh 1 transaction riêng), rồi tự dọn bằng DELETE thật ở cuối — dữ liệu
--- test không tham chiếu tới bảng nào khác nên xoá thẳng không vi phạm ràng
--- buộc nào.
+-- B6. TRIGGER updated_at ---------------------------------------------------------
+-- Cố tình gán updated_at về 1 mốc cũ cố định ngay trong câu UPDATE — trigger
+-- (BEFORE UPDATE) phải ép nó về "hiện tại", bất kể client cố gán gì. Cách
+-- này không phụ thuộc việc now() có trôi giữa các câu lệnh hay không (xem
+-- giải thích ở đầu file), nên đúng cả khi cả script chạy trong 1 transaction
+-- duy nhất trên Supabase SQL Editor.
 do $$
 declare
-  v_id       uuid;
-  v_created  timestamptz;
-  v_updated_before timestamptz;
+  v_id      uuid;
+  v_created timestamptz;
 begin
   insert into public.tags (slug, name) values ('zz-test-trigger-tag', '#ZZTrigger')
-  returning id, created_at, updated_at into v_id, v_created, v_updated_before;
-  perform public._tnc_test_assert(v_created = v_updated_before, 'TRIGGER: lúc mới tạo, created_at = updated_at');
-end $$;
+  returning id, created_at into v_id, v_created;
 
-select pg_sleep(0.05);
+  update public.tags
+    set name = '#ZZTriggerMoi', updated_at = '2000-01-01T00:00:00Z'
+    where id = v_id;
 
-do $$
-declare
-  v_updated_after timestamptz;
-  v_created       timestamptz;
-  v_updated_before timestamptz;
-begin
-  select created_at, updated_at into v_created, v_updated_before
-    from public.tags where slug = 'zz-test-trigger-tag';
-
-  update public.tags set name = '#ZZTriggerMoi' where slug = 'zz-test-trigger-tag';
-
-  select updated_at into v_updated_after from public.tags where slug = 'zz-test-trigger-tag';
-
-  perform public._tnc_test_assert(v_updated_after > v_updated_before, 'TRIGGER: updated_at tự tăng sau UPDATE');
   perform public._tnc_test_assert(
-    (select created_at from public.tags where slug = 'zz-test-trigger-tag') = v_created,
-    'TRIGGER: created_at KHÔNG đổi sau UPDATE'
+    (select updated_at from public.tags where id = v_id) > '2001-01-01T00:00:00Z'::timestamptz,
+    'TRIGGER: updated_at bị trigger ép về hiện tại, không giữ giá trị client cố gán thủ công (2000-01-01)'
+  );
+  perform public._tnc_test_assert(
+    (select created_at from public.tags where id = v_id) = v_created,
+    'TRIGGER: created_at KHÔNG đổi sau UPDATE (UPDATE không đề cập tới created_at)'
   );
 end $$;
-
-delete from public.tags where slug = 'zz-test-trigger-tag';
-
-begin;
 
 -- B7. ROW LEVEL SECURITY --------------------------------------------------------
 -- Dùng vai trò tạm không có BYPASSRLS và không phải chủ bảng — superuser/owner
@@ -380,25 +379,27 @@ begin
   );
 end $$;
 
-rollback;
+rollback to savepoint sp_part_b;
 
--- Dọn vai trò test RLS. Bình thường B7 đã bị ROLLBACK cùng cả transaction nên
--- lệnh này chỉ là lưới an toàn (sẽ báo "does not exist, skipping" — không lỗi).
+-- Dọn vai trò test RLS. Việc tạo role tnc_test_anon cũng đã bị ROLLBACK TO
+-- SAVEPOINT cùng cả khối trên nên lệnh này chỉ là lưới an toàn (sẽ báo
+-- "does not exist, skipping" — không lỗi).
 drop role if exists tnc_test_anon;
 
 -- ============================================================================
 -- PHẦN C — LOGIN + MEMBERSHIP (Rev 3): profiles / membership_plans / memberships
 --
--- Nguyên tắc giống Phần B: dữ liệu tạm ("zz-test-..."), tự rollback. RIÊNG
--- với profiles: KHÔNG BAO GIỜ insert trực tiếp vào auth.users trong file này
--- — tạo tài khoản là trách nhiệm của Supabase Auth API, không phải seed/test
--- script (insert tay vào auth.users trên project Supabase thật có thể vi
--- phạm ràng buộc nội bộ của GoTrue mà schema.sql không kiểm soát được). Vì
--- vậy mọi test cần 1 profile thật đều dùng PROFILE ĐÃ CÓ SẴN (từ seed.sql
--- hoặc signup thật) và SKIP an toàn (không FAIL) nếu project chưa có ai
--- đăng ký — đúng nguyên tắc đã áp dụng cho seed.sql.
+-- Nguyên tắc giống Phần B: dữ liệu tạm ("zz-test-..."), cô lập bằng
+-- SAVEPOINT. RIÊNG với profiles: KHÔNG BAO GIỜ insert trực tiếp vào
+-- auth.users trong file này — tạo tài khoản là trách nhiệm của Supabase
+-- Auth API, không phải seed/test script (insert tay vào auth.users trên
+-- project Supabase thật có thể vi phạm ràng buộc nội bộ của GoTrue mà
+-- schema.sql không kiểm soát được). Vì vậy mọi test cần 1 profile thật đều
+-- dùng PROFILE ĐÃ CÓ SẴN (từ seed.sql hoặc signup thật) và SKIP an toàn
+-- (không FAIL) nếu project chưa có ai đăng ký — đúng nguyên tắc đã áp dụng
+-- cho seed.sql.
 -- ============================================================================
-begin;
+savepoint sp_part_c;
 
 -- C1. FOREIGN KEY: profiles.id phải trỏ auth.users có thật -------------------
 do $$
@@ -477,7 +478,30 @@ begin
   end;
 end $$;
 
--- C5-C8: cần 1 profile CÓ THẬT (không tạo giả) — SKIP an toàn nếu project
+-- C5. TRIGGER updated_at (membership_plans) — cùng kỹ thuật với B6 -----------
+do $$
+declare
+  v_id      uuid;
+  v_created timestamptz;
+begin
+  insert into public.membership_plans (slug, name) values ('zz-test-trigger-plan', 'Zz Trigger Plan')
+  returning id, created_at into v_id, v_created;
+
+  update public.membership_plans
+    set name = 'Zz Trigger Plan Mới', updated_at = '2000-01-01T00:00:00Z'
+    where id = v_id;
+
+  perform public._tnc_test_assert(
+    (select updated_at from public.membership_plans where id = v_id) > '2001-01-01T00:00:00Z'::timestamptz,
+    'TRIGGER (membership_plans): updated_at bị trigger ép về hiện tại, không giữ giá trị client cố gán thủ công'
+  );
+  perform public._tnc_test_assert(
+    (select created_at from public.membership_plans where id = v_id) = v_created,
+    'TRIGGER (membership_plans): created_at KHÔNG đổi sau UPDATE'
+  );
+end $$;
+
+-- C6-C9: cần 1 profile CÓ THẬT (không tạo giả) — SKIP an toàn nếu project
 -- chưa có user nào đăng ký.
 do $$
 declare
@@ -488,7 +512,7 @@ declare
 begin
   select id into v_profile from public.profiles order by created_at limit 1;
   if v_profile is null then
-    raise notice 'SKIP: chưa có profile thật nào — bỏ qua C5-C8 (RESTRICT/CHECK/Partial-unique/CASCADE liên quan tới 1 profile cụ thể).';
+    raise notice 'SKIP: chưa có profile thật nào — bỏ qua C6-C9 (RESTRICT/CHECK/Partial-unique/CASCADE liên quan tới 1 profile cụ thể).';
     return;
   end if;
 
@@ -502,7 +526,7 @@ begin
   values (v_profile, v_plan_paid, 'canceled')  -- canceled: không đụng ràng buộc "1 active/profile"
   returning id into v_membership;
 
-  -- C5. RESTRICT: xoá plan đang có membership tham chiếu phải bị chặn
+  -- C6. RESTRICT: xoá plan đang có membership tham chiếu phải bị chặn
   begin
     delete from public.membership_plans where id = v_plan_paid;
     perform public._tnc_test_assert(false, 'RESTRICT: xoá membership_plan đang có membership tham chiếu phải bị từ chối');
@@ -510,7 +534,7 @@ begin
     perform public._tnc_test_assert(true, 'RESTRICT: membership_plans đang được memberships tham chiếu -> chặn xoá đúng');
   end;
 
-  -- C6. CHECK: memberships.status ngoài enum
+  -- C7. CHECK: memberships.status ngoài enum
   begin
     update public.memberships set status = 'not-a-real-status' where id = v_membership;
     perform public._tnc_test_assert(false, 'CHECK: memberships.status ngoài enum phải bị từ chối');
@@ -518,9 +542,9 @@ begin
     perform public._tnc_test_assert(true, 'CHECK: memberships.status ngoài enum bị từ chối đúng');
   end;
 
-  -- C7. PARTIAL UNIQUE INDEX: tối đa 1 active/trialing mỗi profile.
+  -- C8. PARTIAL UNIQUE INDEX: tối đa 1 active/trialing mỗi profile.
   -- Chuyển tạm mọi active/trialing hiện có của profile này sang 'canceled'
-  -- (trong transaction sẽ rollback, không ảnh hưởng dữ liệu thật) để có
+  -- (nằm trong savepoint sẽ rollback, không ảnh hưởng dữ liệu thật) để có
   -- trạng thái xác định trước khi test.
   update public.memberships set status = 'canceled'
     where profile_id = v_profile and status in ('trialing', 'active');
@@ -537,7 +561,7 @@ begin
     perform public._tnc_test_assert(true, 'PARTIAL UNIQUE INDEX (memberships): chỉ 1 active/trialing / profile — đúng');
   end;
 
-  -- C8. CASCADE: xoá profile -> memberships của profile đó bị xoá theo
+  -- C9. CASCADE: xoá profile -> memberships của profile đó bị xoá theo
   perform public._tnc_test_assert(
     (select count(*) from public.memberships where profile_id = v_profile) > 0,
     'CASCADE (trước khi xoá): profile test đang có ít nhất 1 membership'
@@ -549,54 +573,12 @@ begin
   );
 end $$;
 
-rollback;
-
--- C9. TRIGGER updated_at (membership_plans — cùng hàm dùng chung với mọi
--- bảng khác, đã chứng minh tổng quát ở B6; test lại 1 lần trên bảng MỚI để
--- xác nhận wiring trigger đúng cho bảng này). Autocommit + dọn bằng DELETE
--- thật, lý do giống hệt B6 (now() đứng yên suốt 1 transaction).
-do $$
-declare
-  v_id uuid;
-  v_created timestamptz;
-  v_updated_before timestamptz;
-begin
-  insert into public.membership_plans (slug, name) values ('zz-test-trigger-plan', 'Zz Trigger Plan')
-  returning id, created_at, updated_at into v_id, v_created, v_updated_before;
-  perform public._tnc_test_assert(v_created = v_updated_before, 'TRIGGER (membership_plans): lúc mới tạo, created_at = updated_at');
-end $$;
-
-select pg_sleep(0.05);
-
-do $$
-declare
-  v_updated_after timestamptz;
-  v_created timestamptz;
-  v_updated_before timestamptz;
-begin
-  select created_at, updated_at into v_created, v_updated_before
-    from public.membership_plans where slug = 'zz-test-trigger-plan';
-
-  update public.membership_plans set name = 'Zz Trigger Plan Mới' where slug = 'zz-test-trigger-plan';
-
-  select updated_at into v_updated_after from public.membership_plans where slug = 'zz-test-trigger-plan';
-
-  perform public._tnc_test_assert(v_updated_after > v_updated_before, 'TRIGGER (membership_plans): updated_at tự tăng sau UPDATE');
-  perform public._tnc_test_assert(
-    (select created_at from public.membership_plans where slug = 'zz-test-trigger-plan') = v_created,
-    'TRIGGER (membership_plans): created_at KHÔNG đổi sau UPDATE'
-  );
-end $$;
-
-delete from public.membership_plans where slug = 'zz-test-trigger-plan';
-
 -- C10. ROW LEVEL SECURITY cho profiles/membership_plans/memberships --------
 -- Dùng đúng vai trò/cơ chế thật của Supabase: role "authenticated" +
 -- auth.uid() đọc từ GUC "request.jwt.claim.sub" (định nghĩa auth.uid() thật
 -- của Supabase). "anon" = chưa đăng nhập. SKIP an toàn nếu chưa có profile
--- thật nào để giả lập đăng nhập.
-begin;
-
+-- thật nào để giả lập đăng nhập (vd C6-C9 vừa xoá profile duy nhất đang có
+-- ở trên — trường hợp đó đúng nghĩa "hết profile thật", SKIP là chính xác).
 do $$
 declare
   v_profile uuid;
@@ -631,12 +613,14 @@ begin
   reset role;
 end $$;
 
-rollback;
+rollback to savepoint sp_part_c;
 
 -- Dọn hàm khẳng định dùng chung — không phải object tạm/session nên phải
--- tự dọn tường minh (khác pg_temp, không tự biến mất khi ngắt kết nối).
--- An toàn chạy lại nhiều lần: DROP FUNCTION IF EXISTS không lỗi nếu đã dọn.
+-- tự dọn tường minh. An toàn chạy lại nhiều lần: DROP FUNCTION IF EXISTS
+-- không lỗi nếu đã dọn.
 drop function if exists public._tnc_test_assert(boolean, text);
+
+commit;
 
 -- ============================================================================
 -- HẾT TEST SUITE — nếu không có dòng "ERROR: FAIL" nào ở trên, mọi ràng buộc
