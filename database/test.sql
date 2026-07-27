@@ -30,6 +30,17 @@
 --      1 mốc cũ cố định ngay trong câu UPDATE, rồi kiểm tra trigger có ép
 --      nó về lại "hiện tại" hay không — cách này đúng bất kể now() có trôi
 --      giữa các câu lệnh hay không.
+--   3. Vai trò chạy SQL Editor trên Supabase Cloud KHÔNG có quyền SET ROLE
+--      sang vai trò khác (kể cả "anon"/"authenticated" chuẩn lẫn vai trò tự
+--      tạo bằng CREATE ROLE) — báo lỗi "permission denied to set role".
+--      Đây là giới hạn bảo mật cố ý của Supabase, không phải lỗi. Vì vậy
+--      test.sql KHÔNG dùng SET ROLE/SET LOCAL ROLE/CREATE ROLE ở bất kỳ đâu.
+--      RLS được kiểm tra qua CẤU HÌNH (RLS đã bật, policy đúng tên/đúng
+--      điều kiện tồn tại — đọc từ pg_class/pg_policies, không cần quyền đặc
+--      biệt), KHÔNG kiểm tra HÀNH VI (đăng nhập giả lập rồi xem có bị lọc
+--      đúng hay không) — muốn kiểm thử hành vi RLS thật, phải gọi qua
+--      Supabase client/REST API bằng JWT thật của user, ngoài phạm vi 1 file
+--      .sql chạy trong SQL Editor.
 --
 -- Cách đọc kết quả: mỗi dòng "NOTICE: PASS: ..." là một khẳng định đã đúng.
 -- Nếu có bug, script dừng ngay tại dòng lỗi với "ERROR: FAIL: ..." — sửa
@@ -327,64 +338,64 @@ begin
   );
 end $$;
 
--- B7. ROW LEVEL SECURITY --------------------------------------------------------
--- Dùng vai trò tạm không có BYPASSRLS và không phải chủ bảng — superuser/owner
--- mặc định bỏ qua RLS nên KHÔNG dùng để kiểm thử được.
-do $$
-begin
-  if not exists (select 1 from pg_roles where rolname = 'tnc_test_anon') then
-    create role tnc_test_anon nologin;
-  end if;
-  grant usage on schema public to tnc_test_anon;
-  grant select on
-    public.authors, public.categories, public.series, public.tags,
-    public.articles, public.article_tags, public.media
-    to tnc_test_anon;
-end $$;
-
+-- B7. ROW LEVEL SECURITY (kiểm tra CẤU HÌNH, không dùng SET ROLE) -----------
+-- Trên Supabase Cloud, vai trò chạy SQL Editor không có quyền SET ROLE sang
+-- vai trò khác (kể cả "anon"/"authenticated" chuẩn lẫn vai trò tự tạo) —
+-- đây là giới hạn bảo mật cố ý của Supabase, không phải lỗi ("permission
+-- denied to set role"). Vì vậy KHÔNG kiểm thử HÀNH VI RLS (giả lập đăng
+-- nhập rồi xem có bị lọc đúng hay không) trong SQL Editor được — muốn kiểm
+-- thử hành vi thật, phải gọi qua Supabase client/REST API bằng JWT thật
+-- của user, ngoài phạm vi 1 file .sql. Thay vào đó, kiểm tra đúng CẤU HÌNH
+-- RLS đã khai báo trong schema.sql qua catalog hệ thống (pg_class,
+-- pg_policies) — chỉ đọc, không cần quyền đặc biệt nào, không tạo/đổi vai
+-- trò nào cả.
 do $$
 declare
-  v_author   uuid;
-  v_series   uuid;
-  v_category uuid;
-  v_draft    uuid;
-  v_published uuid;
-  cnt_all  int;
-  cnt_anon int;
+  cnt int;
 begin
-  select id into v_author   from public.authors   where slug = 'lamar';
-  select id into v_series   from public.series     where slug = 'tnc-radar'; -- chưa bị xoá ở B5
-  select id into v_category from public.categories where slug = 'tin-tuc';   -- chưa bị xoá ở B5
-
-  insert into public.articles (slug, title, author_id, series_id, category_id, status)
-  values ('zz-test-rls-draft', 'RLS Draft', v_author, v_series, v_category, 'draft')
-  returning id into v_draft;
-
-  insert into public.articles (slug, title, author_id, series_id, category_id, status, published_at)
-  values ('zz-test-rls-published', 'RLS Published', v_author, v_series, v_category, 'published', now())
-  returning id into v_published;
-
-  select count(*) into cnt_all from public.articles
-    where slug in ('zz-test-rls-draft', 'zz-test-rls-published');
-  perform public._tnc_test_assert(cnt_all = 2, 'RLS setup: cả 2 bài test (draft + published) đã insert thành công');
-
-  set local role tnc_test_anon;
-  select count(*) into cnt_anon from public.articles
-    where slug in ('zz-test-rls-draft', 'zz-test-rls-published');
-  reset role;
+  select count(*) into cnt from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity = true
+      and c.relname in ('authors', 'categories', 'series', 'tags', 'articles', 'article_tags', 'media');
+  perform public._tnc_test_assert(
+    cnt = 7, format('RLS: cả 7 bảng lõi đều đã ENABLE ROW LEVEL SECURITY (đang có %s/7)', cnt)
+  );
 
   perform public._tnc_test_assert(
-    cnt_anon = 1,
-    format('RLS: vai trò công khai chỉ thấy bài published (1/2) — đang thấy %s', cnt_anon)
+    exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'authors' and policyname = 'Public read active authors'),
+    'RLS: policy "Public read active authors" tồn tại trên authors'
+  );
+  perform public._tnc_test_assert(
+    exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'categories' and policyname = 'Public read categories'),
+    'RLS: policy "Public read categories" tồn tại trên categories'
+  );
+  perform public._tnc_test_assert(
+    exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'series' and policyname = 'Public read series'),
+    'RLS: policy "Public read series" tồn tại trên series'
+  );
+  perform public._tnc_test_assert(
+    exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'tags' and policyname = 'Public read tags'),
+    'RLS: policy "Public read tags" tồn tại trên tags'
+  );
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from pg_policies
+      where schemaname = 'public' and tablename = 'articles' and policyname = 'Public read published articles'
+        and cmd = 'SELECT' and qual ilike '%published%'
+    ),
+    'RLS: policy "Public read published articles" tồn tại trên articles, đúng điều kiện lọc theo status published'
+  );
+  perform public._tnc_test_assert(
+    exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'article_tags' and policyname = 'Public read article_tags of published articles'),
+    'RLS: policy "Public read article_tags of published articles" tồn tại trên article_tags'
+  );
+  perform public._tnc_test_assert(
+    exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'media' and policyname = 'Public read media'),
+    'RLS: policy "Public read media" tồn tại trên media'
   );
 end $$;
 
 rollback to savepoint sp_part_b;
-
--- Dọn vai trò test RLS. Việc tạo role tnc_test_anon cũng đã bị ROLLBACK TO
--- SAVEPOINT cùng cả khối trên nên lệnh này chỉ là lưới an toàn (sẽ báo
--- "does not exist, skipping" — không lỗi).
-drop role if exists tnc_test_anon;
 
 -- ============================================================================
 -- PHẦN C — LOGIN + MEMBERSHIP (Rev 3): profiles / membership_plans / memberships
@@ -573,44 +584,66 @@ begin
   );
 end $$;
 
--- C10. ROW LEVEL SECURITY cho profiles/membership_plans/memberships --------
--- Dùng đúng vai trò/cơ chế thật của Supabase: role "authenticated" +
--- auth.uid() đọc từ GUC "request.jwt.claim.sub" (định nghĩa auth.uid() thật
--- của Supabase). "anon" = chưa đăng nhập. SKIP an toàn nếu chưa có profile
--- thật nào để giả lập đăng nhập (vd C6-C9 vừa xoá profile duy nhất đang có
--- ở trên — trường hợp đó đúng nghĩa "hết profile thật", SKIP là chính xác).
+-- C10. ROW LEVEL SECURITY cho profiles/membership_plans/memberships
+-- (kiểm tra CẤU HÌNH, không dùng SET ROLE — lý do xem chú thích ở B7).
 do $$
-declare
-  v_profile uuid;
-  cnt int;
 begin
-  select id into v_profile from public.profiles order by created_at limit 1;
-  if v_profile is null then
-    raise notice 'SKIP: chưa có profile thật nào — bỏ qua kiểm tra RLS cho profiles/memberships.';
-    return;
-  end if;
+  perform public._tnc_test_assert(
+    (select relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public' and c.relname = 'profiles'),
+    'RLS: profiles đã ENABLE ROW LEVEL SECURITY'
+  );
+  perform public._tnc_test_assert(
+    (select relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public' and c.relname = 'membership_plans'),
+    'RLS: membership_plans đã ENABLE ROW LEVEL SECURITY'
+  );
+  perform public._tnc_test_assert(
+    (select relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public' and c.relname = 'memberships'),
+    'RLS: memberships đã ENABLE ROW LEVEL SECURITY'
+  );
 
-  -- membership_plans: đọc công khai, kể cả chưa đăng nhập (role anon)
-  set local role anon;
-  select count(*) into cnt from public.membership_plans where is_active = true and deleted_at is null;
-  perform public._tnc_test_assert(cnt > 0, 'RLS: role anon (chưa đăng nhập) vẫn đọc được membership_plans đang active');
-  reset role;
-
-  -- profiles: user chỉ thấy đúng hồ sơ của chính mình
-  set local role authenticated;
-  perform set_config('request.jwt.claim.sub', v_profile::text, true);
-
-  select count(*) into cnt from public.profiles where id = v_profile;
-  perform public._tnc_test_assert(cnt = 1, 'RLS: user thấy đúng profile của chính mình (auth.uid() = id)');
-
-  select count(*) into cnt from public.profiles where id <> v_profile;
-  perform public._tnc_test_assert(cnt = 0, 'RLS: user KHÔNG thấy profile của người khác');
-
-  -- memberships: user không bao giờ thấy membership của profile khác mình
-  select count(*) into cnt from public.memberships where profile_id <> v_profile;
-  perform public._tnc_test_assert(cnt = 0, 'RLS: user KHÔNG thấy memberships của người khác');
-
-  reset role;
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from pg_policies
+      where schemaname = 'public' and tablename = 'profiles' and policyname = 'Users can view own profile'
+        and cmd = 'SELECT' and qual ilike '%auth.uid()%'
+    ),
+    'RLS: policy "Users can view own profile" (SELECT, so khớp auth.uid()) tồn tại trên profiles'
+  );
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from pg_policies
+      where schemaname = 'public' and tablename = 'profiles' and policyname = 'Users can insert own profile'
+        and cmd = 'INSERT' and with_check ilike '%auth.uid()%'
+    ),
+    'RLS: policy "Users can insert own profile" (INSERT, so khớp auth.uid()) tồn tại trên profiles'
+  );
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from pg_policies
+      where schemaname = 'public' and tablename = 'profiles' and policyname = 'Users can update own profile'
+        and cmd = 'UPDATE' and qual ilike '%auth.uid()%' and with_check ilike '%auth.uid()%'
+    ),
+    'RLS: policy "Users can update own profile" (UPDATE, so khớp auth.uid()) tồn tại trên profiles'
+  );
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from pg_policies
+      where schemaname = 'public' and tablename = 'membership_plans' and policyname = 'Public read active membership plans'
+        and cmd = 'SELECT' and qual ilike '%is_active%'
+    ),
+    'RLS: policy "Public read active membership plans" (đọc công khai gói đang active) tồn tại trên membership_plans'
+  );
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from pg_policies
+      where schemaname = 'public' and tablename = 'memberships' and policyname = 'Users can view own memberships'
+        and cmd = 'SELECT' and qual ilike '%auth.uid()%'
+    ),
+    'RLS: policy "Users can view own memberships" (SELECT, so khớp auth.uid()) tồn tại trên memberships'
+  );
 end $$;
 
 rollback to savepoint sp_part_c;
