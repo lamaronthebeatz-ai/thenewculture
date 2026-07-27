@@ -47,20 +47,41 @@ import json
 import urllib.request
 import urllib.error
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+def _normalize_supabase_url(raw):
+    """Chuẩn hoá SUPABASE_URL về đúng gốc dự án (vd 'https://xxx.supabase.co'),
+    không có path phía sau. Lý do: trang Project API Settings của Supabase
+    Dashboard hiển thị sẵn 1 ô "URL" ngay cạnh ví dụ PostgREST dạng
+    'https://xxx.supabase.co/rest/v1/' — dễ bị copy nhầm nguyên cụm đó vào
+    secret SUPABASE_URL thay vì chỉ phần gốc. Nếu để nguyên, _supabase_get()
+    sẽ tự ghép thêm '/rest/v1/<table>' lần nữa, tạo path lặp
+    '/rest/v1/rest/v1/<table>' — đây đúng là path mà Supabase gateway không
+    nhận diện được, trả về "HTTP 404 Invalid path specified in request URL".
+    Cắt bỏ hậu tố '/rest/v1' (có hoặc không có dấu / cuối) nếu phát hiện, để
+    {SUPABASE_URL}/rest/v1/{table} luôn đúng bất kể secret được điền thế nào."""
+    url = (raw or "").strip().rstrip("/")
+    if url.endswith("/rest/v1"):
+        url = url[: -len("/rest/v1")]
+    return url
+
+SUPABASE_URL = _normalize_supabase_url(os.environ.get("SUPABASE_URL", ""))
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
 
 def _supabase_get(table, query):
-    """GET một PostgREST resource. `query` là chuỗi query string đã sẵn sàng
-    (vd "select=slug,name&order=sort_order.asc") — không dùng urlencode vì cú
-    pháp embed của PostgREST (dấu phẩy/ngoặc đơn trong select=...) phải giữ
-    nguyên ký tự, và mọi giá trị lọc ở đây đều là ASCII đơn giản (slug, số,
-    'eq.published'...), không cần escape."""
+    """GET một PostgREST resource tại {SUPABASE_URL}/rest/v1/{table}. `query`
+    là chuỗi query string đã sẵn sàng (vd "select=slug,name&order=sort_order.asc")
+    — không dùng urlencode vì cú pháp embed của PostgREST (dấu phẩy/ngoặc đơn
+    trong select=...) phải giữ nguyên ký tự, và mọi giá trị lọc ở đây đều là
+    ASCII đơn giản (slug, số, 'eq.published'...), không cần escape."""
     if not SUPABASE_URL or not SUPABASE_ANON_KEY:
         raise RuntimeError(
             "Thiếu biến môi trường SUPABASE_URL / SUPABASE_ANON_KEY. build.py đọc "
             "articles/series/authors/tags trực tiếp từ Supabase — không còn đọc "
             "content/articles/*.md hay content/editors/*.md nữa (xem README/CI)."
+        )
+    if not SUPABASE_URL.startswith(("http://", "https://")):
+        raise RuntimeError(
+            f"SUPABASE_URL không hợp lệ: '{SUPABASE_URL}' — phải là URL đầy đủ "
+            "dạng 'https://<project-ref>.supabase.co' (không kèm '/rest/v1')."
         )
     url = f"{SUPABASE_URL}/rest/v1/{table}?{query}"
     req = urllib.request.Request(url, headers={
@@ -72,7 +93,10 @@ def _supabase_get(table, query):
         with urllib.request.urlopen(req, timeout=30) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
-        raise RuntimeError(f"Supabase trả lỗi khi đọc '{table}': HTTP {e.code} — {e.read().decode('utf-8', 'replace')}") from e
+        raise RuntimeError(
+            f"Supabase trả lỗi khi đọc '{table}': HTTP {e.code} — "
+            f"{e.read().decode('utf-8', 'replace')} (URL đã gọi: {url})"
+        ) from e
 
 def _format_vn_date(iso_ts):
     """Đảo ngược đúng định dạng 'D Tháng M, YYYY' từ published_at (timestamptz,
