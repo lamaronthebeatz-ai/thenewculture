@@ -21,6 +21,33 @@
 -- yêu cầu "giữ nguyên schema khác nếu không bắt buộc phải sửa". Xem chi tiết
 -- lý do thiết kế ở phần "10. LOGIN + MEMBERSHIP" bên dưới và trong
 -- DATABASE_DOCUMENTATION.md.
+--
+-- Rev 4 — Migration Markdown -> Supabase (nội dung thật): 2 thay đổi CỘNG
+-- THÊM, tối thiểu, để website (build.py) có thể đọc trực tiếp từ Supabase mà
+-- không mất dữ liệu đang có trong content/articles/*.md:
+--   1. authors.role: nới CHECK để chấp nhận thêm 16 role_id tiếng Việt thật
+--      (dùng bởi content/editors/*.md, xem EDITOR_ROLES trong scripts/build.py)
+--      BÊN CẠNH 7 giá trị chung cũ. Không xoá giá trị cũ nào — dữ liệu seed.sql
+--      hiện có vẫn hợp lệ.
+--   2. articles: thêm 3 cột mới, đều có DEFAULT nên không phá dữ liệu cũ:
+--      - sort_order (integer, default 999): mọi bài viết thật hiện có (20/20)
+--        đều khai báo "order:" trong frontmatter và build.py sort theo
+--        (order, slug) để quyết định thứ tự hiển thị trên trang chủ/archive/
+--        trang tác giả/trang tag — không có cột này thì không thể tái tạo
+--        đúng thứ tự đang chạy trên site.
+--      - poster_image_url (text, nullable): tương ứng trường "poster:" trong
+--        frontmatter (dùng ở 1/20 bài thật hiện tại) — ảnh poster riêng biệt
+--        với cover_image_url.
+--      - ranking (jsonb, default '[]'): tương ứng trường "ranking:" trong
+--        frontmatter — dùng ở 1/20 bài thật hiện tại ("TNC SELECTS THÁNG 7")
+--        nhưng KHÔNG thể bỏ qua: build.py dùng đúng bài có ranking không rỗng
+--        để render khối "Ranking Spotlight" cố định trên TRANG CHỦ
+--        (latest_ranking_article()/render_ranking_spotlight()) cũng như bảng
+--        xếp hạng đầy đủ trên trang bài viết (render_ranking()) — thiếu cột
+--        này, khối Ranking Spotlight trên trang chủ sẽ biến mất hoàn toàn sau
+--        khi chuyển sang đọc từ Supabase. Cấu trúc mỗi phần tử giữ nguyên
+--        đúng shape mà _normalize_ranking() đã chuẩn hoá: {rank, song,
+--        artist, cover, youtube, note}.
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
@@ -52,8 +79,17 @@ create table if not exists public.authors (
   avatar_url    text,
   bio           text,
   role          text not null default 'editor'
+                -- Rev 4: nới thêm 16 role_id tiếng Việt thật (EDITOR_ROLES trong
+                -- scripts/build.py), giữ nguyên 7 giá trị chung cũ để không phá
+                -- dữ liệu seed.sql hiện có.
                 check (role in ('editor-in-chief', 'deputy-editor', 'managing-editor',
-                                 'senior-editor', 'editor', 'contributor', 'guest')),
+                                 'senior-editor', 'editor', 'contributor', 'guest',
+                                 'tong-bien-tap', 'pho-tong-bien-tap', 'thu-ky-toa-soan',
+                                 'truong-ban-bien-tap', 'bien-tap-vien-cao-cap', 'bien-tap-vien',
+                                 'thuc-tap-bien-tap', 'bien-tap-vien-am-nhac', 'bien-tap-vien-van-hoa',
+                                 'bien-tap-vien-tin-tuc', 'bien-tap-vien-danh-gia', 'bien-tap-vien-phong-van',
+                                 'bien-tap-vien-nghien-cuu', 'giam-doc-sang-tao', 'bien-tap-vien-hinh-anh',
+                                 'cong-tac-vien')),
   honor         text,                                  -- vinh danh chính (nếu có)
   badges        jsonb not null default '[]'::jsonb,     -- danh sách badge id, vd ["founder","hiphop-expert"]
   is_active     boolean not null default true,
@@ -177,13 +213,24 @@ create table if not exists public.articles (
   hero_priority     boolean not null default false,
   read_time_minutes integer not null default 0 check (read_time_minutes >= 0),
   view_count        integer not null default 0 check (view_count >= 0),
+  -- Rev 4: tương ứng "order:" trong frontmatter — quyết định thứ tự hiển thị
+  -- (sort theo sort_order rồi tới slug), mặc định 999 giống hành vi loader
+  -- Markdown cũ khi một bài không khai báo order.
+  sort_order        integer not null default 999,
+  -- Rev 4: tương ứng "poster:" trong frontmatter (khác cover_image_url).
+  poster_image_url  text,
+  -- Rev 4: tương ứng "ranking:" trong frontmatter — nuôi khối "Ranking
+  -- Spotlight" trên trang chủ (xem giải thích ở đầu file). Mảng rỗng khi bài
+  -- không có bảng xếp hạng (tuyệt đại đa số).
+  ranking           jsonb not null default '[]'::jsonb,
   published_at      timestamptz,
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now(),
   deleted_at        timestamptz,
   constraint articles_published_requires_date check (
     (status = 'published' and published_at is not null) or (status <> 'published')
-  )
+  ),
+  constraint articles_ranking_is_array check (jsonb_typeof(ranking) = 'array')
 );
 
 create unique index if not exists articles_slug_key on public.articles (slug) where deleted_at is null;
@@ -194,6 +241,7 @@ create index if not exists articles_status_idx on public.articles (status);
 create index if not exists articles_published_at_idx on public.articles (published_at desc);
 create index if not exists articles_deleted_at_idx on public.articles (deleted_at);
 create index if not exists articles_featured_idx on public.articles (featured) where featured = true;
+create index if not exists articles_sort_order_idx on public.articles (sort_order);
 
 drop trigger if exists trg_articles_updated_at on public.articles;
 create trigger trg_articles_updated_at

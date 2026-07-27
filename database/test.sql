@@ -122,6 +122,28 @@ begin
     where m.article_id is not null
       and not exists (select 1 from public.articles art where art.id = m.article_id);
   perform public._tnc_test_assert(cnt = 0, 'seed: mọi media.article_id trỏ đúng article còn tồn tại');
+
+  -- Rev 4: seed.sql không set sort_order/poster_image_url/ranking cho article
+  -- nào, nên các bài seed (lọc đúng theo slug cố định của seed.sql, KHÔNG
+  -- phải "mọi article") phải nhận đúng DEFAULT (999 / NULL / []) của 3 cột
+  -- mới. Lọc theo slug seed cụ thể — không lọc toàn bảng — để test này vẫn
+  -- đúng cả khi import_real_content.sql đã chạy thêm (bài viết thật có
+  -- sort_order/ranking khác mặc định là chuyện bình thường, không phải lỗi).
+  -- Lọc bằng cover_image_url like '/uploads/seed-%' (tiền tố CHỈ seed.sql
+  -- dùng) thay vì lọc theo slug — 1 slug seed ('gvr-ky-uc-cua-mot-the-he-rap-
+  -- viet') trùng với slug của 1 bài viết THẬT sau khi import_real_content.sql
+  -- chạy (xem giải thích trong import_real_content.sql mục 4); nếu lọc theo
+  -- slug, dòng ACTIVE của slug đó sẽ là bài viết THẬT (sort_order khác 999
+  -- hợp lệ), không còn là dòng seed nữa — lọc theo cover_image_url luôn trỏ
+  -- đúng dòng seed bất kể dòng đó còn active hay đã bị soft-delete.
+  select count(*) into cnt from public.articles
+    where deleted_at is null and sort_order <> 999 and cover_image_url like '/uploads/seed-%';
+  perform public._tnc_test_assert(cnt = 0, 'seed: article seed (còn active) dùng đúng sort_order mặc định 999');
+
+  select count(*) into cnt from public.articles
+    where deleted_at is null and (poster_image_url is not null or ranking <> '[]'::jsonb)
+      and cover_image_url like '/uploads/seed-%';
+  perform public._tnc_test_assert(cnt = 0, 'seed: article seed (còn active) chưa có poster_image_url/ranking (mặc định NULL/[])');
 end $$;
 
 -- Login + Membership: membership_plans luôn có (không phụ thuộc auth.users).
@@ -221,6 +243,57 @@ begin
     perform public._tnc_test_assert(false, 'CHECK: email sai định dạng phải bị từ chối');
   exception when check_violation then
     perform public._tnc_test_assert(true, 'CHECK: authors.email sai định dạng bị từ chối đúng');
+  end;
+
+  -- Rev 4: role vẫn còn CHECK sau khi nới rộng — giá trị không thuộc danh
+  -- sách (kể cả 7 giá trị chung cũ lẫn 16 role_id tiếng Việt mới) vẫn bị từ chối.
+  begin
+    insert into public.authors (slug, name, role) values ('zz-test-bad-role', 'Test', 'khong-phai-role');
+    perform public._tnc_test_assert(false, 'CHECK: authors.role ngoài enum phải bị từ chối');
+  exception when check_violation then
+    perform public._tnc_test_assert(true, 'CHECK: authors.role ngoài enum bị từ chối đúng');
+  end;
+
+  -- Rev 4: role_id tiếng Việt thật (vd "tong-bien-tap") phải được chấp nhận.
+  insert into public.authors (slug, name, role) values ('zz-test-vn-role', 'Test VN Role', 'tong-bien-tap');
+  perform public._tnc_test_assert(
+    (select role from public.authors where slug = 'zz-test-vn-role') = 'tong-bien-tap',
+    'CHECK: authors.role chấp nhận role_id tiếng Việt thật (Rev 4)'
+  );
+end $$;
+
+-- Rev 4: sort_order/poster_image_url của articles ------------------------------
+do $$
+declare
+  v_author uuid;
+  v_id uuid;
+begin
+  select id into v_author from public.authors where slug = 'lamar';
+
+  insert into public.articles (slug, title, author_id)
+  values ('zz-test-sort-default', 'Sort Default Test', v_author)
+  returning id into v_id;
+  perform public._tnc_test_assert(
+    (select sort_order from public.articles where id = v_id) = 999,
+    'DEFAULT: articles.sort_order mặc định 999 khi không khai báo (Rev 4)'
+  );
+
+  insert into public.articles (slug, title, author_id, sort_order, poster_image_url, ranking)
+  values ('zz-test-sort-custom', 'Sort Custom Test', v_author, 2, '/uploads/zz-test-poster.jpg',
+          '[{"rank":1,"song":"Test Song","artist":"Test Artist","cover":"","youtube":"","note":""}]'::jsonb);
+  perform public._tnc_test_assert(
+    (select sort_order = 2 and poster_image_url = '/uploads/zz-test-poster.jpg'
+       and jsonb_array_length(ranking) = 1
+       from public.articles where slug = 'zz-test-sort-custom'),
+    'articles.sort_order/poster_image_url/ranking lưu đúng giá trị tuỳ chỉnh (Rev 4)'
+  );
+
+  begin
+    insert into public.articles (slug, title, author_id, ranking)
+    values ('zz-test-ranking-bad', 'Ranking CHECK Test', v_author, '{"not":"an array"}'::jsonb);
+    perform public._tnc_test_assert(false, 'CHECK: articles.ranking không phải mảng phải bị từ chối');
+  exception when check_violation then
+    perform public._tnc_test_assert(true, 'CHECK: articles.ranking không phải mảng bị từ chối đúng');
   end;
 end $$;
 

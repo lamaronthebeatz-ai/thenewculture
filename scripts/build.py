@@ -37,58 +37,76 @@ def accent_for(idx):
     return ACCENTS[idx % len(ACCENTS)]
 
 # ---------------------------------------------------------------
-# DỮ LIỆU TRUNG TÂM: 16 SERIES (đúng nguyên văn do Lamar cung cấp)
+# SUPABASE — nguồn dữ liệu duy nhất cho articles/series/authors/tags (thay
+# thế hoàn toàn content/articles/*.md và content/editors/*.md). Chỉ dùng
+# thư viện chuẩn (urllib) — không thêm dependency pip mới vào CI.
+# content/profiles/*.md (Artist Profiles) KHÔNG thuộc phạm vi migration này,
+# vẫn tiếp tục đọc từ Markdown như trước (xem load_profiles() bên dưới).
 # ---------------------------------------------------------------
-SERIES = [
-    {"slug":"tnc-origins","num":"01","name":"TNC Origins",
-     "desc":"Những con người, tập thể và cột mốc đặt nền móng cho underground Việt Nam.",
-     "tag_color":"red"},
-    {"slug":"tnc-profiles","num":"02","name":"TNC Profiles",
-     "desc":"Hồ sơ chi tiết về nghệ sĩ, producer, label, collective và các nhân vật trong ngành.",
-     "tag_color":"gold"},
-    {"slug":"tnc-records","num":"03","name":"TNC Records",
-     "desc":"Phân tích và lưu trữ những album, EP, mixtape có giá trị.",
-     "tag_color":"red"},
-    {"slug":"tnc-tracks","num":"04","name":"TNC Tracks",
-     "desc":"Phân tích các ca khúc nổi bật, từ âm nhạc, ca từ đến bối cảnh ra đời và sức ảnh hưởng.",
-     "tag_color":"gold"},
-    {"slug":"tnc-breakdown","num":"05","name":"TNC Breakdown",
-     "desc":"Phân tích chuyên sâu về hiện tượng, xu hướng, sản phẩm và các vấn đề trong công nghiệp âm nhạc.",
-     "tag_color":"red"},
-    {"slug":"tnc-editorial","num":"06","name":"TNC Editorial",
-     "desc":"Góc nhìn, quan điểm và bài bình luận của ban biên tập về những chủ đề đáng quan tâm.",
-     "tag_color":"gold"},
-    {"slug":"tnc-reviews","num":"07","name":"TNC Reviews",
-     "desc":"Đánh giá album, EP, MV, concert, showcase, festival và các sản phẩm âm nhạc.",
-     "tag_color":"red"},
-    {"slug":"tnc-timeline","num":"08","name":"TNC Timeline",
-     "desc":"Dòng thời gian về lịch sử underground Việt Nam và các cột mốc quan trọng.",
-     "tag_color":"gold"},
-    {"slug":"tnc-culture","num":"09","name":"TNC Culture",
-     "desc":"Khai thác văn hóa hip hop và underground: graffiti, DJ, breakdance, thời trang, lifestyle, cộng đồng...",
-     "tag_color":"red"},
-    {"slug":"inside-the-culture","num":"10","name":"Inside The Culture",
-     "desc":"Series phỏng vấn các nghệ sĩ, producer, đạo diễn, photographer, designer, nhà tổ chức và những người đứng sau ngành.",
-     "tag_color":"gold"},
-    {"slug":"tnc-community","num":"11","name":"TNC Community",
-     "desc":"Phản ánh hoạt động của cộng đồng, sự kiện, workshop, cypher, showcase và các dự án đáng chú ý.",
-     "tag_color":"red"},
-    {"slug":"tnc-radar","num":"12","name":"TNC Radar",
-     "desc":"Cập nhật những xu hướng, nghệ sĩ, sản phẩm và chuyển động mới trong underground.",
-     "tag_color":"gold"},
-    {"slug":"tnc-discovery","num":"13","name":"TNC Discovery",
-     "desc":"Giới thiệu những nghệ sĩ, producer, nhóm nhạc, label và dự án mới đầy tiềm năng.",
-     "tag_color":"red"},
-    {"slug":"tnc-music-101","num":"14","name":"TNC Music 101",
-     "desc":"Chia sẻ kiến thức về rap, hip hop, sản xuất âm nhạc và công nghiệp âm nhạc theo cách dễ tiếp cận.",
-     "tag_color":"gold"},
-    {"slug":"tnc-selects","num":"15","name":"TNC Selects",
-     "desc":"Tuyển chọn playlist, album, ca khúc và các gợi ý nghe nhạc theo từng chủ đề.",
-     "tag_color":"red"},
-    {"slug":"behind-the-culture","num":"16","name":"Behind The Culture",
-     "desc":"Hậu trường của The New Culture, quy trình làm báo, hành trình xây dựng tạp chí và những câu chuyện phía sau mỗi bài viết.",
-     "tag_color":"gold"},
-]
+import json
+import urllib.request
+import urllib.error
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
+
+def _supabase_get(table, query):
+    """GET một PostgREST resource. `query` là chuỗi query string đã sẵn sàng
+    (vd "select=slug,name&order=sort_order.asc") — không dùng urlencode vì cú
+    pháp embed của PostgREST (dấu phẩy/ngoặc đơn trong select=...) phải giữ
+    nguyên ký tự, và mọi giá trị lọc ở đây đều là ASCII đơn giản (slug, số,
+    'eq.published'...), không cần escape."""
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        raise RuntimeError(
+            "Thiếu biến môi trường SUPABASE_URL / SUPABASE_ANON_KEY. build.py đọc "
+            "articles/series/authors/tags trực tiếp từ Supabase — không còn đọc "
+            "content/articles/*.md hay content/editors/*.md nữa (xem README/CI)."
+        )
+    url = f"{SUPABASE_URL}/rest/v1/{table}?{query}"
+    req = urllib.request.Request(url, headers={
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
+        "Accept": "application/json",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"Supabase trả lỗi khi đọc '{table}': HTTP {e.code} — {e.read().decode('utf-8', 'replace')}") from e
+
+def _format_vn_date(iso_ts):
+    """Đảo ngược đúng định dạng 'D Tháng M, YYYY' từ published_at (timestamptz,
+    PostgREST trả ISO 8601 có offset UTC) — quy đổi về giờ Việt Nam (UTC+7,
+    không có giờ mùa hè nên offset cố định) trước khi lấy ngày/tháng/năm, vì
+    import_real_content.sql lưu published_at là đúng nửa đêm giờ VN của ngày
+    gốc trong frontmatter."""
+    import datetime
+    dt = datetime.datetime.fromisoformat(iso_ts.replace("Z", "+00:00"))
+    vn = dt.astimezone(datetime.timezone(datetime.timedelta(hours=7)))
+    return f"{vn.day} Tháng {vn.month}, {vn.year}"
+
+# ---------------------------------------------------------------
+# DỮ LIỆU TRUNG TÂM: 16 SERIES — đọc từ bảng public.series trên Supabase
+# (đã seed đúng nguyên văn do Lamar cung cấp, xem database/seed.sql).
+# ---------------------------------------------------------------
+def load_series():
+    rows = _supabase_get(
+        "series",
+        "select=slug,name,description,accent_color,sort_order"
+        "&deleted_at=is.null&order=sort_order.asc"
+    )
+    series = []
+    for i, row in enumerate(rows):
+        series.append({
+            "slug": row["slug"],
+            "num": f"{i + 1:02d}",
+            "name": row["name"],
+            "desc": (row.get("description") or "").strip(),
+            "tag_color": (row.get("accent_color") or "").strip(),
+        })
+    return series
+
+SERIES = load_series()
 SERIES_BY_SLUG = {s["slug"]: s for s in SERIES}
 
 # Sinh mã lưu trữ + accent màu cho mỗi series
@@ -103,14 +121,15 @@ for i, s in enumerate(SERIES):
     s["accent"] = accent_for(i)
 
 # ---------------------------------------------------------------
-# LOADER: đọc bài viết từ các file Markdown trong content/articles/
+# Helper Markdown dùng chung — vẫn cần cho content/profiles/*.md (Artist
+# Profiles, ngoài phạm vi migration Supabase; content/articles/ và
+# content/editors/ không còn được đọc nữa, xem load_articles()/load_editors()).
 # ---------------------------------------------------------------
 import glob, re
 import yaml
 
 # Thư mục nội dung (tương đối so với gốc repo)
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ARTICLES_DIR = os.path.join(REPO_ROOT, "content", "articles")
 
 def _parse_frontmatter(raw):
     """Tách frontmatter YAML và phần body markdown."""
@@ -314,112 +333,52 @@ def slugify(text):
     s = re.sub(r'[^a-zA-Z0-9]+', '-', s).strip('-').lower()
     return s or "bai-viet"
 
-def _assign_date_once(path, raw, slug):
-    """Publish date phải BẤT BIẾN: front matter là nguồn sự thật duy nhất,
-    không bao giờ suy ra lại từ mtime/git date/ngày hiện tại ở các lần build
-    sau. Hàm này chỉ chạy khi front matter chưa có date (thiếu key hoặc rỗng
-    — đúng giá trị mặc định "" mà CMS ghi lúc tạo bài mới); nó sinh ngày MỘT
-    LẦN DUY NHẤT rồi ghi thẳng vào file .md để lần build kế tiếp chỉ đọc lại,
-    không bao giờ tính lại nữa."""
-    import datetime
-    now = datetime.datetime.now()
-    new_date = f"{now.day} Tháng {now.month}, {now.year}"
-    print(f"  ⚠ CẢNH BÁO: bài '{slug}' chưa có date — gán MỘT LẦN: {new_date} (đã ghi vào {os.path.basename(path)})")
-
-    def _set_date_line(fm_text):
-        if re.search(r'^date:.*$', fm_text, re.MULTILINE):
-            return re.sub(r'^date:.*$', f'date: {new_date}', fm_text, count=1, flags=re.MULTILINE)
-        return fm_text.rstrip('\n') + f"\ndate: {new_date}\n"
-
-    m = re.match(r'^(---\s*\n)(.*?)(\n---\s*\n.*)$', raw, re.DOTALL)
-    if not m:
-        print(f"  ⚠ CẢNH BÁO: không thể ghi lại date cho '{slug}' (front matter không đúng định dạng) — dùng {new_date} chỉ cho lần build này")
-        return new_date
-    new_raw = m.group(1) + _set_date_line(m.group(2)) + m.group(3)
-    try:
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(new_raw)
-    except OSError as e:
-        print(f"  ⚠ CẢNH BÁO: ghi date vào '{slug}' thất bại ({e}) — dùng {new_date} chỉ cho lần build này")
-    return new_date
-
 def load_articles():
-    """Đọc tất cả file .md, trả về list article dict, sắp theo 'order' rồi 'date'."""
+    """Đọc toàn bộ bài viết ĐÃ PUBLISH từ bảng public.articles trên Supabase
+    (thay thế content/articles/*.md), trả về đúng shape list-of-dict mà mọi
+    render_* bên dưới đang dùng — không đổi tên khoá, không đổi kiểu dữ liệu.
+    'ranking' lấy thẳng từ cột jsonb (đã ở dạng chuẩn hoá sẵn khi import —
+    xem database/import_real_content.sql — KHÔNG chuẩn hoá lại lần 2)."""
+    rows = _supabase_get(
+        "articles",
+        "select=slug,title,dek,body,cover_image_url,cover_credit,poster_image_url,"
+        "sort_order,featured,hero_priority,read_time_minutes,ranking,published_at,"
+        "authors(name),series(slug),article_tags(tags(name))"
+        "&status=eq.published&deleted_at=is.null&order=sort_order.asc,slug.asc"
+    )
     articles = []
-    seen_slugs = set()
-    files = sorted(glob.glob(os.path.join(ARTICLES_DIR, "*.md")))
-    for path in files:
-        with open(path, encoding="utf-8") as f:
-            raw = f.read()
-        meta, body_md = _parse_frontmatter(raw)
-        if not meta.get("title") or not meta.get("series"):
-            print(f"  ! Bỏ qua {os.path.basename(path)} (thiếu title/series)")
-            continue
-        slug = slugify(os.path.splitext(os.path.basename(path))[0])
-        if slug in seen_slugs:
-            print(f"  ! CẢNH BÁO: slug '{slug}' trùng lặp (từ {os.path.basename(path)}), tự thêm hậu tố")
-            base_slug, i = slug, 2
-            while slug in seen_slugs:
-                slug = f"{base_slug}-{i}"
-                i += 1
-        seen_slugs.add(slug)
-        # Thời gian đọc: ưu tiên giá trị nhập tay, nếu trống thì tự ước tính
-        read_time = meta.get("read_time") or _estimate_read_time(body_md)
-        # Ngày đăng: BẤT BIẾN. Front matter là nguồn sự thật duy nhất — nếu đã
-        # có date thì luôn dùng đúng giá trị đó, không bao giờ ghi đè hay tính
-        # lại (không mtime, không git date, không ngày hiện tại). Chỉ khi
-        # THIẾU date mới gán một lần rồi ghi vào file để bất biến từ đây trở đi.
-        date_val = meta.get("date")
-        if not date_val:
-            date_val = _assign_date_once(path, raw, slug)
-        # Tóm tắt (dek): ưu tiên giá trị nhập tay, nếu trống thì tự lấy đoạn
-        # văn xuôi đầu tiên của bài làm tóm tắt.
-        dek_val = (meta.get("dek") or "").strip() or _auto_excerpt(body_md)
+    for row in rows:
+        body_md = row.get("body") or ""
+        dek_val = (row.get("dek") or "").strip() or _auto_excerpt(body_md)
+        read_time_minutes = row.get("read_time_minutes") or 0
+        read_time = f"{read_time_minutes} phút đọc" if read_time_minutes > 0 else _estimate_read_time(body_md)
+        tag_names = [
+            link["tags"]["name"] for link in (row.get("article_tags") or [])
+            if link.get("tags")
+        ]
         articles.append({
-            "slug": slug,
-            "series": meta["series"],
-            "title": meta["title"],
+            "slug": row["slug"],
+            "series": row["series"]["slug"] if row.get("series") else "",
+            "title": row["title"],
             "dek": dek_val,
-            "author": meta.get("author", "TNC Editorial"),
-            "date": date_val,
+            "author": row["authors"]["name"] if row.get("authors") else "TNC Editorial",
+            "date": _format_vn_date(row["published_at"]),
             "read_time": read_time,
-            "cover": meta.get("cover", "") or "",
-            "cover_credit": (meta.get("cover_credit") or "").strip(),
-            "poster": meta.get("poster", "") or "",
-            "featured": bool(meta.get("featured", False)),
-            "hero_priority": bool(meta.get("hero_priority", False)),
-            "order": int(meta.get("order", 999)),
-            "tags": meta.get("tags", []) or [],
-            "ranking": _normalize_ranking(meta.get("ranking")),
+            "cover": row.get("cover_image_url") or "",
+            "cover_credit": (row.get("cover_credit") or "").strip(),
+            "poster": row.get("poster_image_url") or "",
+            "featured": bool(row.get("featured", False)),
+            "hero_priority": bool(row.get("hero_priority", False)),
+            "order": row.get("sort_order", 999),
+            "tags": tag_names,
+            "ranking": row.get("ranking") or [],
             "body": _md_body_to_blocks(body_md),
         })
-    # sắp xếp: order tăng dần (order nhỏ = ưu tiên/mới), fallback theo slug
+    # sắp xếp: order tăng dần (order nhỏ = ưu tiên/mới), fallback theo slug —
+    # giữ lại dù ORDER BY đã làm đúng phía Supabase, để không phụ thuộc thứ
+    # tự trả về của PostgREST.
     articles.sort(key=lambda a: (a["order"], a["slug"]))
     return articles
-
-def _normalize_ranking(raw):
-    """Chuẩn hóa danh sách mục xếp hạng từ frontmatter.
-    Mỗi mục: {rank, song, artist, cover, youtube, note}. Bỏ qua mục thiếu tên ca khúc."""
-    if not raw or not isinstance(raw, list):
-        return []
-    items = []
-    for it in raw:
-        if not isinstance(it, dict):
-            continue
-        song = (it.get("song") or "").strip()
-        if not song:
-            continue
-        items.append({
-            "song": song,
-            "artist": (it.get("artist") or "").strip(),
-            "cover": (it.get("cover") or "").strip(),
-            "youtube": _youtube_id(it.get("youtube") or "") or "",
-            "note": (it.get("note") or "").strip(),
-        })
-    # xếp #1 trên cùng: tôn trọng thứ tự nhập; gán số hạng tăng dần
-    for i, it in enumerate(items, 1):
-        it["rank"] = i
-    return items
 
 ARTICLES = load_articles()
 ARTICLES_BY_SLUG = {a["slug"]: a for a in ARTICLES}
@@ -556,51 +515,52 @@ EDITOR_HONORS = {
 }
 
 # -----------------------------------------------------------------
-# HỒ SƠ BIÊN TẬP VIÊN — đọc từ content/editors/*.md
-# Chỉ tác giả có hồ sơ tại đây mới được sinh trang tác giả và hiện link
-# trong bài viết. Tên trong trường "name" phải khớp chính xác (kể cả
-# hoa/thường và khoảng trắng) với trường "author" trong bài viết.
+# HỒ SƠ BIÊN TẬP VIÊN — đọc từ bảng public.authors trên Supabase
+# Chỉ tác giả có role_id THẬT (1 trong 16 id của EDITOR_ROLES) mới được sinh
+# trang tác giả và hiện link trong bài viết. Tên trong "authors.name" phải
+# khớp chính xác (kể cả hoa/thường và khoảng trắng) với tên tác giả embed
+# trong "articles.authors.name" mà load_articles() trả về ở a["author"].
 # -----------------------------------------------------------------
 def load_editors():
-    editors_dir = os.path.join(REPO_ROOT, "content", "editors")
+    """Đọc hồ sơ biên tập viên từ bảng public.authors trên Supabase (thay thế
+    content/editors/*.md), trả về đúng shape {name: {...}} như trước.
+
+    QUAN TRỌNG — chỉ đưa vào dict những author có role_id THẬT (1 trong 16 id
+    tiếng Việt của EDITOR_ROLES): đây là tín hiệu duy nhất còn lại (sau khi
+    gộp mọi tác giả vào 1 bảng authors) để phân biệt "biên tập viên có hồ sơ
+    thật" (trước đây = có file trong content/editors/) với "tác giả bút danh
+    chuyên mục" (vd 'TNC Editorial', 'TNC SELECTAS' — tạo trong
+    import_real_content.sql chỉ để thoả FK articles.author_id, role chung
+    'editor'). Nếu không lọc, các bút danh này sẽ vô tình có trang tác giả
+    riêng — đúng điều ĐÃ được ghi chú tránh ở nơi sinh trang tác giả bên dưới
+    ("tránh trang trống cho các tên chuyên mục như 'TNC Editorial'")."""
+    rows = _supabase_get(
+        "authors",
+        "select=slug,name,avatar_url,bio,role,honor,badges&deleted_at=is.null"
+    )
     editors = {}
-    if not os.path.isdir(editors_dir):
-        return editors
-    for path in sorted(glob.glob(os.path.join(editors_dir, "*.md"))):
-        with open(path, encoding="utf-8") as f:
-            raw = f.read()
-        meta, _ = _parse_frontmatter(raw)
-        name = (meta.get("name") or "").strip()
+    for row in rows:
+        name = (row.get("name") or "").strip()
         if not name:
-            print(f"  ! Bỏ qua hồ sơ {os.path.basename(path)} (thiếu tên)")
             continue
 
-        role_id = (meta.get("role_id") or "").strip()
-        if role_id and role_id not in EDITOR_ROLES:
-            print(f"  ! Hồ sơ {os.path.basename(path)}: role_id '{role_id}' không hợp lệ, bỏ qua")
-            role_id = ""
+        role_id = (row.get("role") or "").strip()
+        if role_id not in EDITOR_ROLES:
+            continue  # không phải hồ sơ biên tập thật — bỏ qua, không tạo trang
 
-        raw_badge_ids = meta.get("badge_ids") or []
+        raw_badge_ids = row.get("badges") or []
         if not isinstance(raw_badge_ids, list):
             raw_badge_ids = []
         badge_ids = [b for b in raw_badge_ids if b in EDITOR_BADGES]
-        invalid_badges = set(raw_badge_ids) - set(badge_ids)
-        if invalid_badges:
-            print(f"  ! Hồ sơ {os.path.basename(path)}: badge_ids không hợp lệ bị bỏ qua: {', '.join(sorted(invalid_badges))}")
 
-        raw_honor_ids = meta.get("honor_ids") or []
-        if not isinstance(raw_honor_ids, list):
-            raw_honor_ids = []
-        honor_ids = [h for h in raw_honor_ids if h in EDITOR_HONORS]
-        invalid_honors = set(raw_honor_ids) - set(honor_ids)
-        if invalid_honors:
-            print(f"  ! Hồ sơ {os.path.basename(path)}: honor_ids không hợp lệ bị bỏ qua: {', '.join(sorted(invalid_honors))}")
+        honor = (row.get("honor") or "").strip()
+        honor_ids = [honor] if honor in EDITOR_HONORS else []
 
         editors[name] = {
             "name": name,
-            "avatar": (meta.get("avatar") or "").strip(),
-            "bio": (meta.get("bio") or "").strip(),
-            "slug": os.path.splitext(os.path.basename(path))[0],
+            "avatar": (row.get("avatar_url") or "").strip(),
+            "bio": (row.get("bio") or "").strip(),
+            "slug": row.get("slug") or slugify(name),
             "role_id": role_id,
             "badge_ids": badge_ids,
             "honor_ids": honor_ids,
@@ -849,7 +809,8 @@ PROFILES = load_profiles()
 # là tập hợp các slug nhận diện một Profile — dùng để gộp bài viết liên
 # quan (mục 1-2) VÀ để nhận diện tên nghệ sĩ xuất hiện trong thân bài để
 # tự sinh internal link (mục 3), không lưu trùng dữ liệu ở đâu cả, chỉ
-# tính lại mỗi lần build từ đúng 2 nguồn: content/profiles + content/articles.
+# tính lại mỗi lần build từ đúng 2 nguồn: content/profiles (Markdown) + bảng
+# articles trên Supabase.
 # -----------------------------------------------------------------
 def _entity_match_slugs(name, aliases):
     slugs = set()
@@ -1002,7 +963,7 @@ for a in ARTICLES:
         TAGS_BY_SLUG.setdefault(tslug, {"name": t, "articles": []})
         TAGS_BY_SLUG[tslug]["articles"].append(a)
 
-print(f"Đã nạp {len(SERIES)} series, {len(ARTICLES)} bài viết từ Markdown.")
+print(f"Đã nạp {len(SERIES)} series, {len(ARTICLES)} bài viết từ Supabase.")
 
 # -----------------------------------------------------------------
 # TNC MAGAZINE (Monthly Digital Magazine) — đọc metadata Issue từ
@@ -4538,9 +4499,9 @@ self.addEventListener('fetch',e=>{
         with open(os.path.join(OUT, fname),"w",encoding="utf-8") as f:
             f.write(content)
 
-    # Trang tác giả — CHỈ sinh cho tác giả đã có hồ sơ trong content/editors/
-    # (theo quyết định: bắt buộc có hồ sơ CMS mới hiện trang, tránh trang trống
-    # cho các tên chuyên mục như "TNC Editorial", "TNC Radar")
+    # Trang tác giả — CHỈ sinh cho tác giả có role_id THẬT trong bảng
+    # public.authors trên Supabase (xem load_editors()); tránh trang trống
+    # cho các tên chuyên mục như "TNC Editorial", "TNC SELECTAS"
     authors = {}
     for a in ARTICLES:
         authors.setdefault(a["author"], []).append(a)
@@ -4571,7 +4532,7 @@ self.addEventListener('fetch',e=>{
         with open(os.path.join(OUT, author_url(name)),"w",encoding="utf-8") as f:
             f.write(render_author_page(name, arts, editor_intelligence[name], nav_editors=(prev_name, next_name)))
     if skipped_authors:
-        print(f"  (Chưa có trang tác giả cho: {', '.join(skipped_authors)} — thiếu hồ sơ trong content/editors/)")
+        print(f"  (Chưa có trang tác giả cho: {', '.join(skipped_authors)} — chưa có role_id biên tập thật trong Supabase)")
 
     import json as _json
     with open(os.path.join(OUT, "editor-intelligence.json"), "w", encoding="utf-8") as f:

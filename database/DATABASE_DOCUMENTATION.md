@@ -2,17 +2,21 @@
 
 Schema PostgreSQL cho TNC Platform v2.0, thiết kế để chạy trên **Supabase Postgres**. Tài liệu này mô tả từng bảng, từng cột, quan hệ giữa các bảng, quy tắc đặt tên, và quy tắc mở rộng schema trong tương lai.
 
-**Rev 3 (mới nhất):** thêm nền tảng **Login + Membership** — 3 bảng `profiles`, `membership_plans`, `memberships` (mục 2.8–2.10), tích hợp Supabase Auth qua bảng `auth.users` có sẵn. 7 bảng biên tập gốc (mục 2.1–2.7) không đổi.
+**Rev 3:** thêm nền tảng **Login + Membership** — 3 bảng `profiles`, `membership_plans`, `memberships` (mục 2.8–2.10), tích hợp Supabase Auth qua bảng `auth.users` có sẵn. 7 bảng biên tập gốc (mục 2.1–2.7) không đổi.
+
+**Rev 4 (mới nhất):** chuẩn bị cho migration Markdown → Supabase (nội dung thật). Thay đổi CỘNG THÊM trên 7 bảng lõi, không xoá/đổi kiểu cột nào: `authors.role` nới CHECK thêm 16 role_id tiếng Việt thật (xem §2.1); `articles` thêm 3 cột `sort_order`, `poster_image_url`, `ranking` (xem §2.5). Trên project Supabase **đã deploy** trước Rev 4, chạy `migrate_rev4_real_content.sql` (xem bảng file bên dưới) thay vì chạy lại `schema.sql` — `CREATE TABLE IF NOT EXISTS` không áp dụng lại thay đổi cột trên bảng đã tồn tại.
 
 **File liên quan trong `database/`:**
 | File | Vai trò |
 |---|---|
-| `schema.sql` | DDL đầy đủ — chạy đầu tiên, một lần (an toàn chạy lại nhiều lần nhờ `IF NOT EXISTS`/`OR REPLACE`). |
+| `schema.sql` | DDL đầy đủ — chạy đầu tiên, một lần (an toàn chạy lại nhiều lần nhờ `IF NOT EXISTS`/`OR REPLACE`). Dùng cho project **chưa deploy**. |
+| `migrate_rev4_real_content.sql` | Migration `ALTER TABLE` cho project **đã deploy** trước Rev 4 (đã chạy `schema.sql`+`seed.sql` cũ) — áp dụng đúng 2 thay đổi Rev 4 mà không đụng dữ liệu hiện có. Idempotent. |
 | `seed.sql` | Dữ liệu mẫu bám theo hệ thống The New Culture thật — chạy sau `schema.sql`. |
 | `test.sql` | Bộ kiểm thử ràng buộc + tính hợp lý dữ liệu seed — chạy sau `seed.sql`. |
 | `DATABASE_DOCUMENTATION.md` | Tài liệu này. |
 
-Thứ tự chạy chuẩn trong SQL Editor của Supabase: **`schema.sql` → `seed.sql` → `test.sql`**.
+Thứ tự chạy chuẩn — project **mới**: `schema.sql` → `seed.sql` → `test.sql`.
+Project **đã deploy trước Rev 4**: `migrate_rev4_real_content.sql` (một lần) → tiếp tục dùng `seed.sql`/`test.sql` như cũ.
 
 ---
 
@@ -42,7 +46,7 @@ Lưu thông tin biên tập viên: vai trò, vinh danh, huy hiệu, tiểu sử.
 | `email` | `text` | unique (partial), CHECK định dạng email | Có thể để trống; nếu có phải đúng định dạng `x@y.z`. |
 | `avatar_url` | `text` | — | Đường dẫn ảnh đại diện. |
 | `bio` | `text` | — | Tiểu sử/giới thiệu. |
-| `role` | `text` | NOT NULL, CHECK enum, default `'editor'` | Một trong: `editor-in-chief`, `deputy-editor`, `managing-editor`, `senior-editor`, `editor`, `contributor`, `guest`. |
+| `role` | `text` | NOT NULL, CHECK enum, default `'editor'` | 7 giá trị chung: `editor-in-chief`, `deputy-editor`, `managing-editor`, `senior-editor`, `editor`, `contributor`, `guest`. **Rev 4:** nới thêm 16 role_id tiếng Việt thật dùng bởi `content/editors/*.md` (`EDITOR_ROLES` trong `scripts/build.py`): `tong-bien-tap`, `pho-tong-bien-tap`, `thu-ky-toa-soan`, `truong-ban-bien-tap`, `bien-tap-vien-cao-cap`, `bien-tap-vien`, `thuc-tap-bien-tap`, `bien-tap-vien-am-nhac`, `bien-tap-vien-van-hoa`, `bien-tap-vien-tin-tuc`, `bien-tap-vien-danh-gia`, `bien-tap-vien-phong-van`, `bien-tap-vien-nghien-cuu`, `giam-doc-sang-tao`, `bien-tap-vien-hinh-anh`, `cong-tac-vien`. |
 | `honor` | `text` | — | Vinh danh chính (id tự do, vd `nguoi-sang-lap`). Không có bảng registry riêng — xem §5 nếu cần chuẩn hoá. |
 | `badges` | `jsonb` | NOT NULL, default `'[]'`, CHECK phải là mảng | Danh sách id huy hiệu, vd `["founder","hiphop-expert"]`. |
 | `is_active` | `boolean` | NOT NULL, default `true` | Cờ bật/tắt hiển thị công khai (dùng trong policy RLS `authors`). |
@@ -110,6 +114,9 @@ Bảng trung tâm, tham chiếu tới `authors`, `series`, `categories`.
 | `hero_priority` | `boolean` | NOT NULL, default `false` | Ưu tiên chọn làm Hero trang chủ. |
 | `read_time_minutes` | `integer` | NOT NULL, default `0`, CHECK `>= 0` | |
 | `view_count` | `integer` | NOT NULL, default `0`, CHECK `>= 0` | |
+| `sort_order` | `integer` | NOT NULL, default `999` | **Rev 4.** Tương ứng `order:` trong frontmatter Markdown — quyết định thứ tự hiển thị (sort theo `(sort_order, slug)`, giống loader Markdown cũ). `999` = mặc định khi bài không khai báo `order`. |
+| `poster_image_url` | `text` | — | **Rev 4.** Tương ứng `poster:` trong frontmatter — ảnh poster riêng, khác `cover_image_url`. Phần lớn bài không dùng (NULL). |
+| `ranking` | `jsonb` | NOT NULL, default `'[]'`, CHECK phải là mảng | **Rev 4.** Tương ứng `ranking:` trong frontmatter — mảng object `{rank, song, artist, cover, youtube, note}`. Chỉ 1 bài thật hiện có dùng trường này ("TNC SELECTS THÁNG 7"), nhưng đây là bài duy nhất nuôi khối "Ranking Spotlight" cố định trên **trang chủ** (`latest_ranking_article()`/`render_ranking_spotlight()` trong `scripts/build.py` chọn đúng bài có `ranking` khác rỗng) — không thể bỏ qua cột này dù tần suất dùng thấp. |
 | `published_at` | `timestamptz` | CHECK: bắt buộc khi `status='published'` | `scheduled` cũng nên có giá trị (ngày dự kiến đăng) nhưng KHÔNG bị ép buộc bởi CHECK — xem §7 lý do. |
 | `created_at`/`updated_at`/`deleted_at` | `timestamptz` | | |
 
@@ -280,6 +287,8 @@ draft ──> review ──> scheduled ──> published ──> archived
 
 > **Đã thực hiện ở Rev 3:** đề xuất #1 (`users`/`profiles` liên kết `auth.users` — nền tảng chặn 7/11 tính năng tương lai) và đề xuất #12 (RLS ghi theo `auth.uid()`, mới áp dụng cho `profiles`) trong `ARCHITECTURE_REVIEW.md` nay đã có trong schema. Các đề xuất còn lại (Bookmark/Comment/Notification/Artist Profile/tách counter view_count/VIEW công khai...) **vẫn CHƯA làm** — ngoài phạm vi "chỉ Login + Membership" của Rev 3.
 
+> **Rev 4 là ví dụ thực tế của quy tắc #1 và #4 ở trên:** khi migration Markdown → Supabase phát hiện dữ liệu thật (`content/articles/*.md`, `content/editors/*.md`) cần 3 cột mới (`sort_order`, `poster_image_url`, `ranking`) và thêm giá trị `role`, thay đổi được áp dụng bằng `ADD COLUMN IF NOT EXISTS` (có DEFAULT) và mở rộng danh sách `CHECK` — không xoá/đổi kiểu cột nào, không cần migrate dữ liệu cũ. Vì project Supabase đã deploy trước Rev 4, `schema.sql` (dùng `CREATE TABLE IF NOT EXISTS`) không tự áp dụng lại — cần chạy riêng `migrate_rev4_real_content.sql` một lần trên project đó.
+
 ---
 
 ## 7. Ghi chú vận hành
@@ -290,3 +299,4 @@ draft ──> review ──> scheduled ──> published ──> archived
 - **`scheduled` chưa có cơ chế tự động chuyển sang `published`** khi tới `published_at` — cần một cron job/Edge Function riêng ở tầng ứng dụng để quét `status='scheduled' AND published_at <= now()` và cập nhật; đây là điều KHÔNG thể (và không nên) làm bằng CHECK constraint thuần.
 - **Test/seed cục bộ ngoài Supabase thật (vd Postgres thường trên máy dev) không có sẵn schema `auth`** (`auth.users`, hàm `auth.uid()`, vai trò `anon`/`authenticated`) — đây là hạ tầng do chính Supabase cung cấp trên mọi project thật, KHÔNG nằm trong `schema.sql`. Muốn kiểm thử `schema.sql`/`seed.sql`/`test.sql` trên Postgres thường (không phải Supabase), cần tự tạo một bản mô phỏng tối thiểu của `auth` schema trước (bảng `auth.users` + hàm `auth.uid()` đọc GUC `request.jwt.claim.sub` + role `anon`/`authenticated` + `GRANT`/`ALTER DEFAULT PRIVILEGES` tương tự Supabase) — bản mô phỏng này KHÔNG thuộc về dự án, chỉ phục vụ kiểm thử cục bộ. Cách đáng tin cậy hơn là dùng `supabase start` (Supabase CLI) để có môi trường dev với `auth` schema thật.
 - **Không insert trực tiếp vào `auth.users`** từ `seed.sql`/`test.sql` (kể cả trên Supabase thật) — tạo tài khoản là trách nhiệm của Supabase Auth API (signup/invite), insert tay có thể vi phạm ràng buộc nội bộ của GoTrue mà schema này không kiểm soát được. Vì vậy phần seed/test liên quan `profiles`/`memberships` luôn tự SKIP (không FAIL) khi chưa có user thật nào đăng ký.
+- **Rev 4 — sau khi `scripts/build.py` chuyển sang đọc `articles`/`series`/`authors`/`article_tags`/`tags` trực tiếp từ Supabase (không còn đọc `content/articles/*.md`/`content/editors/*.md`): Sveltia CMS (`admin/config.yml`) vẫn còn trỏ vào 2 thư mục Markdown đó** — viết bài mới qua CMS như cũ sẽ KHÔNG còn xuất hiện trên site nữa, vì build.py không đọc các file đó. Đây là khoảng trống vận hành CỐ Ý chưa xử lý ở Rev 4 (nằm ngoài phạm vi "chỉ migration dữ liệu, không thêm tính năng") — cần một quyết định riêng (sửa CMS để ghi thẳng vào Supabase, hoặc xây một admin UI mới) trước khi biên tập viên có thể đăng bài mới. Cho tới lúc đó, thêm bài viết thật chỉ có thể thực hiện bằng cách insert trực tiếp vào Supabase (SQL Editor/Table Editor), theo đúng cấu trúc trong `import_real_content.sql`.
