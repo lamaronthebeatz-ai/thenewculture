@@ -1,9 +1,9 @@
 {
   "Lamar": {
     "metrics": {
-      "article_count": 20,
-      "series_count": 9,
-      "category_count": 44,
+      "article_count": 18,
+      "series_count": 8,
+      "category_count": 43,
       "first_article": {
         "slug": "viet-dragon-vd-vi-vua-gangsta-rap-viet-nam-va-di-san-bat-diet-cua-viet-rap",
         "title": "Viet Dragon: \"VD là Ví Dụ của Rap Việt\"",
@@ -11,47 +11,15 @@
         "series": "tnc-origins"
       },
       "latest_article": {
-        "slug": "bo-anh-duong-pho-va-van-hoa-graffiti-sai-gon",
-        "title": "Bộ ảnh: Đường phố và văn hóa graffiti Sài Gòn",
-        "date": "28 Tháng 7, 2026",
-        "series": "tnc-culture"
+        "slug": "gvr-ky-uc-cua-mot-the-he-rap-viet",
+        "title": "GVR - Ký ức của một thế hệ rap Việt",
+        "date": "19 Tháng 7, 2026",
+        "series": "tnc-origins"
       },
       "active_years": 1,
       "published_since": 2026
     },
     "featured_articles": [
-      {
-        "slug": "day-la-bai-dang-test",
-        "title": "Đây là bài đăng test",
-        "date": "28 Tháng 7, 2026",
-        "series": "tnc-culture"
-      },
-      {
-        "slug": "bo-anh-duong-pho-va-van-hoa-graffiti-sai-gon",
-        "title": "Bộ ảnh: Đường phố và văn hóa graffiti Sài Gòn",
-        "date": "28 Tháng 7, 2026",
-        "series": "tnc-culture"
-      },
-      {
-        "slug": "dsk-khi-ua-con-cua-mat-troi-cat-tieng",
-        "title": "DSK: Khi \"đứa con của mặt trời\" cất tiếng",
-        "date": "19 Tháng 7, 2026",
-        "series": "tnc-origins"
-      }
-    ],
-    "recent_articles": [
-      {
-        "slug": "day-la-bai-dang-test",
-        "title": "Đây là bài đăng test",
-        "date": "28 Tháng 7, 2026",
-        "series": "tnc-culture"
-      },
-      {
-        "slug": "bo-anh-duong-pho-va-van-hoa-graffiti-sai-gon",
-        "title": "Bộ ảnh: Đường phố và văn hóa graffiti Sài Gòn",
-        "date": "28 Tháng 7, 2026",
-        "series": "tnc-culture"
-      },
       {
         "slug": "dsk-khi-ua-con-cua-mat-troi-cat-tieng",
         "title": "DSK: Khi \"đứa con của mặt trời\" cất tiếng",
@@ -69,6 +37,38 @@
         "title": "Amapiano: Xu hướng toàn cầu hay chỉ là một cơn sóng ngắn tại Việt Nam?",
         "date": "18 Tháng 7, 2026",
         "series": "tnc-editorial"
+      }
+    ],
+    "recent_articles": [
+      {
+        "slug": "dsk-khi-ua-con-cua-mat-troi-cat-tieng",
+        "title": "DSK: Khi \"đứa con của mặt trời\" cất tiếng",
+        "date": "19 Tháng 7, 2026",
+        "series": "tnc-origins"
+      },
+      {
+        "slug": "gvr-ky-uc-cua-mot-the-he-rap-viet",
+        "title": "GVR - Ký ức của một thế hệ rap Việt",
+        "date": "19 Tháng 7, 2026",
+        "series": "tnc-origins"
+      },
+      {
+        "slug": "amapiano-xu-huong-toan-cau-hay-chi-la-mot-con-song-ngan-tai-viet-nam",
+        "title": "Amapiano: Xu hướng toàn cầu hay chỉ là một cơn sóng ngắn tại Việt Nam?",
+        "date": "18 Tháng 7, 2026",
+        "series": "tnc-editorial"
+      },
+      {
+        "slug": "mot-album-uoc-trien-khai-nhu-the-nao-trong-nganh-cong-nghiep-am-nhac-hien-ai",
+        "title": "Một album được triển khai như thế nào trong ngành công nghiệp âm nhạc hiện đại?",
+        "date": "18 Tháng 7, 2026",
+        "series": "tnc-music-101"
+      },
+      {
+        "slug": "kimmese-cong-bo-concert-solo-au-tien-sau-hon-20-nam-hoat-ong",
+        "title": "Kimmese công bố concert solo đầu tiên sau hơn 20 năm hoạt động",
+        "date": "16 Tháng 7, 2026",
+        "series": "tnc-radar"
       }
     ],
     "series": [
@@ -116,15 +116,6 @@
         "tag_color": "red",
         "code": "TNC·TNC",
         "accent": "--blue"
-      },
-      {
-        "slug": "tnc-culture",
-        "num": "09",
-        "name": "TNC Culture",
-        "desc": "Khai thác văn hóa hip hop và underground: graffiti, DJ, breakdance, thời trang, lifestyle, cộng đồng...",
-        "tag_color": "red",
-        "code": "TNC·TNC",
-        "accent": "--purple"
       },
       {
         "slug": "tnc-community",
@@ -196,14 +187,13 @@
       "#TNCRadar",
       "#TNCRecords",
       "#TNCReview",
-      "#VietNam",
       "#Vietdragon",
       "#Vietdragon #TNCOrigins #Lamar"
     ],
     "timeline": [
       {
         "year": 2026,
-        "count": 20,
+        "count": 18,
         "articles": [
           {
             "slug": "viet-dragon-vd-vi-vua-gangsta-rap-viet-nam-va-di-san-bat-diet-cua-viet-rap",
@@ -312,18 +302,6 @@
             "title": "GVR - Ký ức của một thế hệ rap Việt",
             "date": "19 Tháng 7, 2026",
             "series": "tnc-origins"
-          },
-          {
-            "slug": "day-la-bai-dang-test",
-            "title": "Đây là bài đăng test",
-            "date": "28 Tháng 7, 2026",
-            "series": "tnc-culture"
-          },
-          {
-            "slug": "bo-anh-duong-pho-va-van-hoa-graffiti-sai-gon",
-            "title": "Bộ ảnh: Đường phố và văn hóa graffiti Sài Gòn",
-            "date": "28 Tháng 7, 2026",
-            "series": "tnc-culture"
           }
         ]
       }
