@@ -4,6 +4,15 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Phase 2A — Automated Publishing Pipeline: Supabase Database Webhook (khi
+  # articles.status chuyển sang 'published') -> Supabase Edge Function
+  # (supabase/functions/on-article-published/) lọc đúng điều kiện rồi gọi
+  # GitHub API "Create a repository dispatch event" với event_type dưới đây
+  # -> kích hoạt đúng job build này, không cần ai commit/push/bấm rebuild
+  # thủ công. Không đổi build engine — vẫn cùng 1 job "build" y hệt push/
+  # cron/workflow_dispatch, chỉ thêm 1 cách kích hoạt mới.
+  repository_dispatch:
+    types: [article-published]
   # V3.0 Promotion System: chiến dịch quảng bá tự bật/tắt theo Ngày bắt
   # đầu/Ngày kết thúc, nhưng site tĩnh chỉ cập nhật khi build chạy — nếu
   # không ai push code đúng ngày đó, banner sẽ trễ. Chạy build hằng ngày
