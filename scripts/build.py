@@ -133,6 +133,29 @@ def load_series():
 SERIES = load_series()
 SERIES_BY_SLUG = {s["slug"]: s for s in SERIES}
 
+# ---------------------------------------------------------------
+# DANH MỤC (Category) — đọc từ bảng public.categories trên Supabase.
+# Phase 2A: bảng này đã tồn tại từ đầu (schema + Dashboard CRUD) nhưng
+# CHƯA từng có trang công khai trên website — đây là lần đầu category thật
+# sự hiển thị. Không phân cấp cha/con ở bản build này (categories.parent_id
+# có trong schema nhưng chưa dùng ở tầng hiển thị) — chỉ danh sách phẳng,
+# đúng phạm vi yêu cầu "category listing".
+# ---------------------------------------------------------------
+def load_categories():
+    rows = _supabase_get(
+        "categories",
+        "select=slug,name,description,sort_order"
+        "&deleted_at=is.null&order=sort_order.asc"
+    )
+    return [{
+        "slug": row["slug"],
+        "name": row["name"],
+        "desc": (row.get("description") or "").strip(),
+    } for row in rows]
+
+CATEGORIES = load_categories()
+CATEGORIES_BY_SLUG = {c["slug"]: c for c in CATEGORIES}
+
 # Sinh mã lưu trữ + accent màu cho mỗi series
 def _series_code(name):
     # lấy chữ cái đầu các từ, ví dụ "Inside The Culture" -> ITC, "TNC Origins" -> TNO
@@ -367,7 +390,7 @@ def load_articles():
         "articles",
         "select=slug,title,dek,body,cover_image_url,cover_credit,poster_image_url,"
         "sort_order,featured,hero_priority,read_time_minutes,ranking,published_at,"
-        "authors(name),series(slug),article_tags(tags(name))"
+        "authors(name),series(slug),categories(slug),article_tags(tags(name))"
         "&status=eq.published&deleted_at=is.null&order=sort_order.asc,slug.asc"
     )
     articles = []
@@ -383,6 +406,9 @@ def load_articles():
         articles.append({
             "slug": row["slug"],
             "series": row["series"]["slug"] if row.get("series") else "",
+            # Phase 2A: category_id nullable — phần lớn bài thật hiện chưa gán
+            # category (xem ARCHITECTURE_REVIEW.md), "" nghĩa là chưa phân loại.
+            "category": row["categories"]["slug"] if row.get("categories") else "",
             "title": row["title"],
             "dek": dek_val,
             "author": row["authors"]["name"] if row.get("authors") else "TNC Editorial",
@@ -949,6 +975,7 @@ if not ARTICLES:
     ARTICLES = [{
         "slug": "chao-mung",
         "series": SERIES[0]["slug"],
+        "category": "",
         "title": "Chào mừng đến với The New Culture",
         "dek": "Chưa có bài viết nào. Hãy thêm bài đầu tiên qua trang quản trị /admin/.",
         "author": "TNC Editorial",
@@ -974,6 +1001,14 @@ if _featured:
 ARTICLES_BY_SERIES = {}
 for a in ARTICLES:
     ARTICLES_BY_SERIES.setdefault(a["series"], []).append(a)
+
+# Phase 2A: chỉ mục Category — category_id nullable nên nhiều bài chưa gán
+# (a["category"] == ""), những bài đó không xuất hiện ở đây, tương tự cách
+# ARTICLES_BY_SERIES xử lý series rỗng.
+ARTICLES_BY_CATEGORY = {}
+for a in ARTICLES:
+    if a.get("category"):
+        ARTICLES_BY_CATEGORY.setdefault(a["category"], []).append(a)
 
 # Chỉ mục Tag: gom bài viết theo slug của từ khóa (không phân biệt hoa/thường,
 # có dấu/không dấu), giữ lại cách viết gốc xuất hiện đầu tiên để hiển thị.
@@ -1297,6 +1332,7 @@ def masthead(active=None):
       <h4>Khám phá</h4>
       <a href="all-series.html">Tất cả Series</a>
       <a href="archive.html">Toàn bộ bài viết</a>
+      <a href="all-categories.html">Chuyên mục</a>
       <a href="all-tags.html">Tất cả chủ đề</a>
       <a href="video.html">Video</a>
       <a href="su-kien.html">Sự kiện</a>
@@ -2047,6 +2083,7 @@ document.addEventListener('click',function(e){
 def article_url(slug): return f"article-{slug}.html"
 def series_url(slug): return f"series-{slug}.html"
 def tag_url(slug): return f"tag-{slug}.html"
+def category_url(slug): return f"category-{slug}.html"
 
 def art_code(article):
     """Mã lưu trữ bài viết: TNC·ITC·001"""
@@ -3325,13 +3362,15 @@ def build_sitemap():
     urls = [SITE_URL + "/"]
     for s in SERIES:
         urls.append(f"{SITE_URL}/{series_url(s['slug'])}")
+    for c in CATEGORIES:
+        urls.append(f"{SITE_URL}/{category_url(c['slug'])}")
     for a in ARTICLES:
         urls.append(f"{SITE_URL}/{article_url(a['slug'])}")
     for tslug in TAGS_BY_SLUG:
         urls.append(f"{SITE_URL}/{tag_url(tslug)}")
     for issue in MAGAZINE_ISSUES:
         urls.append(f"{SITE_URL}/{magazine.issue_url(issue)}")
-    for extra in ["all-series.html","all-tags.html","archive.html","magazine-archive.html","video.html","search.html","su-kien.html",
+    for extra in ["all-series.html","all-categories.html","all-tags.html","archive.html","magazine-archive.html","video.html","search.html","su-kien.html",
                   "ve-tnc.html","lien-he.html","hop-tac.html","tuyen-dung.html","tnc-sessions.html"]:
         urls.append(f"{SITE_URL}/{extra}")
     items = "\n".join(f"  <url><loc>{u}</loc></url>" for u in urls)
@@ -3805,6 +3844,77 @@ def render_tag_page(tslug, tag_name, arts):
 """
     return page_wrap(display_tag, f'Tất cả bài viết về chủ đề "{display_tag}" trên The New Culture.', inner, path=tag_url(tslug))
 
+def render_category_page(c):
+    """Trang lọc theo chuyên mục (category) — liệt kê mọi bài viết được gán
+    category này. Tái sử dụng nguyên khuôn card của render_tag_page(), không
+    tạo component/CSS mới (Phase 2A: giữ nguyên thiết kế hiện có)."""
+    arts = ARTICLES_BY_CATEGORY.get(c["slug"], [])
+    rows = ""
+    for a in arts:
+        s = SERIES_BY_SLUG[a["series"]]
+        rows += f"""
+      <a class="card" href="{article_url(a['slug'])}" style="flex-direction:row;gap:var(--s-5);align-items:center;">
+        <div class="media media--3-2" style="flex:0 0 220px;">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
+        <div>
+          <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
+          <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{a['title']}</h3>
+          <p style="color:var(--c-ink-2);font-size:var(--t-sm);margin-bottom:var(--s-2);">{a['dek']}</p>
+          <span class="byline">{a['author']} · {a['date']} · {a['read_time']}</span>
+        </div>
+      </a>"""
+    if not rows:
+        rows = """
+      <div style="grid-column:1/-1;padding:var(--s-8);text-align:center;border:1px dashed var(--c-line);">
+        <p style="font-family:var(--f-mono);font-size:var(--t-sm);color:var(--c-ink-3);text-transform:uppercase;letter-spacing:0.06em;">Chưa có bài viết nào</p>
+        <p style="color:var(--c-ink-3);margin-top:var(--s-2);font-size:var(--t-sm);">Chuyên mục này đang chờ nội dung đầu tiên.</p>
+      </div>"""
+    desc_html = f'<p style="font-size:var(--t-md);color:var(--c-ink-2);">{c["desc"]}</p>' if c["desc"] else ""
+    inner = f"""
+  <section class="container" style="padding-top:var(--s-6);">
+    <nav class="byline" style="margin-bottom:var(--s-6);" aria-label="breadcrumb">
+      <a href="index.html">Trang chủ</a> / <a href="all-categories.html">Chuyên mục</a>
+    </nav>
+    <div style="border-bottom:2px solid var(--c-line-strong);padding-bottom:var(--s-6);margin-bottom:var(--s-7);">
+      <span class="eyebrow" style="font-size:var(--t-sm);">Chuyên mục</span>
+      <h1 style="font-size:var(--t-3xl);margin:var(--s-3) 0;">{c['name']}</h1>
+      {desc_html}
+      <p style="font-size:var(--t-md);color:var(--c-ink-2);margin-top:var(--s-2);">{len(arts)} bài viết trong chuyên mục này.</p>
+    </div>
+    <div class="grid js-reveal" style="grid-template-columns:1fr;gap:var(--s-6);">{rows}
+    </div>
+  </section>
+"""
+    return page_wrap(c["name"], c["desc"] or f'Chuyên mục {c["name"]} trên The New Culture.', inner, path=category_url(c["slug"]))
+
+def render_all_categories():
+    """Trang hub liệt kê toàn bộ chuyên mục — tái dùng nguyên khuôn
+    .page-hero/.series-band/.series-cell của render_all_series()/
+    render_all_tags(), không tạo component mới."""
+    cells = ""
+    for c in CATEGORIES:
+        arts = ARTICLES_BY_CATEGORY.get(c["slug"], [])
+        cells += f"""
+      <a class="series-cell" href="{category_url(c['slug'])}">
+        <h3>{c['name']}</h3>
+        <span class="series-cell__code" style="margin-top:var(--s-3);color:var(--c-red);">{len(arts)} bài viết →</span>
+      </a>"""
+    inner = f"""
+  <section class="container">
+    <div class="page-hero">
+      <span class="eyebrow eyebrow--blue">Khám phá theo chuyên mục</span>
+      <h1>Tất cả chuyên mục</h1>
+      <p>Duyệt nội dung The New Culture theo chuyên mục biên tập.</p>
+    </div>
+  </section>
+  <section class="series-band js-reveal" style="margin-top:0;">
+    <div class="container">
+      <div class="series-grid">{cells}
+      </div>
+    </div>
+  </section>
+"""
+    return page_wrap("Tất cả chuyên mục", "Duyệt tất cả chuyên mục trên The New Culture.", inner, path="all-categories.html")
+
 def render_all_tags():
     """Trang hub liệt kê toàn bộ chủ đề (tag) đang có bài viết — điểm vào để
     duyệt Tag, tái dùng nguyên khuôn .page-hero/.series-band/.series-cell
@@ -4107,20 +4217,35 @@ def _compute_sw_cache_version():
     dùng timestamp/thời gian hiện tại. Trước đây build_ts=str(int(time.time()))
     khiến public/sw.js đổi ở MỌI lần build dù nội dung không hề thay đổi —
     gây commit thừa và merge conflict giữa các branch chỉ vì build lại.
-    Hash tất toàn bộ content/ (bài viết, settings, editors, profiles, chiến
-    dịch quảng bá...) cộng với chính build.py và style.css (logic hiển thị/
-    giao diện cũng quyết định output, không chỉ nội dung) -> build lại trên
-    đúng cùng một nguồn luôn ra đúng 1 version giống hệt (không tạo diff),
-    nhưng vẫn tự đổi — tự invalidate cache cũ — ngay khi có bất kỳ thay đổi
-    thật sự nào. Giữ nguyên hành vi cache invalidation, không đụng logic
+    Hash phần content/ CÒN THẬT SỰ ảnh hưởng output (settings, profiles,
+    campaigns, magazine — articles/authors/series/categories/tags giờ đọc từ
+    Supabase, KHÔNG còn là file, xem load_articles()/load_series()/
+    load_categories()/load_editors() — cố ý KHÔNG đưa vào hash này) cộng với
+    chính build.py và style.css (logic hiển thị/giao diện cũng quyết định
+    output, không chỉ nội dung) -> build lại trên đúng cùng một nguồn luôn ra
+    đúng 1 version giống hệt (không tạo diff), nhưng vẫn tự đổi — tự
+    invalidate cache cũ — ngay khi có bất kỳ thay đổi thật sự nào.
+
+    LƯU Ý: hash này chỉ ảnh hưởng cache-busting cho TÀI NGUYÊN TĨNH (CSS/JS/
+    ảnh, chiến lược cache-first trong sw.js) — điều hướng trang (HTML) luôn
+    fetch mạng trước (network-first, xem 'fetch' handler bên dưới), nên bài
+    viết/category mới từ Supabase luôn hiển thị đúng ngay cả khi hash này
+    không đổi. Giữ nguyên hành vi cache invalidation, không đụng logic
     runtime của Service Worker."""
     import hashlib
     h = hashlib.sha256()
     src_files = []
-    content_dir = os.path.join(REPO_ROOT, "content")
-    for root, _dirs, files in os.walk(content_dir):
-        for fn in files:
-            src_files.append(os.path.join(root, fn))
+    # Rev "Phase 2A cleanup": content/articles/ và content/editors/ không còn
+    # được đọc (dữ liệu đã ở Supabase, 2 thư mục này chỉ còn là bản lưu trữ
+    # lịch sử — xem content/articles/LEGACY.md, content/editors/LEGACY.md) —
+    # loại khỏi vòng lặp hash để sửa nội dung cũ ở đó (nếu có) không còn kích
+    # hoạt build/cache-bust giả (trước đây os.walk(content/) quét luôn cả 2
+    # thư mục chết này).
+    for sub in ("settings", "profiles", "campaigns", "magazine"):
+        sub_dir = os.path.join(REPO_ROOT, "content", sub)
+        for root, _dirs, files in os.walk(sub_dir):
+            for fn in files:
+                src_files.append(os.path.join(root, fn))
     src_files.append(os.path.abspath(__file__))
     src_files.append(os.path.join(os.path.dirname(__file__), "style.css"))
     src_files.append(os.path.join(os.path.dirname(__file__), "magazine.py"))
@@ -4492,6 +4617,11 @@ self.addEventListener('fetch',e=>{
         with open(os.path.join(OUT, article_url(a["slug"])),"w",encoding="utf-8") as f:
             f.write(render_article_page(a))
 
+    # Phase 2A: trang chuyên mục (Category) — lần đầu category có trang công khai
+    for c in CATEGORIES:
+        with open(os.path.join(OUT, category_url(c["slug"])),"w",encoding="utf-8") as f:
+            f.write(render_category_page(c))
+
     # Trang chi tiết hồ sơ nhân vật/đơn vị (TNC Profiles)
     for p in PROFILES:
         with open(os.path.join(OUT, profile_url(p["slug"])),"w",encoding="utf-8") as f:
@@ -4505,6 +4635,7 @@ self.addEventListener('fetch',e=>{
     # trang phụ
     extra = {
         "all-series.html": render_all_series(),
+        "all-categories.html": render_all_categories(),
         "all-tags.html": render_all_tags(),
         "archive.html": render_archive_page(),
         "magazine-archive.html": render_magazine_archive_page(),
