@@ -2,8 +2,10 @@
 
 Bước lọc + relay của pipeline auto-publish (Phase 2A). Nhận Database Webhook
 từ Supabase khi bảng `articles` có INSERT/UPDATE, chỉ kích hoạt GitHub
-Actions build lại site khi `status` **vừa chuyển sang** `published` (không
-phải mọi thay đổi). Xem giải thích đầy đủ trong comment đầu file
+Actions build lại site khi **trạng thái LIVE trên site** (status=`published`
+VÀ `deleted_at IS NULL`) vừa đổi — publish lần đầu, unpublish, xoá mềm, hoặc
+khôi phục bài đã xoá — không phải mọi thay đổi (sửa nội dung một bài đang
+live không trigger). Xem giải thích đầy đủ trong comment đầu file
 `index.ts`.
 
 Không đụng gì tới `database/schema.sql`, RLS, hay Dashboard — đây là hạ tầng
@@ -64,5 +66,11 @@ Database → Webhooks → Create a new hook:
   build + Cloudflare Pages redeploy).
 
 Nếu Logs báo `triggered: false`, kiểm tra lại đúng lý do trong response
-(`reason`) — thường là do trạng thái cũ đã là `published` từ trước (sửa bài
-đã đăng không kích hoạt lại, đúng thiết kế).
+(`reason`) — thường là do bài đã live từ trước và vẫn còn live sau thay đổi
+này (sửa nội dung một bài đang đăng không kích hoạt lại, đúng thiết kế).
+
+Test xoá bài: bấm "Xoá" một bài đang **Published** trong Dashboard (soft
+delete — chỉ set `deleted_at`, không đổi `status`) → cũng phải thấy
+`triggered: true` trong Logs và 1 run mới trên GitHub Actions, và bài đó
+biến mất khỏi site sau khi build xong. Xoá một bài đang **Draft** thì không
+trigger gì (đúng thiết kế — bài đó chưa từng lên site).

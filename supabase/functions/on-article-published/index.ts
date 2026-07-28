@@ -1,8 +1,10 @@
 // Phase 2A — Automated Publishing Pipeline (Edge Function).
 //
 // Nhận Database Webhook từ Supabase mỗi khi bảng "articles" có INSERT/UPDATE,
-// LỌC đúng điều kiện "status vừa chuyển SANG published" (không phải mọi thay
-// đổi, không phải draft/review/scheduled), rồi gọi GitHub API
+// LỌC đúng điều kiện "trạng thái LIVE trên site vừa đổi" — tức status=
+// published && deleted_at IS NULL vừa chuyển từ false sang true (publish)
+// hoặc từ true sang false (unpublish / xoá mềm) — không phải mọi thay đổi,
+// rồi gọi GitHub API
 // "Create a repository dispatch event" để kích hoạt workflow build site tĩnh
 // hiện có (.github/workflows/main.yml, trigger repository_dispatch, type
 // "article-published") — không cần ai commit/push/bấm rebuild thủ công.
@@ -57,8 +59,8 @@ Deno.serve(async (req) => {
   let payload: {
     type?: string;
     table?: string;
-    record?: { id?: string; slug?: string; status?: string };
-    old_record?: { status?: string } | null;
+    record?: { id?: string; slug?: string; status?: string; deleted_at?: string | null };
+    old_record?: { status?: string; deleted_at?: string | null } | null;
   };
   try {
     payload = await req.json();
@@ -72,22 +74,33 @@ Deno.serve(async (req) => {
 
   const newStatus = payload.record?.status;
   const oldStatus = payload.old_record?.status ?? null;
+  const newDeletedAt = payload.record?.deleted_at ?? null;
+  const oldDeletedAt = payload.old_record?.deleted_at ?? null;
 
-  // Chỉ trigger đúng lúc status VỪA chuyển SANG "published":
-  //   - INSERT thẳng vào published (old_record rỗng, record.status=published)
-  //   - UPDATE draft/review/scheduled -> published (old_record.status khác published)
-  // KHÔNG trigger khi: status vẫn là draft/review/scheduled, hoặc bài đã
-  // published từ trước rồi sửa nội dung khác (old_record.status đã là
-  // published — tránh build lại vô ích mỗi lần sửa nhỏ một bài đã đăng;
-  // những thay đổi đó sẽ được cron hằng ngày hoặc lần publish bài KHÁC cuốn
-  // theo, đúng phạm vi yêu cầu Phase 2A).
-  const justPublished = newStatus === "published" && oldStatus !== "published";
+  // build.py chỉ đưa vào site những bài "status=published AND deleted_at IS
+  // NULL" (xem load_articles()) — nghĩa là "đang hiển thị công khai" (live)
+  // phụ thuộc CẢ HAI cột, không chỉ status. Bug đã gặp: Dashboard "Xoá" một
+  // bài published chỉ set deleted_at (soft delete), status vẫn nguyên
+  // "published" — nếu chỉ so status thì không thấy gì đổi, rebuild không
+  // trigger, bài xoá vẫn còn trên site. Sửa: so sánh đúng trạng thái "live"
+  // trước/sau (XOR), bắt được cả 4 trường hợp cần rebuild ngay:
+  //   - Mới publish lần đầu (INSERT hoặc draft/review/scheduled -> published)
+  //   - Unpublish (published -> draft/review/scheduled)
+  //   - Xoá mềm một bài published (deleted_at: null -> có giá trị)
+  //   - Khôi phục một bài published đã xoá (deleted_at: có giá trị -> null)
+  // KHÔNG trigger khi bài published sửa nội dung khác (title/body/...) mà
+  // vẫn giữ nguyên live=true trước và sau — tránh build lại vô ích mỗi lần
+  // sửa nhỏ; những thay đổi đó vẫn lên site qua cron hằng ngày hoặc lần
+  // publish/xoá bài KHÁC cuốn theo, đúng phạm vi yêu cầu Phase 2A.
+  const wasLive = oldStatus === "published" && !oldDeletedAt;
+  const isLive = newStatus === "published" && !newDeletedAt;
+  const visibilityChanged = wasLive !== isLive;
 
-  if (!justPublished) {
+  if (!visibilityChanged) {
     return json({
       ok: true,
       triggered: false,
-      reason: `status ${oldStatus ?? "(new)"} -> ${newStatus}, không phải lần published đầu tiên`,
+      reason: `live status không đổi (was ${wasLive}, is ${isLive}) — status ${oldStatus ?? "(new)"} -> ${newStatus}`,
     });
   }
 
