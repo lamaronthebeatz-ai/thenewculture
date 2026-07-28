@@ -44,6 +44,42 @@ npm run build                # build production ra dist/
 do RLS policy quyết định). **Tuyệt đối không** đặt `service_role` key ở đây
 hay bất kỳ đâu trong `dashboard/`.
 
+## Deploy lên Cloudflare Pages
+
+Project Pages riêng, trỏ vào thư mục `dashboard/` trong cùng repo — hoàn
+toàn tách biệt với project Pages đang chạy `public/` (site công khai),
+không ảnh hưởng gì đến nhau.
+
+**Cloudflare Dashboard → Workers & Pages → Create → Pages → Connect to Git:**
+
+1. Chọn repo `lamaronthebeatz-ai/thenewculture`.
+2. Đặt tên project, vd `tnc-dashboard` (quyết định subdomain
+   `tnc-dashboard.pages.dev`).
+3. Production branch: chọn branch đang có code Dashboard (hiện tại là
+   `claude/new-culture-homepage-hhwbgh`, hoặc `main` sau khi đã merge).
+4. Build settings:
+   - Framework preset: `Vite` (hoặc `None` rồi điền tay như dưới)
+   - Root directory (**bắt buộc**, mục "Build configuration" → "Root
+     directory (advanced)"): `dashboard`
+   - Build command: `npm run build`
+   - Build output directory: `dist`
+5. "Environment variables" (khai báo cho cả Production và Preview):
+   - `VITE_SUPABASE_URL` = URL project Supabase (dạng
+     `https://xxxxx.supabase.co`)
+   - `VITE_SUPABASE_ANON_KEY` = anon key của project Supabase
+   - **Không** khai báo `service_role` key ở đây hay bất kỳ đâu.
+6. Bấm "Save and Deploy".
+
+Vite đọc 2 biến `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` này ngay lúc
+build (`import.meta.env.*`, xem `src/lib/supabaseClient.js`) — không có gì
+hardcode trong code, đổi giá trị trong Cloudflare Pages settings rồi
+redeploy là áp dụng luôn, không cần sửa code.
+
+`public/_redirects` (`/* /index.html 200`) đã có sẵn để React Router hoạt
+động đúng trên Cloudflare Pages — không có file này, tải thẳng một URL như
+`/articles/xyz` (vd bấm refresh, hoặc mở link trực tiếp trên tablet) sẽ bị
+404 vì Cloudflare Pages mặc định tìm file vật lý khớp đường dẫn.
+
 ## Yêu cầu phía Supabase
 
 1. Đã chạy `database/schema.sql` (+ `database/migrate_rev4_real_content.sql`
