@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import RequireEditor from "./auth/RequireEditor";
 import DashboardLayout from "./layout/DashboardLayout";
+import DashboardHome from "./pages/DashboardHome";
 import ArticlesList from "./pages/ArticlesList";
 import ArticleForm from "./pages/ArticleForm";
 import AuthorsList from "./pages/AuthorsList";
@@ -21,7 +22,7 @@ export default function App() {
         <RequireEditor>
           <Routes>
             <Route element={<DashboardLayout />}>
-              <Route index element={<Navigate to="/articles" replace />} />
+              <Route index element={<DashboardHome />} />
 
               <Route path="articles" element={<ArticlesList />} />
               <Route path="articles/new" element={<ArticleForm />} />
@@ -45,7 +46,7 @@ export default function App() {
               <Route path="media/new" element={<MediaForm />} />
               <Route path="media/:id" element={<MediaForm />} />
 
-              <Route path="*" element={<Navigate to="/articles" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>
         </RequireEditor>

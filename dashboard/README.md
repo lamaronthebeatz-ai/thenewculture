@@ -10,11 +10,18 @@ sinh bởi `scripts/build.py`) — không build vào `public/`, không được 
 vào `.github/workflows/main.yml`. Deploy riêng (vd một project Cloudflare
 Pages khác trỏ vào thư mục `dashboard/`).
 
-## Giai đoạn 1 (hiện tại) — hoàn thành cả 6 module
+## Giai đoạn 1 (hiện tại) — hoàn thành cả 6 module + Dashboard Home
 
 - Đăng nhập bằng Supabase Auth (email/mật khẩu).
 - Chỉ tài khoản có hồ sơ `authors` đang active (khớp email) mới vào được —
   xem `public.is_active_editor()` trong `database/migrate_rev5_dashboard_access.sql`.
+- **Dashboard Home** (`/`, trang đầu tiên sau đăng nhập) — "Editorial Command
+  Center": Hero header (tên editor/ngày/giờ/version), 8 KPI card, Recent
+  Articles (10 bài mới nhất), Publishing Overview (biểu đồ thanh CSS theo
+  status), Quick Actions, Editorial Health, System Status. Toàn bộ số liệu
+  lấy thật từ Supabase qua `src/lib/dashboardData.js` (8 query chạy song
+  song bằng `Promise.allSettled` — 1 query lỗi không kéo sập cả trang). Chi
+  tiết ở mục "Dashboard Home" bên dưới.
 - **Articles**: danh sách + lọc trạng thái/tìm kiếm, tạo/sửa mọi cột, gắn/gỡ
   tag, soft-delete + khôi phục, upload ảnh cover/poster lên Storage.
 - **Authors**: tạo/sửa hồ sơ biên tập viên — vai trò (role_id tiếng Việt +
@@ -91,6 +98,37 @@ redeploy là áp dụng luôn, không cần sửa code.
    Add user) dùng **đúng email đã có trong `authors.email`** — đây là cách
    duy nhất `is_active_editor()` nhận diện họ là biên tập viên (không có cột
    liên kết `authors.user_id`, giữ đúng yêu cầu không đổi cấu trúc bảng).
+
+## Dashboard Home
+
+Trang `/` tổng hợp dữ liệu qua `loadDashboardData()` trong
+`src/lib/dashboardData.js` — 8 query Supabase chạy song song
+(`Promise.allSettled`, không phải `Promise.all`: 1 query lỗi không kéo sập
+các card khác), mỗi query chỉ lấy đúng cột cần dùng (không có card nào query
+dư). `summarize()` tổng hợp thuần phía client từ kết quả đó — tách riêng để
+tái dùng cho các trang thống kê sau này (Analytics/Workflow) mà không phải
+viết lại logic đếm.
+
+| Card | Nguồn dữ liệu | Trạng thái |
+|---|---|---|
+| 8 KPI card | `articles`/`authors`/`categories`/`series`/`tags`/`media` | Dữ liệu thật |
+| Recent Articles | `articles` (10 mới nhất theo `updated_at`, kèm `authors`/`series`) | Dữ liệu thật |
+| Publishing Overview | `articles.status` (đếm theo 5 trạng thái) | Dữ liệu thật |
+| Editorial Health (draft/scheduled/author inactive/media chưa dùng) | `articles`/`authors`/`media` | Dữ liệu thật |
+| System Status (Database/Storage) | Kết quả thành công/thất bại của chính các query trên + 1 lệnh gọi `storage.list()` | Dữ liệu thật |
+| System Status (Authentication) | Session hiện có trong `AuthContext` (đã đăng nhập = online) | Suy ra, không cần query riêng |
+| System Status (Cloudflare Pages) | Trang đang chạy được nghĩa là đang online | Suy ra, không cần query riêng |
+| Quick Actions | Điều hướng tĩnh tới route tạo mới của từng module | Không cần dữ liệu |
+
+Mọi số liệu schema hỗ trợ được đều lấy thật — không có mục nào phải hiện
+"Coming Soon" ở thời điểm này (cơ chế Coming Soon trong `KpiCard`/
+`EditorialHealthCard` vẫn giữ lại cho các số liệu chưa có nguồn dữ liệu
+trong tương lai, vd Analytics/Notification).
+
+Mỗi card tự xử lý 4 trạng thái: `loading` (skeleton), `error` (thông báo
+nhẹ, không chặn các card khác), rỗng (empty state), và dữ liệu thật —
+component dùng chung: `src/components/Skeleton.jsx`,
+`src/components/dashboard/DashboardCard.jsx`.
 
 ## Kiến trúc
 
