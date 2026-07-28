@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 
 const NAV_ITEMS = [
+  { to: "/", label: "Dashboard", end: true },
   { to: "/articles", label: "Articles" },
   { to: "/authors", label: "Authors" },
   { to: "/categories", label: "Categories" },
@@ -18,6 +19,7 @@ export default function Sidebar() {
           <li key={item.to}>
             <NavLink
               to={item.to}
+              end={item.end}
               className={({ isActive }) => (isActive ? "sidebar__link is-active" : "sidebar__link")}
             >
               {item.label}

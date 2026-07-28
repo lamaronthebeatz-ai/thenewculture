@@ -436,3 +436,261 @@ details summary {
   color: var(--text-muted);
   margin-bottom: 8px;
 }
+
+/* ========================================================================
+   Dashboard Home — Editorial Command Center
+   ======================================================================== */
+
+.page--wide {
+  max-width: 1200px;
+}
+
+.hero-header {
+  margin-bottom: 32px;
+}
+
+.hero-header h1 {
+  margin: 0 0 4px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.hero-header__subtitle {
+  margin: 0 0 12px;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.hero-header__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.hero-header__dot {
+  opacity: 0.5;
+}
+
+/* ---------- KPI grid ---------- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kpi-card__label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.kpi-card__value {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.kpi-card__value--error {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.kpi-card__soon {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ---------- Dashboard card (shared wrapper) ---------- */
+.dash-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px;
+  margin-bottom: 20px;
+}
+
+.dash-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.dash-card__header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* ---------- Two-column layout ---------- */
+.dashboard-columns {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.dashboard-columns__main,
+.dashboard-columns__side {
+  min-width: 0;
+}
+
+.dashboard-columns__main .dash-card:last-child,
+.dashboard-columns__side .dash-card:last-child {
+  margin-bottom: 0;
+}
+
+.data-table--compact th,
+.data-table--compact td {
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+/* ---------- Publishing overview (CSS bars) ---------- */
+.publishing-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.publishing-overview__row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.publishing-overview__label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.publishing-overview__track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.publishing-overview__bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+/* ---------- Quick actions ---------- */
+.quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.quick-actions__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.quick-actions__item:hover {
+  background: var(--bg);
+  border-color: var(--brand);
+}
+
+.quick-actions__plus {
+  color: var(--brand);
+  font-weight: 700;
+}
+
+/* ---------- Editorial health / System status lists ---------- */
+.editorial-health,
+.system-status {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.editorial-health li,
+.system-status li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.status-pill {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-pill--offline {
+  color: var(--danger);
+}
+
+/* ---------- Skeleton loading ---------- */
+.skeleton {
+  display: inline-block;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--border) 25%, #eceef1 37%, var(--border) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+
+.skeleton-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+/* ---------- Responsive: tablet ---------- */
+@media (max-width: 1080px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-actions {
+    grid-template-columns: 1fr;
+  }
+}
