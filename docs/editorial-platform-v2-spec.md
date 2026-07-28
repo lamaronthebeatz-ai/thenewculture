@@ -196,7 +196,10 @@ Merge vào main  ──────────▶  GitHub Actions (main.yml, kh
                                    │
                                    │ python scripts/build.py
                                    ▼
-                             Commit "Auto build [skip ci]"
+                             Commit "Auto build: cap nhat public/..."
+                             (paths-ignore public/** chan vong lap, khong
+                             con dung tag "[skip ci]" — tag nay bi Cloudflare
+                             Pages hieu la "bo qua deploy commit nay")
                              (public/ được sinh lại, đẩy vào main)
                                    │
                                    ▼

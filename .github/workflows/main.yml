@@ -3,6 +3,19 @@ name: Build TNC site
 on:
   push:
     branches: [main]
+    # Bot tự commit lại "Auto build ..." mỗi lần build ra nội dung mới, và
+    # commit đó CHỈ đụng tới public/ (xem bước git add cuối file). Trước đây
+    # chặn vòng lặp bằng cách gắn "[skip ci]" vào message — nhưng Cloudflare
+    # Pages Git integration cũng đọc đúng tag "[skip ci]"/"[CI Skip]" trong
+    # commit message để QUYẾT ĐỊNH BỎ QUA DEPLOY (xem docs Cloudflare Pages,
+    # mục Git integration) — nghĩa là mọi bài viết mới do chính pipeline này
+    # build ra có nguy cơ không bao giờ được Cloudflare deploy lên production,
+    # dù GitHub Actions báo "success" và commit đúng nội dung. paths-ignore
+    # ở đây thay thế "[skip ci]" để chặn vòng lặp NGAY TỪ PHÍA GITHUB, cho
+    # phép bỏ hẳn tag khỏi commit message — Cloudflare Pages sẽ deploy mọi
+    # commit "Auto build" như bình thường.
+    paths-ignore:
+      - "public/**"
   workflow_dispatch:
   # Phase 2A — Automated Publishing Pipeline: Supabase Database Webhook (khi
   # articles.status chuyển sang 'published') -> Supabase Edge Function
@@ -65,6 +78,10 @@ jobs:
           if git diff --staged --quiet; then
             echo "Khong co thay doi."
           else
-            git commit -m "Auto build [skip ci]"
+            # KHÔNG được chứa "[skip ci]"/"[CI Skip]" — Cloudflare Pages Git
+            # integration cũng dùng đúng tag này để bỏ qua deploy (xem
+            # paths-ignore ở trigger push phía trên, đã thay thế vai trò
+            # chặn vòng lặp của tag này cho GitHub Actions).
+            git commit -m "Auto build: cap nhat public/ tu Supabase"
             git push
           fi
