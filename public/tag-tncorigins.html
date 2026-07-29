@@ -202,6 +202,24 @@
   menu.addEventListener('click',function(e){if(e.target===menu)hide();});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!menu.hidden)hide();});
 })();
+// Module 3 — Advertisement Manager: click/impression tracking. Chỉ những
+// quảng cáo thật từ Supabase (bảng ads, có data-ad-id) mới được đếm —
+// quảng cáo fallback (SETTINGS/site.yml) không có thuộc tính này nên
+// không gọi gì cả, đúng bằng không cho tới khi editor tạo ads qua Dashboard.
+(function(){
+  var ads=document.querySelectorAll('[data-ad-id]');
+  if(!ads.length)return;
+  function call(id,kind){
+    fetch('https://fbszztwnkyvvrrstpcmr.supabase.co/rest/v1/rpc/increment_ad_stat',{method:'POST',
+      headers:{'apikey':'sb_publishable_bnSPAKzgE95GN5ieou1e5w_70PBxTCQ','Authorization':'Bearer sb_publishable_bnSPAKzgE95GN5ieou1e5w_70PBxTCQ','Content-Type':'application/json'},
+      body:JSON.stringify({p_ad_id:id,p_kind:kind}),keepalive:true}).catch(function(){});
+  }
+  ads.forEach(function(el){call(el.getAttribute('data-ad-id'),'impression');});
+  document.addEventListener('click',function(e){
+    var el=e.target.closest('[data-ad-id]');
+    if(el)call(el.getAttribute('data-ad-id'),'click');
+  });
+})();
 // Nút sao chép link bài viết
 (function(){
   document.addEventListener('click',function(e){
