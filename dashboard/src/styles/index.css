@@ -110,6 +110,19 @@ button {
   letter-spacing: 0.02em;
 }
 
+.sidebar__group-label {
+  padding: 16px 20px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.sidebar__group:first-child .sidebar__group-label {
+  padding-top: 0;
+}
+
 .sidebar__nav {
   list-style: none;
   margin: 0;
