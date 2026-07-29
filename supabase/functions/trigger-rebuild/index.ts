@@ -39,14 +39,29 @@ const GITHUB_TOKEN = Deno.env.get("GITHUB_TOKEN");
 const GITHUB_OWNER = Deno.env.get("GITHUB_OWNER");
 const GITHUB_REPO = Deno.env.get("GITHUB_REPO");
 
+// Bug fix: Dashboard gọi function này thẳng từ trình duyệt qua
+// supabase.functions.invoke() (khác origin với *.supabase.co) — thiếu CORS
+// khiến trình duyệt chặn cả preflight lẫn response thật, supabase-js báo
+// "Failed to send a request to the Edge Function" dù function chạy bình
+// thường phía server. on-article-published không cần CORS vì nó chỉ được
+// Supabase Database Webhook gọi server-to-server, không phải từ browser.
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
   });
 }
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
   if (req.method !== "POST") {
     return json({ ok: false, reason: "method not allowed" }, 405);
   }
