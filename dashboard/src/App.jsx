@@ -17,6 +17,9 @@ import MediaForm from "./pages/MediaForm";
 import SiteSettings from "./pages/SiteSettings";
 import MenuBuilder from "./pages/MenuBuilder";
 import FooterBuilder from "./pages/FooterBuilder";
+import HeroManager from "./pages/HeroManager";
+import AdManager from "./pages/AdManager";
+import PromotionManager from "./pages/PromotionManager";
 
 export default function App() {
   return (
@@ -52,6 +55,9 @@ export default function App() {
               <Route path="settings" element={<SiteSettings />} />
               <Route path="menus" element={<MenuBuilder />} />
               <Route path="footer" element={<FooterBuilder />} />
+              <Route path="hero" element={<HeroManager />} />
+              <Route path="ads" element={<AdManager />} />
+              <Route path="promotions" element={<PromotionManager />} />
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

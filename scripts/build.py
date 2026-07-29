@@ -800,6 +800,19 @@ EDITOR_ORDER = []
 # biến tuyệt đối. Không có chiến dịch nào thỏa điều kiện -> không hardcode
 # banner mặc định, không render gì cả.
 # -----------------------------------------------------------------
+def _parse_iso_datetime(raw):
+    """Đọc timestamptz PostgREST trả về (ISO 8601 có offset, có thể tận
+    cùng bằng 'Z') — dùng để lọc hero_slots/ads theo start_at/end_at.
+    Trả về None nếu trống/không đọc được (coi như không giới hạn phía đó,
+    cùng nguyên tắc với _parse_campaign_date bên dưới)."""
+    if not raw:
+        return None
+    import datetime
+    try:
+        return datetime.datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
 def _parse_campaign_date(raw):
     """Đọc chuỗi ngày định dạng YYYY-MM-DD (Sveltia CMS datetime widget,
     type: date). Chấp nhận cả dạng ISO đầy đủ (có giờ) để an toàn, chỉ lấy
@@ -813,7 +826,9 @@ def _parse_campaign_date(raw):
     except ValueError:
         return None
 
-def load_campaigns():
+def _load_campaigns_from_file():
+    """Đọc content/campaigns/*.md (Sveltia CMS, hành vi gốc trước Rev 8) —
+    dùng làm fallback khi bảng promotions (Supabase) rỗng/chưa migrate."""
     campaigns_dir = os.path.join(REPO_ROOT, "content", "campaigns")
     campaigns = []
     if not os.path.isdir(campaigns_dir):
@@ -845,6 +860,47 @@ def load_campaigns():
         })
     return campaigns
 
+def load_campaigns():
+    """Module 4 — Promotion Manager (Rev 8). Đọc bảng promotions (Supabase)
+    nếu đã có dữ liệu; rỗng/chưa migrate thì fallback đọc
+    content/campaigns/*.md y hệt hành vi gốc. pick_active_campaign() bên
+    dưới nhận đúng shape dict như cũ ở cả 2 nguồn, không cần sửa gì."""
+    try:
+        rows = _supabase_get(
+            "promotions",
+            "select=slug,title,is_active,placement,video_url,destination_url,open_in_new_tab,"
+            "dismissible,dismiss_days,priority,start_at,end_at,"
+            "desktop:media_id(url),mobile:mobile_media_id(url)"
+            "&deleted_at=is.null"
+        )
+    except RuntimeError:
+        rows = None
+    if not rows:
+        return _load_campaigns_from_file()
+    campaigns = []
+    for row in rows:
+        desktop_url = (row.get("desktop") or {}).get("url", "")
+        mobile_url = (row.get("mobile") or {}).get("url", "")
+        video_url = row.get("video_url") or ""
+        campaigns.append({
+            "slug": row["slug"],
+            "title": row.get("title") or "",
+            "active": bool(row.get("is_active")),
+            "placement": row.get("placement") or "sticky_bottom",
+            "type": "video" if video_url else "image",
+            "desktop_image": desktop_url,
+            "mobile_image": mobile_url,
+            "video": video_url,
+            "destination_url": row.get("destination_url") or "",
+            "open_in_new_tab": bool(row.get("open_in_new_tab", True)),
+            "start_date": _parse_campaign_date(row.get("start_at")),
+            "end_date": _parse_campaign_date(row.get("end_at")),
+            "dismissible": bool(row.get("dismissible", True)),
+            "dismiss_days": int(row.get("dismiss_days") or 0),
+            "priority": int(row.get("priority") or 0),
+        })
+    return campaigns
+
 def pick_active_campaign(campaigns, placement, today=None):
     """Chọn đúng 1 chiến dịch để render cho một vị trí (placement):
     active=True, và today nằm trong [start_date, end_date] (thiếu 1 trong
@@ -867,6 +923,73 @@ def pick_active_campaign(campaigns, placement, today=None):
 
 CAMPAIGNS = load_campaigns()
 ACTIVE_STICKY_BANNER = pick_active_campaign(CAMPAIGNS, "sticky_bottom")
+
+# -----------------------------------------------------------------
+# Module 2 — Hero Manager (Rev 8). Thay dần khối GIF hero đọc từ SETTINGS
+# (content/settings/site.yml: hero_gif/hero_gif_song_title/artist). Hero
+# bài viết (articles.featured/hero_priority, render_hero_slideshow()) đã
+# đúng CMS từ trước, KHÔNG đụng tới ở đây.
+# -----------------------------------------------------------------
+def load_hero_slots():
+    """Đọc bảng hero_slots — trả về list slot đang active (đã lọc is_active
+    + trong khoảng start_at/end_at), sắp priority giảm dần. Rỗng/lỗi kết
+    nối -> [] để nơi gọi tự fallback SETTINGS (hero_gif cũ)."""
+    try:
+        rows = _supabase_get(
+            "hero_slots",
+            "select=id,kind,title,subtitle,priority,start_at,end_at,"
+            "desktop:desktop_media_id(url)"
+            "&is_active=eq.true&deleted_at=is.null&order=priority.desc"
+        )
+    except RuntimeError:
+        return []
+    import datetime
+    now = datetime.datetime.now(datetime.timezone.utc)
+    eligible = []
+    for r in rows:
+        start = _parse_iso_datetime(r.get("start_at"))
+        end = _parse_iso_datetime(r.get("end_at"))
+        if start and start > now:
+            continue
+        if end and end < now:
+            continue
+        if not (r.get("desktop") or {}).get("url"):
+            continue
+        eligible.append(r)
+    return eligible
+
+# -----------------------------------------------------------------
+# Module 3 — Advertisement Manager (Rev 8). Thay 2 slot quảng cáo tĩnh
+# (ad_left_*/ad_right_* trong SETTINGS) bằng bảng ads, nhóm theo
+# placement_id. render_ad_block()/render_ad_block_horizontal_only() bên
+# dưới fallback nguyên xi SETTINGS nếu placement chưa có quảng cáo active.
+# -----------------------------------------------------------------
+def load_ads():
+    try:
+        rows = _supabase_get(
+            "ads",
+            "select=id,placement_id,creative_kind,link_url,link_target,priority,start_at,end_at,"
+            "media:media_id(url)"
+            "&is_active=eq.true&deleted_at=is.null&order=priority.desc"
+        )
+    except RuntimeError:
+        return {}
+    import datetime
+    now = datetime.datetime.now(datetime.timezone.utc)
+    by_placement = {}
+    for r in rows:
+        start = _parse_iso_datetime(r.get("start_at"))
+        end = _parse_iso_datetime(r.get("end_at"))
+        if start and start > now:
+            continue
+        if end and end < now:
+            continue
+        if not (r.get("media") or {}).get("url"):
+            continue
+        by_placement.setdefault(r["placement_id"], []).append(r)
+    return by_placement
+
+ADS_BY_PLACEMENT = load_ads()
 
 # -----------------------------------------------------------------
 # HỒ SƠ NHÂN VẬT/ĐƠN VỊ (TNC Profiles — dạng "thẻ tướng")
@@ -1258,30 +1381,53 @@ def _ad_media_tag(src):
                  f'class="ad-block__media"></video>')
     return f'<img src="{src}" alt="Quảng cáo" loading="lazy" class="ad-block__media">'
 
-def render_ad_block(vertical_key, horizontal_key, link_key, extra_class=""):
-    """Sinh một khối quảng cáo hoàn chỉnh, áp dụng logic dự phòng: ưu tiên
-    ảnh/video DỌC nếu có (dùng cho hai bên hông desktop); nếu thiếu dọc, tự
-    động dùng bản NGANG thay thế. Nếu có link, cả khối trở thành liên kết
-    bấm được; nếu không, chỉ là khối trưng bày tĩnh. Tự ẩn hoàn toàn nếu
-    không có bất kỳ media nào được cấu hình cho vị trí này."""
+def render_ad_block(placement_id, vertical_key, horizontal_key, link_key, extra_class=""):
+    """Module 3 — Advertisement Manager (Rev 8). Ưu tiên quảng cáo active từ
+    Supabase (bảng ads, đúng placement_id); rỗng thì fallback nguyên xi logic
+    cũ (ưu tiên ảnh/video DỌC trong SETTINGS, ngược lại dùng bản NGANG thay
+    thế). Tự ẩn hoàn toàn nếu không có gì cho vị trí này ở cả 2 nguồn."""
+    ads_here = ADS_BY_PLACEMENT.get(placement_id) or []
+    if ads_here:
+        ad = ads_here[0]
+        src = (ad.get("media") or {}).get("url", "")
+        link = ad.get("link_url") or ""
+        media_html = _ad_media_tag(src)
+        data_attr = f' data-ad-id="{ad["id"]}"'
+        if link:
+            target_attrs = ' target="_blank" rel="noopener sponsored"' if ad.get("link_target", "external") == "external" else ""
+            return (f'<a href="{link}"{target_attrs} '
+                     f'class="ad-block ad-block--vertical {extra_class}"{data_attr}>{media_html}</a>')
+        return f'<div class="ad-block ad-block--vertical {extra_class}"{data_attr}>{media_html}</div>'
+
     vertical = SETTINGS.get(vertical_key, "")
     horizontal = SETTINGS.get(horizontal_key, "")
     link = SETTINGS.get(link_key, "")
-
     src = vertical or horizontal
     if not src:
         return ""
     orientation_cls = "ad-block--vertical" if src == vertical else "ad-block--horizontal-fallback"
     media_html = _ad_media_tag(src)
-
     if link:
         return (f'<a href="{link}" target="_blank" rel="noopener sponsored" '
                  f'class="ad-block {orientation_cls} {extra_class}">{media_html}</a>')
     return f'<div class="ad-block {orientation_cls} {extra_class}">{media_html}</div>'
 
-def render_ad_block_horizontal_only(horizontal_key, link_key, extra_class=""):
-    """Sinh khối quảng cáo NGANG thuần túy — dùng cho trang chủ và mọi vị
-    trí trên di động, luôn ưu tiên bản ngang bất kể có bản dọc hay không."""
+def render_ad_block_horizontal_only(placement_id, horizontal_key, link_key, extra_class=""):
+    """Bản NGANG thuần túy của render_ad_block() — dùng cho trang chủ và mọi
+    vị trí trên di động, luôn ưu tiên bản ngang bất kể có bản dọc hay không."""
+    ads_here = ADS_BY_PLACEMENT.get(placement_id) or []
+    if ads_here:
+        ad = ads_here[0]
+        src = (ad.get("media") or {}).get("url", "")
+        link = ad.get("link_url") or ""
+        media_html = _ad_media_tag(src)
+        data_attr = f' data-ad-id="{ad["id"]}"'
+        if link:
+            target_attrs = ' target="_blank" rel="noopener sponsored"' if ad.get("link_target", "external") == "external" else ""
+            return (f'<a href="{link}"{target_attrs} '
+                     f'class="ad-block ad-block--horizontal {extra_class}"{data_attr}>{media_html}</a>')
+        return f'<div class="ad-block ad-block--horizontal {extra_class}"{data_attr}>{media_html}</div>'
+
     horizontal = SETTINGS.get(horizontal_key, "")
     link = SETTINGS.get(link_key, "")
     if not horizontal:
@@ -1295,8 +1441,8 @@ def render_ad_block_horizontal_only(horizontal_key, link_key, extra_class=""):
 def render_sticky_ads_sidebar():
     """Hai khối quảng cáo sticky hai bên hông (desktop rộng, từ 1400px).
     Tự ẩn độc lập nếu chưa cấu hình media cho vị trí đó."""
-    left = render_ad_block("ad_left_vertical", "ad_left_horizontal", "ad_left_link", "ad-block--sidebar-left")
-    right = render_ad_block("ad_right_vertical", "ad_right_horizontal", "ad_right_link", "ad-block--sidebar-right")
+    left = render_ad_block("sidebar_left", "ad_left_vertical", "ad_left_horizontal", "ad_left_link", "ad-block--sidebar-left")
+    right = render_ad_block("sidebar_right", "ad_right_vertical", "ad_right_horizontal", "ad_right_link", "ad-block--sidebar-right")
     if not left and not right:
         return ""
     return f"""
@@ -1307,8 +1453,8 @@ def render_sticky_ads_sidebar():
 def render_inline_ad_mobile():
     """Khối quảng cáo ngang thay thế cho mobile/màn hẹp (dưới 1400px), nơi
     sidebar bị ẩn. Chèn trong nội dung bài viết, dùng ảnh ngang."""
-    left = render_ad_block_horizontal_only("ad_left_horizontal", "ad_left_link")
-    right = render_ad_block_horizontal_only("ad_right_horizontal", "ad_right_link")
+    left = render_ad_block_horizontal_only("sidebar_left", "ad_left_horizontal", "ad_left_link")
+    right = render_ad_block_horizontal_only("sidebar_right", "ad_right_horizontal", "ad_right_link")
     if not left and not right:
         return ""
     return f"""
@@ -1324,8 +1470,8 @@ def render_homepage_ad_block():
     nhất (dùng bản ngang của cả hai, xếp cạnh nhau) nếu cả hai đã cấu hình;
     nếu chỉ một bên có dữ liệu, hiển thị đúng một khối. Tự ẩn hoàn toàn nếu
     chưa cấu hình gì."""
-    left = render_ad_block_horizontal_only("ad_left_horizontal", "ad_left_link")
-    right = render_ad_block_horizontal_only("ad_right_horizontal", "ad_right_link")
+    left = render_ad_block_horizontal_only("sidebar_left", "ad_left_horizontal", "ad_left_link")
+    right = render_ad_block_horizontal_only("sidebar_right", "ad_right_horizontal", "ad_right_link")
     if not left and not right:
         return ""
     return f"""
@@ -1670,6 +1816,24 @@ def footer():
   if(close)close.addEventListener('click',hide);
   menu.addEventListener('click',function(e){if(e.target===menu)hide();});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!menu.hidden)hide();});
+})();
+// Module 3 — Advertisement Manager: click/impression tracking. Chỉ những
+// quảng cáo thật từ Supabase (bảng ads, có data-ad-id) mới được đếm —
+// quảng cáo fallback (SETTINGS/site.yml) không có thuộc tính này nên
+// không gọi gì cả, đúng bằng không cho tới khi editor tạo ads qua Dashboard.
+(function(){
+  var ads=document.querySelectorAll('[data-ad-id]');
+  if(!ads.length)return;
+  function call(id,kind){
+    fetch('""" + SUPABASE_URL + """/rest/v1/rpc/increment_ad_stat',{method:'POST',
+      headers:{'apikey':'""" + SUPABASE_ANON_KEY + """','Authorization':'Bearer """ + SUPABASE_ANON_KEY + """','Content-Type':'application/json'},
+      body:JSON.stringify({p_ad_id:id,p_kind:kind}),keepalive:true}).catch(function(){});
+  }
+  ads.forEach(function(el){call(el.getAttribute('data-ad-id'),'impression');});
+  document.addEventListener('click',function(e){
+    var el=e.target.closest('[data-ad-id]');
+    if(el)call(el.getAttribute('data-ad-id'),'click');
+  });
 })();
 // Nút sao chép link bài viết
 (function(){
@@ -2450,8 +2614,37 @@ def render_hero_slideshow(slides):
   </section>"""
 
 def render_gif_hero():
-    """Khung GIF lớn đầu trang chủ: ảnh động tự chạy + thumbnail/thông tin bài hát.
-    Không phát âm thanh — chỉ là khối trình diễn hình ảnh. Ẩn hoàn toàn nếu chưa cấu hình."""
+    """Module 2 — Hero Manager (Rev 8). Ưu tiên slot đang active từ Supabase
+    (bảng hero_slots, priority cao nhất trong khoảng ngày); rỗng/chưa cấu
+    hình thì fallback nguyên xi khung GIF hero cũ đọc từ SETTINGS
+    (content/settings/site.yml). Không phát âm thanh — chỉ là khối trình
+    diễn hình ảnh. Ẩn hoàn toàn nếu chưa cấu hình ở cả 2 nguồn."""
+    slots = load_hero_slots()
+    slot = slots[0] if slots else None
+    if slot:
+        media_url = (slot.get("desktop") or {}).get("url", "")
+        title = slot.get("title") or ""
+        subtitle = slot.get("subtitle") or ""
+        info = ""
+        if title or subtitle:
+            info = f"""
+      <div class="gif-hero__info">
+        <span class="gif-hero__label">Đang vang lên</span>
+        <span class="gif-hero__song">{title}</span>
+        <span class="gif-hero__artist">{subtitle}</span>
+      </div>"""
+        media_tag = (
+            f'<video src="{media_url}" autoplay loop muted playsinline class="gif-hero__img"></video>'
+            if _is_video_file(media_url)
+            else f'<img src="{media_url}" alt="{title or "The New Culture"}" class="gif-hero__img">'
+        )
+        return f"""
+  <section class="gif-hero">
+    {media_tag}
+    {info}
+  </section>
+"""
+
     gif = SETTINGS.get("hero_gif")
     if not gif:
         return ""

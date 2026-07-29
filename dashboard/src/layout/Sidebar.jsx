@@ -17,6 +17,14 @@ const NAV_GROUPS = [
     items: [{ to: "/media", label: "Media" }],
   },
   {
+    label: "Trình diễn",
+    items: [
+      { to: "/hero", label: "Hero Manager" },
+      { to: "/ads", label: "Advertisement Manager" },
+      { to: "/promotions", label: "Promotion Manager" },
+    ],
+  },
+  {
     label: "Bố cục trang",
     items: [
       { to: "/menus", label: "Menu Builder" },
