@@ -24,16 +24,27 @@ on:
   # -> kích hoạt đúng job build này, không cần ai commit/push/bấm rebuild
   # thủ công. Không đổi build engine — vẫn cùng 1 job "build" y hệt push/
   # cron/workflow_dispatch, chỉ thêm 1 cách kích hoạt mới.
+  #
+  # "cms-config-changed": bug fix — các bảng CMS V2 (site_settings, menus,
+  # footer_settings, hero_slots, ads, promotions, announcements... Phase
+  # 1-4) không có Database Webhook riêng như articles, nên sửa dữ liệu ở
+  # các module này không tự kích hoạt build (Announcement thêm xong không
+  # lên site, Cloudflare không thấy deploy mới). Event này được nút
+  # "Rebuild site now" trong Dashboard gọi thủ công (xem supabase/functions/
+  # trigger-rebuild/), cho editor chủ động build ngay không cần chờ cron.
   repository_dispatch:
-    types: [article-published]
+    types: [article-published, cms-config-changed]
   # V3.0 Promotion System: chiến dịch quảng bá tự bật/tắt theo Ngày bắt
   # đầu/Ngày kết thúc, nhưng site tĩnh chỉ cập nhật khi build chạy — nếu
-  # không ai push code đúng ngày đó, banner sẽ trễ. Chạy build hằng ngày
-  # để ngày hết hạn có hiệu lực mà không cần thao tác gì thêm. 17:00 UTC
-  # ~ 00:00 giờ Việt Nam (UTC+7). Không tạo commit/thay đổi gì nếu output
-  # không đổi (xem bước cuối bên dưới).
+  # không ai push code đúng ngày đó, banner sẽ trễ. Rút ngắn từ hằng ngày
+  # xuống mỗi 15 phút (bug fix cùng đợt với "cms-config-changed" ở trên) —
+  # đây là LƯỚI AN TOÀN chung cho MỌI bảng CMS V2 hiện tại và sau này
+  # (Site Settings/Menu/Footer/Hero/Ads/Promotion/Announcement...), không
+  # cần thêm Database Webhook riêng cho từng bảng mới. Không tạo commit/
+  # thay đổi gì nếu output không đổi (xem bước cuối bên dưới), nên các lần
+  # chạy không có gì mới chỉ tốn ~1 phút CI, không deploy thêm gì.
   schedule:
-    - cron: "0 17 * * *"
+    - cron: "*/15 * * * *"
 
 # Mỗi lần lưu trong CMS (mỗi entry, kể cả sửa liên tiếp trong vài phút) đều
 # push thẳng vào "main" -> kích hoạt 1 run riêng. Không có "concurrency" thì

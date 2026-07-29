@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
+import { supabase } from "../lib/supabaseClient";
 
 const NAV_GROUPS = [
   {
@@ -38,6 +40,42 @@ const NAV_GROUPS = [
   },
 ];
 
+// Bug fix: Site Settings/Menu/Footer/Hero/Ads/Promotion/Announcement không
+// có Database Webhook riêng như Articles, nên sửa xong ở các module này
+// không tự kích hoạt build lại site — phải chờ lịch cron (mỗi 15 phút) hoặc
+// bấm nút này để build ngay. Xem supabase/functions/trigger-rebuild/.
+function RebuildButton() {
+  const [state, setState] = useState("idle"); // idle | loading | ok | error
+  const [message, setMessage] = useState("");
+
+  async function handleClick() {
+    setState("loading");
+    setMessage("");
+    const { data, error } = await supabase.functions.invoke("trigger-rebuild", { method: "POST" });
+    if (error) {
+      setState("error");
+      setMessage(error.message || "Không kích hoạt được.");
+      return;
+    }
+    if (data?.ok && data?.triggered) {
+      setState("ok");
+      setMessage("Đã kích hoạt build. Website sẽ cập nhật sau khoảng 1–2 phút.");
+    } else {
+      setState("error");
+      setMessage(data?.reason || "Không kích hoạt được.");
+    }
+  }
+
+  return (
+    <div className="sidebar__rebuild">
+      <button type="button" className="btn btn--ghost btn--sm" onClick={handleClick} disabled={state === "loading"}>
+        {state === "loading" ? "Đang kích hoạt…" : "Rebuild site now"}
+      </button>
+      {message && <p className={state === "error" ? "field-error" : "muted small"}>{message}</p>}
+    </div>
+  );
+}
+
 export default function Sidebar() {
   return (
     <nav className="sidebar">
@@ -60,6 +98,7 @@ export default function Sidebar() {
           </ul>
         </div>
       ))}
+      <RebuildButton />
     </nav>
   );
 }
