@@ -14,6 +14,9 @@ import SeriesForm from "./pages/SeriesForm";
 import TagsList from "./pages/TagsList";
 import MediaList from "./pages/MediaList";
 import MediaForm from "./pages/MediaForm";
+import SiteSettings from "./pages/SiteSettings";
+import MenuBuilder from "./pages/MenuBuilder";
+import FooterBuilder from "./pages/FooterBuilder";
 
 export default function App() {
   return (
@@ -45,6 +48,10 @@ export default function App() {
               <Route path="media" element={<MediaList />} />
               <Route path="media/new" element={<MediaForm />} />
               <Route path="media/:id" element={<MediaForm />} />
+
+              <Route path="settings" element={<SiteSettings />} />
+              <Route path="menus" element={<MenuBuilder />} />
+              <Route path="footer" element={<FooterBuilder />} />
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

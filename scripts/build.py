@@ -460,6 +460,105 @@ def load_settings():
 SETTINGS = load_settings()
 
 # -----------------------------------------------------------------
+# CMS V2 Phase 2 — Module 11 (Site Settings), Module 8 (Menu Builder),
+# Module 9 (Footer Builder). Đọc từ Supabase (bảng site_settings/menus/
+# menu_items/footer_settings/footer_partners — Rev 7), CÓ FALLBACK về
+# đúng hành vi hardcode/site.yml hiện tại nếu bảng chưa tồn tại (trước khi
+# chạy migration) hoặc chưa có dữ liệu — không bao giờ làm site trắng hay
+# lỗi giữa lúc chuyển đổi. Phạm vi CHỈ đúng những gì Rev 7 phụ trách:
+# site_name/site_description/logo/header_bg/favicon/robots/analytics token
+# (không đụng hero_gif/spotify/social/ad_* — vẫn ở SETTINGS/site.yml, thuộc
+# Phase 3) và 2 menu key "header_primary"/"footer" (3 key còn lại chưa wire
+# ở phase này).
+# -----------------------------------------------------------------
+def load_site_settings():
+    fallback = {
+        "site_name": SITE_NAME,
+        "site_description": SITE_DESC,
+        "logo_image": SETTINGS.get("logo_image", ""),
+        "header_bg_image": SETTINGS.get("header_bg_image", ""),
+        "favicon_image": "/uploads/3727.png",
+        "cloudflare_analytics_token": SETTINGS.get("cloudflare_analytics_token", ""),
+        "robots_directives": "",
+        "maintenance_mode": False,
+        "maintenance_message": "",
+    }
+    try:
+        rows = _supabase_get(
+            "site_settings",
+            "select=site_name,site_description,robots_directives,cloudflare_analytics_token,"
+            "maintenance_mode,maintenance_message,"
+            "logo:logo_media_id(url),header_bg:header_bg_media_id(url),favicon:favicon_media_id(url)"
+        )
+    except RuntimeError:
+        return fallback
+    if not rows:
+        return fallback
+    row = rows[0]
+    return {
+        "site_name": (row.get("site_name") or "").strip() or fallback["site_name"],
+        "site_description": (row.get("site_description") or "").strip() or fallback["site_description"],
+        "logo_image": (row.get("logo") or {}).get("url") or fallback["logo_image"],
+        "header_bg_image": (row.get("header_bg") or {}).get("url") or fallback["header_bg_image"],
+        "favicon_image": (row.get("favicon") or {}).get("url") or fallback["favicon_image"],
+        "cloudflare_analytics_token": (row.get("cloudflare_analytics_token") or "").strip()
+                                      or fallback["cloudflare_analytics_token"],
+        "robots_directives": (row.get("robots_directives") or "").strip(),
+        "maintenance_mode": bool(row.get("maintenance_mode")),
+        "maintenance_message": (row.get("maintenance_message") or "").strip(),
+    }
+
+SITE_SETTINGS = load_site_settings()
+
+def _build_menu_tree(rows):
+    """Chuyển list phẳng menu_items (có parent_id) thành cây tối đa 2 cấp,
+    giữ đúng thứ tự sort_order đã ORDER BY sẵn ở query."""
+    by_id = {r["id"]: {**r, "children": []} for r in rows}
+    roots = []
+    for r in rows:
+        node = by_id[r["id"]]
+        if r["parent_id"] and r["parent_id"] in by_id:
+            by_id[r["parent_id"]]["children"].append(node)
+        else:
+            roots.append(node)
+    return roots
+
+def _menu_item_url(item):
+    """Suy ra URL thật từ (link_kind, link_value) — tái dùng đúng hàm URL
+    hiện có cho từng loại, không tự chế thêm quy tắc đặt tên file mới."""
+    kind, value = item["link_kind"], item["link_value"]
+    if kind == "series":
+        return series_url(value)
+    if kind == "category":
+        return category_url(value)
+    if kind == "article":
+        return article_url(value)
+    # 'external' hoặc 'custom_path' — value đã là URL/đường dẫn đầy đủ
+    return value
+
+def load_menu(key):
+    """Đọc 1 menu (theo `key`) từ bảng menus/menu_items. Trả về cây menu
+    (list, có thể lồng `children`) nếu có dữ liệu, hoặc None nếu bảng chưa
+    tồn tại/rỗng cho đúng key này — nơi gọi tự dùng nội dung hardcode hiện
+    tại khi nhận None, đúng yêu cầu "chưa có menu thì website vẫn hoạt
+    động như hiện tại"."""
+    try:
+        menus_rows = _supabase_get("menus", f"select=id&key=eq.{key}")
+        if not menus_rows:
+            return None
+        menu_id = menus_rows[0]["id"]
+        rows = _supabase_get(
+            "menu_items",
+            "select=id,parent_id,label,link_kind,link_value,sort_order"
+            f"&menu_id=eq.{menu_id}&is_active=eq.true&deleted_at=is.null&order=sort_order.asc"
+        )
+    except RuntimeError:
+        return None
+    if not rows:
+        return None
+    return _build_menu_tree(rows)
+
+# -----------------------------------------------------------------
 # EDITOR IDENTITY SYSTEM (PR2) — Role / Badge / Honor registries.
 # Thuần dữ liệu (id -> nhãn tiếng Việt/metadata), không phụ thuộc
 # content/editors/ — mọi hồ sơ biên tập viên chỉ lưu ID tham chiếu vào các
@@ -1091,14 +1190,14 @@ def head(title, desc=None, path="", image="", og_type="website", append_site_nam
     (quy ước SEO chuẩn cho phần lớn trang). Đặt False khi tiêu đề đã tự chứa
     tên thương hiệu (ví dụ trang chủ), tránh lặp tên khi chia sẻ mạng xã hội."""
     import html as _html
-    desc = desc or SITE_DESC
+    desc = desc or SITE_SETTINGS["site_description"]
     desc_short = (desc[:157] + "…") if len(desc) > 158 else desc
     canonical = f"{SITE_URL}/{path}" if path else SITE_URL + "/"
     if image:
         og_image = image if image.startswith("http") else f"{SITE_URL}/{image.lstrip('/')}"
     else:
         og_image = f"{SITE_URL}/og-default.png"
-    full_title = f"{title} — {SITE_NAME}" if append_site_name else title
+    full_title = f"{title} — {SITE_SETTINGS['site_name']}" if append_site_name else title
     t = _html.escape(full_title, quote=True)
     d = _html.escape(desc_short, quote=True)
     return f"""<!DOCTYPE html>
@@ -1111,12 +1210,12 @@ def head(title, desc=None, path="", image="", og_type="website", append_site_nam
 <link rel="canonical" href="{canonical}">
 <meta name="theme-color" content="#E11D0F">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="/uploads/3727.png">
+<link rel="apple-touch-icon" href="{SITE_SETTINGS['favicon_image']}">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- Open Graph -->
 <meta property="og:type" content="{og_type}">
-<meta property="og:site_name" content="{SITE_NAME}">
+<meta property="og:site_name" content="{SITE_SETTINGS['site_name']}">
 <meta property="og:title" content="{t}">
 <meta property="og:description" content="{d}">
 <meta property="og:url" content="{canonical}">
@@ -1242,10 +1341,10 @@ def wordmark_html(variant="lead"):
     """Sinh logo: ảnh tùy chỉnh nếu có trong Settings, ngược lại chữ mặc định.
     variant='lead' dùng cho masthead chính (có dòng Lamar's phía trên);
     variant='plain' dùng cho menu overlay / footer."""
-    if SETTINGS.get("logo_image"):
+    if SITE_SETTINGS.get("logo_image"):
         alt = "The New Culture"
         cls = "wordmark wordmark--img" + (" wordmark--lead" if variant == "lead" else "")
-        return f'<a href="index.html" class="{cls}" aria-label="The New Culture — trang chủ"><img src="{SETTINGS["logo_image"]}" alt="{alt}"></a>'
+        return f'<a href="index.html" class="{cls}" aria-label="The New Culture — trang chủ"><img src="{SITE_SETTINGS["logo_image"]}" alt="{alt}"></a>'
     if variant == "lead":
         return ('<a href="index.html" class="wordmark wordmark--lead" aria-label="The New Culture — trang chủ">'
                 '<span class="wordmark__owner">Lamar\'s</span>'
@@ -1270,10 +1369,20 @@ def follow_button_url():
     return fb if fb else "theo-doi.html"
 
 def masthead(active=None):
+    # Module 8 — Menu Builder: menu chính đọc từ Supabase (menus.key=
+    # 'header_primary') nếu đã có dữ liệu; rỗng/chưa migrate thì dùng đúng
+    # NAV_ITEMS hardcode như trước — không bao giờ mất menu giữa lúc chuyển đổi.
+    header_primary_menu = load_menu("header_primary")
+    if header_primary_menu:
+        nav_pairs = [(_menu_item_url(m), m["label"]) for m in header_primary_menu]
+        active_url = f"series-{active}.html" if active else None
+    else:
+        nav_pairs = [(f"series-{slug}.html", label) for slug, label in NAV_ITEMS]
+        active_url = f"series-{active}.html" if active else None
     nav_links = ""
-    for slug, label in NAV_ITEMS:
-        cls = ' class="is-active"' if slug == active else ""
-        nav_links += f'<a href="series-{slug}.html"{cls}>{label}</a>'
+    for url, label in nav_pairs:
+        cls = ' class="is-active"' if url == active_url else ""
+        nav_links += f'<a href="{url}"{cls}>{label}</a>'
 
     # overlay: đủ 16 series + link phụ
     menu_series = ""
@@ -1292,7 +1401,7 @@ def masthead(active=None):
       </div>
     </div>
   </div>
-  <div class="masthead__main{' masthead__main--has-bg' if SETTINGS.get('header_bg_image') else ''}"{f' style="background-image:url(\'{SETTINGS["header_bg_image"]}\')"' if SETTINGS.get('header_bg_image') else ''}>
+  <div class="masthead__main{' masthead__main--has-bg' if SITE_SETTINGS.get('header_bg_image') else ''}"{f' style="background-image:url(\'{SITE_SETTINGS["header_bg_image"]}\')"' if SITE_SETTINGS.get('header_bg_image') else ''}>
     <div class="container">
       {wordmark_html('lead')}
       <div class="masthead__actions">
@@ -1372,7 +1481,7 @@ def analytics_script_tag():
     Phòng trường hợp người dùng dán nhầm cả đoạn <script> mẫu từ dashboard
     Cloudflare (thay vì chỉ token bên trong): tự trích token ra, tránh sinh
     thẻ <script> lồng nhau làm hỏng cấu trúc HTML trên toàn bộ trang."""
-    raw = SETTINGS.get("cloudflare_analytics_token", "")
+    raw = SITE_SETTINGS.get("cloudflare_analytics_token", "")
     if not raw:
         return ""
     m = re.search(r'"token"\s*:\s*"([a-f0-9]+)"', raw)
@@ -1426,6 +1535,64 @@ def render_promo_banner(campaign):
   {close_btn}
 </div>"""
 
+def load_footer_settings():
+    """Module 9 — Footer Builder. Đọc footer_settings (Supabase); fallback về
+    đúng 2 dòng text hardcode hiện tại nếu bảng rỗng/chưa migrate."""
+    fallback = {
+        "description": "Nền tảng tài liệu hóa và phân tích văn hóa hip-hop underground Việt Nam. "
+                        "Lưu giữ để không giá trị nào bị lãng quên.",
+        "copyright_text": "© 2026 The New Culture — Bản demo",
+    }
+    try:
+        rows = _supabase_get("footer_settings", "select=description,copyright_text")
+    except RuntimeError:
+        return fallback
+    if not rows:
+        return fallback
+    row = rows[0]
+    return {
+        "description": (row.get("description") or "").strip() or fallback["description"],
+        "copyright_text": (row.get("copyright_text") or "").strip() or fallback["copyright_text"],
+    }
+
+def load_footer_partners():
+    """Module 9 — danh sách đối tác/nhà tài trợ hiển thị ở chân trang. Tính
+    năng MỚI (chưa từng có dữ liệu) — bảng rỗng là bình thường, không render
+    gì cả khi rỗng (không đổi giao diện hiện tại)."""
+    try:
+        rows = _supabase_get(
+            "footer_partners",
+            "select=name,link_url,logo:logo_media_id(url)&is_active=eq.true&deleted_at=is.null&order=sort_order.asc"
+        )
+    except RuntimeError:
+        return []
+    return rows or []
+
+# 3 cột liên kết chân trang hiện tại (Khám phá / Series chính / Tổ chức) —
+# dùng làm fallback đúng nguyên trạng khi menus.key='footer' chưa có dữ liệu.
+_FOOTER_FALLBACK_COLUMNS = [
+    ("Khám phá", [
+        ("Toàn bộ Series", "all-series.html"),
+        ("Toàn bộ bài viết", "archive.html"),
+        ("TNC Magazine", "magazine-archive.html"),
+        ("Video", "video.html"),
+        ("Sự kiện", "su-kien.html"),
+        ("Newsletter", "newsletter.html"),
+    ]),
+    ("Series chính", [
+        ("TNC Origins", "series-tnc-origins.html"),
+        ("TNC Profiles", "series-tnc-profiles.html"),
+        ("Inside The Culture", "series-inside-the-culture.html"),
+        ("TNC Radar", "series-tnc-radar.html"),
+    ]),
+    ("Tổ chức", [
+        ("Về TNC", "ve-tnc.html"),
+        ("Hợp tác", "hop-tac.html"),
+        ("Liên hệ", "lien-he.html"),
+        ("Tuyển dụng", "tuyen-dung.html"),
+    ]),
+]
+
 def footer():
     socials = active_socials()
     icon_map = {"Facebook": "Fb", "Instagram": "Ig", "YouTube": "Yt", "TikTok": "Tt"}
@@ -1437,43 +1604,55 @@ def footer():
         f'<li><a href="{url}" target="_blank" rel="noopener">{label}</a></li>'
         for label, url in socials
     )
+
+    footer_settings = load_footer_settings()
+    footer_menu = load_menu("footer")
+    if footer_menu:
+        columns = [(col["label"], [(c["label"], _menu_item_url(c)) for c in col["children"]]) for col in footer_menu]
+    else:
+        columns = _FOOTER_FALLBACK_COLUMNS
+    column_blocks = [
+        f'<div class="footer__col"><h4>{label}</h4><ul>'
+        + "".join(f'<li><a href="{url}">{link_label}</a></li>' for link_label, url in links)
+        + "</ul></div>"
+        for label, links in columns
+    ]
+    # "Nền tảng" (mạng xã hội, động qua active_socials()) giữ đúng vị trí thứ
+    # 3 như giao diện gốc (Khám phá / Series chính / Nền tảng / Tổ chức) —
+    # chèn vào giữa thay vì nối cuối, để không đổi thứ tự cột khi footer_menu
+    # rỗng/chưa cấu hình (đúng yêu cầu không đổi giao diện production).
+    social_column = f'<div class="footer__col"><h4>Nền tảng</h4><ul>{social_list_html}</ul></div>'
+    insert_at = min(2, len(column_blocks))
+    column_blocks.insert(insert_at, social_column)
+    columns_html = "".join(column_blocks)
+
+    partners = load_footer_partners()
+    partners_html = ""
+    if partners:
+        partner_items = "".join(
+            f'<a href="{p["link_url"]}" target="_blank" rel="noopener sponsored">'
+            + (f'<img src="{p["logo"]["url"]}" alt="{p["name"]}" loading="lazy">' if p.get("logo") else p["name"])
+            + "</a>"
+            for p in partners
+        )
+        partners_html = f'<div class="footer__partners">{partner_items}</div>'
+
     return f"""
 <footer class="footer">
   <div class="container">
     <div class="footer__grid">
       <div class="footer__brand">
         {wordmark_html('plain')}
-        <p>Nền tảng tài liệu hóa và phân tích văn hóa hip-hop underground Việt Nam. Lưu giữ để không giá trị nào bị lãng quên.</p>
+        <p>{footer_settings['description']}</p>
         <div class="footer__social">
           {social_icons_html}
         </div>
       </div>
-      <div class="footer__col"><h4>Khám phá</h4><ul>
-        <li><a href="all-series.html">Toàn bộ Series</a></li>
-        <li><a href="archive.html">Toàn bộ bài viết</a></li>
-        <li><a href="magazine-archive.html">TNC Magazine</a></li>
-        <li><a href="video.html">Video</a></li>
-        <li><a href="su-kien.html">Sự kiện</a></li>
-        <li><a href="newsletter.html">Newsletter</a></li>
-      </ul></div>
-      <div class="footer__col"><h4>Series chính</h4><ul>
-        <li><a href="series-tnc-origins.html">TNC Origins</a></li>
-        <li><a href="series-tnc-profiles.html">TNC Profiles</a></li>
-        <li><a href="series-inside-the-culture.html">Inside The Culture</a></li>
-        <li><a href="series-tnc-radar.html">TNC Radar</a></li>
-      </ul></div>
-      <div class="footer__col"><h4>Nền tảng</h4><ul>
-        {social_list_html}
-      </ul></div>
-      <div class="footer__col"><h4>Tổ chức</h4><ul>
-        <li><a href="ve-tnc.html">Về TNC</a></li>
-        <li><a href="hop-tac.html">Hợp tác</a></li>
-        <li><a href="lien-he.html">Liên hệ</a></li>
-        <li><a href="tuyen-dung.html">Tuyển dụng</a></li>
-      </ul></div>
+      {columns_html}
     </div>
+    {partners_html}
     <div class="footer__bottom">
-      <span>© 2026 The New Culture — Bản demo</span>
+      <span>{footer_settings['copyright_text']}</span>
       <span>Founder &amp; Editor-in-Chief · Lamar</span>
     </div>
   </div>
@@ -3120,7 +3299,7 @@ def article_schema_json(a, s, path):
         "image": [img_url],
         "datePublished": a["date"],
         "author": {"@type": "Person", "name": a["author"]},
-        "publisher": {"@type": "Organization", "name": SITE_NAME,
+        "publisher": {"@type": "Organization", "name": SITE_SETTINGS["site_name"],
                        "logo": {"@type": "ImageObject", "url": f"{SITE_URL}/uploads/3727.png"}},
         "mainEntityOfPage": {"@type": "WebPage", "@id": f"{SITE_URL}/{path}"},
         "articleSection": s["name"],
@@ -3570,7 +3749,7 @@ def editor_schema_json(name, ed, intel):
         "image": img_url,
         "url": f"{SITE_URL}/{author_url(name)}",
         "jobTitle": role_label,
-        "worksFor": {"@type": "Organization", "name": SITE_NAME},
+        "worksFor": {"@type": "Organization", "name": SITE_SETTINGS["site_name"]},
     }
     return f'<script type="application/ld+json">{_json.dumps(data, ensure_ascii=False)}</script>'
 
@@ -3776,7 +3955,7 @@ def render_author_page(name, arts, intel, nav_editors=(None, None)):
     role_label = EDITOR_ROLES.get(role_id, "Biên tập viên")
     m = intel["metrics"]
     seo_title = f"{name} — {role_label}"
-    seo_desc = bio or (f"{name} — {role_label} tại {SITE_NAME}. "
+    seo_desc = bio or (f"{name} — {role_label} tại {SITE_SETTINGS['site_name']}. "
                         f"{m['article_count']} bài viết đã xuất bản trên {m['series_count']} series.")
     schema = editor_schema_json(name, ed, intel)
 
@@ -3790,7 +3969,7 @@ def render_author_page(name, arts, intel, nav_editors=(None, None)):
     <h1 class="author-hero__name">{name}</h1>
     <div class="author-hero__role">{role_chip_html}</div>
     <p class="author-hero__stat">{len(arts)} bài viết đã xuất bản</p>
-    <p class="author-hero__org">{SITE_NAME}</p>
+    <p class="author-hero__org">{SITE_SETTINGS['site_name']}</p>
     {achievements_section}
     {quote_html}
   </section>
@@ -4536,7 +4715,7 @@ def main():
 
     # PWA: manifest.json + service worker cơ bản (cache-first cho tài nguyên tĩnh)
     manifest = {
-        "name": SITE_NAME, "short_name": "TNC",
+        "name": SITE_SETTINGS["site_name"], "short_name": "TNC",
         "start_url": "/", "display": "standalone",
         "background_color": "#FFFFFF", "theme_color": "#E11D0F",
         "icons": [
