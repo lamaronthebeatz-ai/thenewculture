@@ -148,6 +148,34 @@ button {
   font-weight: 600;
 }
 
+.sidebar__rebuild {
+  margin-top: 20px;
+  padding: 16px 20px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.sidebar__rebuild .btn--ghost {
+  width: 100%;
+  justify-content: center;
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.sidebar__rebuild .btn--ghost:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.sidebar__rebuild .muted.small {
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 8px;
+}
+
+.sidebar__rebuild .field-error {
+  color: #fca5a5;
+  margin-top: 8px;
+}
+
 .app-main {
   flex: 1;
   min-width: 0;
