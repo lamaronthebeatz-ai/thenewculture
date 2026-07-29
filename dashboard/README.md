@@ -82,10 +82,19 @@ build (`import.meta.env.*`, xem `src/lib/supabaseClient.js`) — không có gì
 hardcode trong code, đổi giá trị trong Cloudflare Pages settings rồi
 redeploy là áp dụng luôn, không cần sửa code.
 
-`public/_redirects` (`/* /index.html 200`) đã có sẵn để React Router hoạt
-động đúng trên Cloudflare Pages — không có file này, tải thẳng một URL như
-`/articles/xyz` (vd bấm refresh, hoặc mở link trực tiếp trên tablet) sẽ bị
-404 vì Cloudflare Pages mặc định tìm file vật lý khớp đường dẫn.
+Trước đây có `public/_redirects` (`/* /index.html 200`) để React Router hoạt
+động đúng trên Cloudflare Pages khi tải thẳng một URL như `/articles/xyz`
+(bấm refresh, hoặc mở link trực tiếp trên tablet). Đã **xoá file này** vì
+đúng rule đó ("/* /index.html 200") bị Cloudflare Pages báo lỗi build
+"Found invalid redirect lines... Infinite loop detected" — đây là false
+positive đã biết của validator `_redirects` trên Cloudflare (issue công khai
+trên `cloudflare/workers-sdk`, mã lỗi 10021), không phải lỗi cấu hình của dự
+án này. Không cần file `_redirects` để sửa: theo tài liệu chính thức của
+Cloudflare Pages, nếu project **không có** file `404.html` ở gốc thư mục
+build, Cloudflare tự hiểu đây là single-page application và tự route mọi
+đường dẫn chưa khớp file tĩnh nào về `index.html` — đúng hành vi ta cần,
+không phải cấu hình thêm gì, và không đụng tới cơ chế `_redirects` đang có
+bug.
 
 ## Yêu cầu phía Supabase
 
