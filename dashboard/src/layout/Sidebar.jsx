@@ -22,6 +22,7 @@ const NAV_GROUPS = [
       { to: "/hero", label: "Hero Manager" },
       { to: "/ads", label: "Advertisement Manager" },
       { to: "/promotions", label: "Promotion Manager" },
+      { to: "/announcements", label: "Announcement Manager" },
     ],
   },
   {

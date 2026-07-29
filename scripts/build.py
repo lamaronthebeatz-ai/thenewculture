@@ -992,6 +992,51 @@ def load_ads():
 ADS_BY_PLACEMENT = load_ads()
 
 # -----------------------------------------------------------------
+# Module 5 — Announcement Manager (Rev 9). Năng lực hoàn toàn mới, không
+# tồn tại trước đó (đã xác nhận ở audit) — không có gì để fallback ngoài
+# "không render gì" khi bảng chưa tồn tại/rỗng/lỗi kết nối, đúng yêu cầu
+# fail-safe.
+# -----------------------------------------------------------------
+def load_announcements():
+    """Đọc bảng announcements — trả về announcement được ưu tiên cao nhất
+    đang active + trong khoảng start_at/end_at, hoặc None nếu chưa migrate/
+    rỗng/lỗi kết nối/không có announcement nào hợp lệ."""
+    try:
+        rows = _supabase_get(
+            "announcements",
+            "select=id,kind,message,link_url,countdown_at,style,priority,start_at,end_at"
+            "&is_active=eq.true&deleted_at=is.null&order=priority.desc"
+        )
+    except RuntimeError:
+        return None
+    if not rows:
+        return None
+    import datetime
+    now = datetime.datetime.now(datetime.timezone.utc)
+    eligible = [
+        r for r in rows
+        if not (_parse_iso_datetime(r.get("start_at")) and _parse_iso_datetime(r.get("start_at")) > now)
+        and not (_parse_iso_datetime(r.get("end_at")) and _parse_iso_datetime(r.get("end_at")) < now)
+    ]
+    return eligible[0] if eligible else None
+
+def render_announcement_bar():
+    """Thanh thông báo phía trên masthead. Chỉ 1 kiểu hiển thị tĩnh duy
+    nhất (không phân biệt hành vi theo kind — không ticker cuộn, không
+    đếm ngược động, đúng phạm vi đã duyệt), màu sắc đổi theo `style`.
+    Không có announcement hợp lệ -> trả về chuỗi rỗng, không render gì."""
+    a = load_announcements()
+    if not a:
+        return ""
+    message = a.get("message") or ""
+    if not message:
+        return ""
+    link = a.get("link_url") or ""
+    style = a.get("style") or "info"
+    content = f'<a href="{link}">{message}</a>' if link else f'<span>{message}</span>'
+    return f'<div class="announcement-bar announcement-bar--{style}" data-kind="{a.get("kind","bar_top")}">{content}</div>\n'
+
+# -----------------------------------------------------------------
 # HỒ SƠ NHÂN VẬT/ĐƠN VỊ (TNC Profiles — dạng "thẻ tướng")
 # Đọc từ content/profiles/*.md. Đây là loại dữ liệu tách biệt hoàn toàn
 # với "Bài viết" — chỉ dùng riêng cho series TNC Profiles.
@@ -1535,7 +1580,10 @@ def masthead(active=None):
     for s in SERIES:
         menu_series += f'<a href="{series_url(s["slug"])}"><span class="menu-code">{s["code"]} · {s["num"]}</span>{s["name"]}</a>'
 
-    return f"""
+    # Module 5 — Announcement Manager: hiển thị phía trên masthead. Không có
+    # announcement hợp lệ -> render_announcement_bar() trả về "", không đổi
+    # gì so với trước Rev 9.
+    return f"""{render_announcement_bar()}
 <header class="masthead">
   <div class="masthead__util">
     <div class="container">

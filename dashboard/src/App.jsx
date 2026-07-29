@@ -20,6 +20,7 @@ import FooterBuilder from "./pages/FooterBuilder";
 import HeroManager from "./pages/HeroManager";
 import AdManager from "./pages/AdManager";
 import PromotionManager from "./pages/PromotionManager";
+import AnnouncementManager from "./pages/AnnouncementManager";
 
 export default function App() {
   return (
@@ -58,6 +59,7 @@ export default function App() {
               <Route path="hero" element={<HeroManager />} />
               <Route path="ads" element={<AdManager />} />
               <Route path="promotions" element={<PromotionManager />} />
+              <Route path="announcements" element={<AnnouncementManager />} />
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
