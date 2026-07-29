@@ -1339,6 +1339,25 @@ html{scroll-behavior:smooth;}
 }
 
 /* ==========================================================================
+   CMS V2 Phase 4 — ANNOUNCEMENT MANAGER (Module 5). Thanh thông báo tĩnh
+   phía trên masthead, quản lý qua Dashboard (/announcements). Không có
+   animation/ticker cuộn/đếm ngược động — đúng phạm vi đã duyệt, chỉ đổi
+   màu theo `style`. Ẩn hoàn toàn khi không có announcement (build.py
+   không render div này).
+   ========================================================================== */
+.announcement-bar{
+  display:flex;align-items:center;justify-content:center;
+  padding:var(--s-2) var(--s-4);text-align:center;
+  font-family:var(--f-mono);font-size:var(--t-xs);font-weight:600;letter-spacing:.01em;
+}
+.announcement-bar a,.announcement-bar span{color:inherit;text-decoration:none;}
+.announcement-bar a:hover{text-decoration:underline;}
+.announcement-bar--info{background:var(--c-ink);color:var(--c-bg);}
+.announcement-bar--brand{background:var(--c-red);color:#fff;}
+.announcement-bar--warning{background:#F5C344;color:var(--c-ink);}
+.announcement-bar--critical{background:#B3170C;color:#fff;}
+
+/* ==========================================================================
    V3.0 — PROMOTION SYSTEM (Sticky Bottom Banner, quản lý hoàn toàn qua CMS)
    Ẩn mặc định (display:none) — JS trong footer() mới thêm class is-visible
    sau khi kiểm tra localStorage, tránh nháy lại banner người dùng vừa đóng.
