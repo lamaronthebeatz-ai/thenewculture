@@ -48,9 +48,15 @@ export default function FooterBuilder() {
     e.preventDefault();
     setSettingsError("");
     setSavingSettings(true);
+    // footer_settings là bảng singleton (đã seed sẵn qua
+    // migrate_rev7_site_config.sql) — dùng update() thay vì upsert(), cùng
+    // lý do đã sửa ở SiteSettings.jsx: upsert() luôn là INSERT ... ON
+    // CONFLICT, bị policy INSERT (cố tình không tạo) chặn bất kể có update
+    // hay không.
     const { error } = await supabase
       .from("footer_settings")
-      .upsert({ id: true, description: settings.description.trim() || null, copyright_text: settings.copyright_text.trim() || null }, { onConflict: "id" });
+      .update({ description: settings.description.trim() || null, copyright_text: settings.copyright_text.trim() || null })
+      .eq("id", true);
     setSavingSettings(false);
     if (error) return setSettingsError(error.message);
     setSettingsSaved(true);

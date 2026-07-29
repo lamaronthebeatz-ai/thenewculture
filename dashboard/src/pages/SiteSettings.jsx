@@ -56,7 +56,6 @@ export default function SiteSettings() {
     setError("");
     setSaving(true);
     const payload = {
-      id: true,
       site_name: form.site_name.trim() || null,
       site_description: form.site_description.trim() || null,
       robots_directives: form.robots_directives.trim() || null,
@@ -68,7 +67,14 @@ export default function SiteSettings() {
       maintenance_mode: form.maintenance_mode,
       maintenance_message: form.maintenance_message.trim() || null,
     };
-    const { error: err } = await supabase.from("site_settings").upsert(payload, { onConflict: "id" });
+    // site_settings là bảng singleton (đúng 1 dòng, đã seed sẵn qua
+    // migrate_rev7_site_config.sql) — dùng update() thay vì upsert(), vì
+    // upsert() luôn thực thi dưới dạng INSERT ... ON CONFLICT DO UPDATE, và
+    // Postgres RLS kiểm tra policy INSERT trên câu lệnh đó bất kể cuối cùng
+    // có update hay không. Bảng này cố tình không có policy INSERT cho
+    // editor (không có lý do hợp lệ để tạo thêm dòng thứ 2), nên upsert()
+    // luôn bị RLS chặn với lỗi "new row violates row-level security policy".
+    const { error: err } = await supabase.from("site_settings").update(payload).eq("id", true);
     setSaving(false);
     if (err) return setError(err.message);
     setSaved(true);
