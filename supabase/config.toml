@@ -1,0 +1,9 @@
+# Bug fix: Dashboard gọi trigger-rebuild trực tiếp từ trình duyệt qua
+# supabase.functions.invoke(). Mặc định Supabase chặn MỌI request tới Edge
+# Function ở tầng platform (kể cả preflight CORS "OPTIONS", vốn không mang
+# theo Authorization) nếu chưa có JWT hợp lệ — request bị chặn trước khi
+# chạy tới code function, kể cả handler OPTIONS/CORS đã thêm trong code.
+# Function này tự xác thực bằng is_active_editor() (dùng JWT của người gọi,
+# xem index.ts) nên không cần Supabase chặn hộ ở tầng platform.
+[functions.trigger-rebuild]
+verify_jwt = false

@@ -33,6 +33,17 @@ Supabase tự cấp cho mọi Edge Function; `GITHUB_TOKEN`/`GITHUB_OWNER`/
 `GITHUB_REPO` đã cấu hình từ Phase 2A cho `on-article-published`, dùng chung
 cho toàn bộ project.
 
+`supabase/config.toml` đã đặt `verify_jwt = false` riêng cho function này —
+**bắt buộc**, vì mặc định Supabase chặn mọi request ở tầng platform (kể cả
+preflight CORS "OPTIONS") trước khi tới được code, kể cả khi request đã có
+JWT hợp lệ trong `Authorization`. Function tự xác thực bằng
+`is_active_editor()` nên không cần Supabase chặn hộ. Nếu bản CLI bạn dùng
+không đọc `config.toml` (bản cũ), chạy thủ công:
+
+```bash
+supabase functions deploy trigger-rebuild --no-verify-jwt
+```
+
 ### 2. Xác nhận
 
 Đăng nhập Dashboard, bấm "Rebuild site now" ở cuối sidebar. Trong vòng
