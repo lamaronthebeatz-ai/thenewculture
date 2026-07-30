@@ -34,7 +34,11 @@ export default function UsersList() {
     if (!showDeleted) query = query.is("deleted_at", null);
     if (statusFilter !== "all") query = query.eq("status", statusFilter);
     if (search.trim()) {
-      const q = search.trim();
+      // Loại bỏ ',', '(', ')' — ký tự có ý nghĩa cú pháp trong filter string
+      // của PostgREST .or() — để tránh người dùng vô tình/cố ý phá vỡ cấu
+      // trúc filter (RLS vẫn luôn chặn dữ liệu ngoài phạm vi được xem, đây
+      // chỉ là làm sạch input cho đúng ý định "tìm kiếm").
+      const q = search.trim().replace(/[,()]/g, "");
       query = query.or(`email.ilike.%${q}%,display_name.ilike.%${q}%,username.ilike.%${q}%`);
     }
     const { data, error: err, count } = await query;
