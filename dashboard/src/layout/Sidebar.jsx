@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../auth/AuthContext";
 
 const NAV_GROUPS = [
   {
@@ -39,6 +40,15 @@ const NAV_GROUPS = [
   {
     label: "Hệ thống",
     items: [{ to: "/settings", label: "Site Settings" }],
+  },
+  {
+    label: "Quản trị",
+    items: [
+      { to: "/users", label: "Users", permission: "users.view" },
+      { to: "/roles", label: "Roles & Permissions", permission: "roles.view" },
+      { to: "/organization", label: "Organization", permission: "organization.view" },
+      { to: "/activity-log", label: "Activity Log" },
+    ],
   },
 ];
 
@@ -84,27 +94,33 @@ function RebuildButton() {
 }
 
 export default function Sidebar() {
+  const { hasPermission } = useAuth();
+
   return (
     <nav className="sidebar">
       <div className="sidebar__brand">TNC Dashboard</div>
-      {NAV_GROUPS.map((group) => (
-        <div key={group.label} className="sidebar__group">
-          <div className="sidebar__group-label">{group.label}</div>
-          <ul className="sidebar__nav">
-            {group.items.map((item) => (
-              <li key={item.to}>
-                <NavLink
-                  to={item.to}
-                  end={item.end}
-                  className={({ isActive }) => (isActive ? "sidebar__link is-active" : "sidebar__link")}
-                >
-                  {item.label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+      {NAV_GROUPS.map((group) => {
+        const items = group.items.filter((item) => !item.permission || hasPermission(item.permission));
+        if (items.length === 0) return null;
+        return (
+          <div key={group.label} className="sidebar__group">
+            <div className="sidebar__group-label">{group.label}</div>
+            <ul className="sidebar__nav">
+              {items.map((item) => (
+                <li key={item.to}>
+                  <NavLink
+                    to={item.to}
+                    end={item.end}
+                    className={({ isActive }) => (isActive ? "sidebar__link is-active" : "sidebar__link")}
+                  >
+                    {item.label}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
       <RebuildButton />
     </nav>
   );

@@ -1,9 +1,9 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, Link } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import { useAuth } from "../auth/AuthContext";
 
 export default function DashboardLayout() {
-  const { editorProfile, signOut } = useAuth();
+  const { editorProfile, dashboardUser, signOut } = useAuth();
 
   return (
     <div className="app-shell">
@@ -12,7 +12,7 @@ export default function DashboardLayout() {
         <header className="topbar">
           <div />
           <div className="topbar__user">
-            <span>{editorProfile?.name || "Editor"}</span>
+            <Link to="/profile">{dashboardUser?.display_name || editorProfile?.name || "Editor"}</Link>
             <button className="btn btn--ghost" onClick={signOut}>
               Đăng xuất
             </button>
