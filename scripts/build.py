@@ -484,23 +484,48 @@ SETTINGS = load_settings()
 # ở phase này).
 # -----------------------------------------------------------------
 def load_site_settings():
+    # Rev 12 — Dashboard Coverage Completion (Batch A): các field dưới đây
+    # (hero_gif*/spotify_embed_url/social_*/ad_left_*/ad_right_*) trước đây
+    # CHỈ đọc được từ content/settings/site.yml (Sveltia), không có field
+    # Dashboard tương đương nào — nay đã có cột trên site_settings (Rev 12),
+    # SETTINGS.get(...) chỉ còn dùng làm fallback khi Supabase chưa migrate.
     fallback = {
         "site_name": SITE_NAME,
         "site_description": SITE_DESC,
         "logo_image": SETTINGS.get("logo_image", ""),
         "header_bg_image": SETTINGS.get("header_bg_image", ""),
         "favicon_image": "/uploads/3727.png",
+        "default_og_image": "",
         "cloudflare_analytics_token": SETTINGS.get("cloudflare_analytics_token", ""),
         "robots_directives": "",
         "maintenance_mode": False,
         "maintenance_message": "",
+        "hero_gif_image": SETTINGS.get("hero_gif", ""),
+        "hero_gif_song_title": SETTINGS.get("hero_gif_song_title", ""),
+        "hero_gif_song_artist": SETTINGS.get("hero_gif_song_artist", ""),
+        "spotify_embed_url": SETTINGS.get("spotify_embed_url", ""),
+        "social_facebook": SETTINGS.get("social_facebook", ""),
+        "social_instagram": SETTINGS.get("social_instagram", ""),
+        "social_youtube": SETTINGS.get("social_youtube", ""),
+        "social_tiktok": SETTINGS.get("social_tiktok", ""),
+        "ad_left_vertical": SETTINGS.get("ad_left_vertical", ""),
+        "ad_left_horizontal": SETTINGS.get("ad_left_horizontal", ""),
+        "ad_left_link": SETTINGS.get("ad_left_link", ""),
+        "ad_right_vertical": SETTINGS.get("ad_right_vertical", ""),
+        "ad_right_horizontal": SETTINGS.get("ad_right_horizontal", ""),
+        "ad_right_link": SETTINGS.get("ad_right_link", ""),
     }
     try:
         rows = _supabase_get(
             "site_settings",
             "select=site_name,site_description,robots_directives,cloudflare_analytics_token,"
-            "maintenance_mode,maintenance_message,"
-            "logo:logo_media_id(url),header_bg:header_bg_media_id(url),favicon:favicon_media_id(url)"
+            "maintenance_mode,maintenance_message,hero_gif_song_title,hero_gif_song_artist,"
+            "spotify_embed_url,social_facebook,social_instagram,social_youtube,social_tiktok,"
+            "ad_left_link,ad_right_link,"
+            "logo:logo_media_id(url),header_bg:header_bg_media_id(url),favicon:favicon_media_id(url),"
+            "default_og:default_og_image_id(url),hero_gif:hero_gif_media_id(url),"
+            "ad_left_vertical:ad_left_vertical_media_id(url),ad_left_horizontal:ad_left_horizontal_media_id(url),"
+            "ad_right_vertical:ad_right_vertical_media_id(url),ad_right_horizontal:ad_right_horizontal_media_id(url)"
         )
     except RuntimeError:
         return fallback
@@ -513,11 +538,26 @@ def load_site_settings():
         "logo_image": (row.get("logo") or {}).get("url") or fallback["logo_image"],
         "header_bg_image": (row.get("header_bg") or {}).get("url") or fallback["header_bg_image"],
         "favicon_image": (row.get("favicon") or {}).get("url") or fallback["favicon_image"],
+        "default_og_image": (row.get("default_og") or {}).get("url") or fallback["default_og_image"],
         "cloudflare_analytics_token": (row.get("cloudflare_analytics_token") or "").strip()
                                       or fallback["cloudflare_analytics_token"],
         "robots_directives": (row.get("robots_directives") or "").strip(),
         "maintenance_mode": bool(row.get("maintenance_mode")),
         "maintenance_message": (row.get("maintenance_message") or "").strip(),
+        "hero_gif_image": (row.get("hero_gif") or {}).get("url") or fallback["hero_gif_image"],
+        "hero_gif_song_title": (row.get("hero_gif_song_title") or "").strip() or fallback["hero_gif_song_title"],
+        "hero_gif_song_artist": (row.get("hero_gif_song_artist") or "").strip() or fallback["hero_gif_song_artist"],
+        "spotify_embed_url": (row.get("spotify_embed_url") or "").strip() or fallback["spotify_embed_url"],
+        "social_facebook": (row.get("social_facebook") or "").strip() or fallback["social_facebook"],
+        "social_instagram": (row.get("social_instagram") or "").strip() or fallback["social_instagram"],
+        "social_youtube": (row.get("social_youtube") or "").strip() or fallback["social_youtube"],
+        "social_tiktok": (row.get("social_tiktok") or "").strip() or fallback["social_tiktok"],
+        "ad_left_vertical": (row.get("ad_left_vertical") or {}).get("url") or fallback["ad_left_vertical"],
+        "ad_left_horizontal": (row.get("ad_left_horizontal") or {}).get("url") or fallback["ad_left_horizontal"],
+        "ad_left_link": (row.get("ad_left_link") or "").strip() or fallback["ad_left_link"],
+        "ad_right_vertical": (row.get("ad_right_vertical") or {}).get("url") or fallback["ad_right_vertical"],
+        "ad_right_horizontal": (row.get("ad_right_horizontal") or {}).get("url") or fallback["ad_right_horizontal"],
+        "ad_right_link": (row.get("ad_right_link") or "").strip() or fallback["ad_right_link"],
     }
 
 SITE_SETTINGS = load_site_settings()
@@ -582,6 +622,14 @@ def load_menu(key):
 # đây, đúng khuôn mẫu SITE_SETTINGS/ADS_BY_PLACEMENT/CAMPAIGNS đã áp dụng.
 HEADER_PRIMARY_MENU = load_menu("header_primary")
 FOOTER_MENU = load_menu("footer")
+# Rev 12 — Dashboard Coverage Completion (Batch B): 2 trong 5 key menu đã
+# seed sẵn từ Rev 7 ("header_mega", "quick_link") có đủ UI quản lý trong
+# Menu Builder từ lâu nhưng build.py chưa từng đọc — sửa trong Dashboard
+# không có tác dụng gì trên site. Nay wire vào masthead(), giữ đúng fallback
+# hardcode hiện tại khi rỗng/chưa có dữ liệu (không đổi output khi chưa ai
+# nhập liệu qua Dashboard).
+HEADER_MEGA_MENU = load_menu("header_mega")
+QUICK_LINK_MENU = load_menu("quick_link")
 
 # -----------------------------------------------------------------
 # EDITOR IDENTITY SYSTEM (PR2) — Role / Badge / Honor registries.
@@ -1422,6 +1470,11 @@ def head(title, desc=None, path="", image="", og_type="website", append_site_nam
     canonical = f"{SITE_URL}/{path}" if path else SITE_URL + "/"
     if image:
         og_image = image if image.startswith("http") else f"{SITE_URL}/{image.lstrip('/')}"
+    elif SITE_SETTINGS["default_og_image"]:
+        # Rev 12: Dashboard (Site Settings -> "Ảnh Open Graph mặc định") đã
+        # có field + cột từ Rev 7 nhưng build.py chưa từng đọc — trang nào
+        # không tự có ảnh riêng vẫn luôn dùng đúng "/og-default.png" hardcode.
+        og_image = SITE_SETTINGS["default_og_image"]
     else:
         og_image = f"{SITE_URL}/og-default.png"
     full_title = f"{title} — {SITE_SETTINGS['site_name']}" if append_site_name else title
@@ -1503,9 +1556,11 @@ def render_ad_block(placement_id, vertical_key, horizontal_key, link_key, extra_
                      f'class="ad-block ad-block--vertical {extra_class}"{data_attr}>{media_html}</a>')
         return f'<div class="ad-block ad-block--vertical {extra_class}"{data_attr}>{media_html}</div>'
 
-    vertical = SETTINGS.get(vertical_key, "")
-    horizontal = SETTINGS.get(horizontal_key, "")
-    link = SETTINGS.get(link_key, "")
+    # Rev 12: fallback quảng cáo giờ đọc từ SITE_SETTINGS (Dashboard), tự rơi
+    # về SETTINGS (site.yml) qua fallback đã có sẵn trong load_site_settings().
+    vertical = SITE_SETTINGS.get(vertical_key, "")
+    horizontal = SITE_SETTINGS.get(horizontal_key, "")
+    link = SITE_SETTINGS.get(link_key, "")
     src = vertical or horizontal
     if not src:
         return ""
@@ -1532,8 +1587,8 @@ def render_ad_block_horizontal_only(placement_id, horizontal_key, link_key, extr
                      f'class="ad-block ad-block--horizontal {extra_class}"{data_attr}>{media_html}</a>')
         return f'<div class="ad-block ad-block--horizontal {extra_class}"{data_attr}>{media_html}</div>'
 
-    horizontal = SETTINGS.get(horizontal_key, "")
-    link = SETTINGS.get(link_key, "")
+    horizontal = SITE_SETTINGS.get(horizontal_key, "")
+    link = SITE_SETTINGS.get(link_key, "")
     if not horizontal:
         return ""
     media_html = _ad_media_tag(horizontal)
@@ -1603,19 +1658,21 @@ def wordmark_html(variant="lead"):
 
 def active_socials():
     """Trả về danh sách (nhãn, url) cho các nền tảng đã được điền link trong CMS.
-    Nền tảng nào để trống sẽ không xuất hiện trong danh sách — tránh hiện link chết."""
+    Nền tảng nào để trống sẽ không xuất hiện trong danh sách — tránh hiện link chết.
+    Rev 12: đọc từ SITE_SETTINGS (Dashboard), tự rơi về SETTINGS (site.yml)
+    qua fallback đã có sẵn trong load_site_settings()."""
     platforms = [
-        ("Facebook", SETTINGS.get("social_facebook", "")),
-        ("Instagram", SETTINGS.get("social_instagram", "")),
-        ("YouTube", SETTINGS.get("social_youtube", "")),
-        ("TikTok", SETTINGS.get("social_tiktok", "")),
+        ("Facebook", SITE_SETTINGS["social_facebook"]),
+        ("Instagram", SITE_SETTINGS["social_instagram"]),
+        ("YouTube", SITE_SETTINGS["social_youtube"]),
+        ("TikTok", SITE_SETTINGS["social_tiktok"]),
     ]
     return [(label, url) for label, url in platforms if url]
 
 def follow_button_url():
     """Nút 'Theo dõi' ở đầu trang: dẫn thẳng tới Facebook nếu đã cấu hình,
     ngược lại tạm thời dẫn về trang Theo dõi nội bộ của site."""
-    fb = SETTINGS.get("social_facebook", "")
+    fb = SITE_SETTINGS["social_facebook"]
     return fb if fb else "theo-doi.html"
 
 def masthead(active=None):
@@ -1638,6 +1695,44 @@ def masthead(active=None):
     for s in SERIES:
         menu_series += f'<a href="{series_url(s["slug"])}"><span class="menu-code">{s["code"]} · {s["num"]}</span>{s["name"]}</a>'
 
+    # Rev 12: quick_link (3 link ở .masthead__util) và header_mega (2 cột
+    # "Khám phá"/"Tổ chức" trong menu-overlay) đọc từ Menu Builder nếu đã có
+    # dữ liệu; rỗng/chưa cấu hình thì dùng đúng HTML hardcode như trước.
+    if QUICK_LINK_MENU:
+        quick_links_html = "".join(f'<a href="{_menu_item_url(m)}">{m["label"]}</a>' for m in QUICK_LINK_MENU)
+    else:
+        quick_links_html = """<a href="all-series.html">Series</a>
+        <a href="tnc-sessions.html">TNC Sessions</a>
+        <a href="hop-tac.html">Hợp tác</a>"""
+
+    if HEADER_MEGA_MENU:
+        mega_columns_html = "".join(
+            f'<div class="menu-col"><h4>{col["label"]}</h4>'
+            + "".join(f'<a href="{_menu_item_url(c)}">{c["label"]}</a>' for c in col["children"])
+            + "</div>"
+            for col in HEADER_MEGA_MENU
+        )
+    else:
+        mega_columns_html = """<div class="menu-col">
+      <h4>Khám phá</h4>
+      <a href="all-series.html">Tất cả Series</a>
+      <a href="archive.html">Toàn bộ bài viết</a>
+      <a href="all-categories.html">Chuyên mục</a>
+      <a href="all-tags.html">Tất cả chủ đề</a>
+      <a href="video.html">Video</a>
+      <a href="su-kien.html">Sự kiện</a>
+      <a href="tnc-sessions.html">TNC Sessions</a>
+      <a href="newsletter.html">Newsletter</a>
+    </div>
+    <div class="menu-col">
+      <h4>Tổ chức</h4>
+      <a href="ve-tnc.html">Về TNC</a>
+      <a href="hop-tac.html">Hợp tác</a>
+      <a href="lien-he.html">Liên hệ</a>
+      <a href="tuyen-dung.html">Tuyển dụng</a>
+      <a href="theo-doi.html">Theo dõi TNC</a>
+    </div>"""
+
     # Module 5 — Announcement Manager: hiển thị phía trên masthead. Không có
     # announcement hợp lệ -> render_announcement_bar() trả về "", không đổi
     # gì so với trước Rev 9.
@@ -1647,9 +1742,7 @@ def masthead(active=None):
     <div class="container">
       <span>{TODAY_VN} · Sài Gòn</span>
       <div class="u-links">
-        <a href="all-series.html">Series</a>
-        <a href="tnc-sessions.html">TNC Sessions</a>
-        <a href="hop-tac.html">Hợp tác</a>
+        {quick_links_html}
       </div>
     </div>
   </div>
@@ -1660,7 +1753,7 @@ def masthead(active=None):
         <a href="search.html" class="icon-btn" aria-label="Tìm kiếm">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
         </a>
-        <a href="{follow_button_url()}"{' target="_blank" rel="noopener"' if SETTINGS.get('social_facebook') else ''} class="btn btn--solid">Theo dõi</a>
+        <a href="{follow_button_url()}"{' target="_blank" rel="noopener"' if SITE_SETTINGS['social_facebook'] else ''} class="btn btn--solid">Theo dõi</a>
         <button class="icon-btn" id="menuToggle" aria-label="Mở menu" aria-expanded="false" aria-controls="siteMenu">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
         </button>
@@ -1689,25 +1782,7 @@ def masthead(active=None):
       <h4>16 Series</h4>
       <div class="menu-series">{menu_series}</div>
     </div>
-    <div class="menu-col">
-      <h4>Khám phá</h4>
-      <a href="all-series.html">Tất cả Series</a>
-      <a href="archive.html">Toàn bộ bài viết</a>
-      <a href="all-categories.html">Chuyên mục</a>
-      <a href="all-tags.html">Tất cả chủ đề</a>
-      <a href="video.html">Video</a>
-      <a href="su-kien.html">Sự kiện</a>
-      <a href="tnc-sessions.html">TNC Sessions</a>
-      <a href="newsletter.html">Newsletter</a>
-    </div>
-    <div class="menu-col">
-      <h4>Tổ chức</h4>
-      <a href="ve-tnc.html">Về TNC</a>
-      <a href="hop-tac.html">Hợp tác</a>
-      <a href="lien-he.html">Liên hệ</a>
-      <a href="tuyen-dung.html">Tuyển dụng</a>
-      <a href="theo-doi.html">Theo dõi TNC</a>
-    </div>
+    {mega_columns_html}
   </div>
 </div>
 """
@@ -2757,11 +2832,13 @@ def render_gif_hero():
   </section>
 """
 
-    gif = SETTINGS.get("hero_gif")
+    # Rev 12: fallback GIF hero giờ đọc từ SITE_SETTINGS (Dashboard), tự rơi
+    # về SETTINGS (site.yml) qua fallback đã có sẵn trong load_site_settings().
+    gif = SITE_SETTINGS["hero_gif_image"]
     if not gif:
         return ""
-    title = SETTINGS.get("hero_gif_song_title", "")
-    artist = SETTINGS.get("hero_gif_song_artist", "")
+    title = SITE_SETTINGS["hero_gif_song_title"]
+    artist = SITE_SETTINGS["hero_gif_song_artist"]
     info = ""
     if title or artist:
         info = f"""
@@ -2779,7 +2856,7 @@ def render_gif_hero():
 
 def render_spotify_block():
     """Khối nhúng Spotify riêng biệt, độc lập với khung GIF. Ẩn nếu chưa cấu hình."""
-    url = SETTINGS.get("spotify_embed_url")
+    url = SITE_SETTINGS["spotify_embed_url"]
     if not url:
         return ""
     return f"""
@@ -3605,7 +3682,7 @@ def article_schema_json(a, s, path):
         "datePublished": a["date"],
         "author": {"@type": "Person", "name": a["author"]},
         "publisher": {"@type": "Organization", "name": SITE_SETTINGS["site_name"],
-                       "logo": {"@type": "ImageObject", "url": f"{SITE_URL}/uploads/3727.png"}},
+                       "logo": {"@type": "ImageObject", "url": f"{SITE_URL}{SITE_SETTINGS['favicon_image']}"}},
         "mainEntityOfPage": {"@type": "WebPage", "@id": f"{SITE_URL}/{path}"},
         "articleSection": s["name"],
         "keywords": ", ".join(a.get("tags", [])),
@@ -5035,9 +5112,9 @@ def main():
         "start_url": "/", "display": "standalone",
         "background_color": "#FFFFFF", "theme_color": "#E11D0F",
         "icons": [
-            {"src": "/uploads/3727.png", "sizes": "192x192", "type": "image/png"},
-            {"src": "/uploads/3727.png", "sizes": "512x512", "type": "image/png"},
-            {"src": "/uploads/3727.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+            {"src": SITE_SETTINGS["favicon_image"], "sizes": "192x192", "type": "image/png"},
+            {"src": SITE_SETTINGS["favicon_image"], "sizes": "512x512", "type": "image/png"},
+            {"src": SITE_SETTINGS["favicon_image"], "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
         ],
     }
     with open(os.path.join(OUT, "manifest.json"), "w", encoding="utf-8") as f:
@@ -5198,8 +5275,16 @@ self.addEventListener('fetch',e=>{
         f.write(build_search_index())
     with open(os.path.join(OUT,"sitemap.xml"),"w",encoding="utf-8") as f:
         f.write(build_sitemap())
+    # Rev 12: Site Settings đã có field "Robots directives" từ Rev 7 nhưng
+    # build.py chưa từng đọc — robots.txt luôn hardcode "Allow: /". Nối thêm
+    # dòng tuỳ chỉnh nếu editor đã điền; để trống thì robots.txt y hệt hiện tại.
+    robots_extra = SITE_SETTINGS["robots_directives"]
+    robots_txt = f"User-agent: *\nAllow: /\n"
+    if robots_extra:
+        robots_txt += f"{robots_extra}\n"
+    robots_txt += f"Sitemap: {SITE_URL}/sitemap.xml\n"
     with open(os.path.join(OUT,"robots.txt"),"w",encoding="utf-8") as f:
-        f.write(f"User-agent: *\nAllow: /\nSitemap: {SITE_URL}/sitemap.xml\n")
+        f.write(robots_txt)
 
     generated_authors = len(authors) - len(skipped_authors)
     print(f"Build v3 xong: 1 index + {len(SERIES)} series + {len(ARTICLES)} article + {len(extra)} trang phụ + {generated_authors} trang tác giả + {len(TAGS_BY_SLUG)} trang tag")
