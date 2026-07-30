@@ -2,6 +2,14 @@ import { useEffect, useState, useCallback, Fragment } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../auth/AuthContext";
 
+const SCOPE_OPTIONS = [
+  { value: "own", label: "Own — chỉ của mình" },
+  { value: "assigned", label: "Assigned — được gán" },
+  { value: "team", label: "Team" },
+  { value: "department", label: "Department" },
+  { value: "all", label: "All — toàn bộ" },
+];
+
 export default function RolesManager() {
   const { hasPermission, recordActivity } = useAuth();
   const canManage = hasPermission("roles.manage");
@@ -9,6 +17,8 @@ export default function RolesManager() {
   const [roles, setRoles] = useState([]);
   const [permissions, setPermissions] = useState([]);
   const [grants, setGrants] = useState(new Set()); // "roleId:permId"
+  const [scopes, setScopes] = useState(new Map()); // "roleId:permId" -> scope
+  const [scopeModules, setScopeModules] = useState(new Set()); // module có ownership_policy
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [newRole, setNewRole] = useState({ key: "", name: "", description: "" });
@@ -17,17 +27,27 @@ export default function RolesManager() {
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
-    const [{ data: r, error: rErr }, { data: p, error: pErr }, { data: rp, error: rpErr }] = await Promise.all([
+    const [
+      { data: r, error: rErr },
+      { data: p, error: pErr },
+      { data: rp, error: rpErr },
+      { data: ps, error: psErr },
+      { data: op, error: opErr },
+    ] = await Promise.all([
       supabase.from("roles").select("id, key, name, description, is_system, sort_order").is("deleted_at", null).order("sort_order"),
       supabase.from("permissions").select("id, module, action, key, description").order("module").order("action"),
       supabase.from("role_permissions").select("role_id, permission_id"),
+      supabase.from("permission_scope").select("role_id, permission_id, scope"),
+      supabase.from("ownership_policy").select("module"),
     ]);
-    if (rErr || pErr || rpErr) {
-      setError((rErr || pErr || rpErr).message);
+    if (rErr || pErr || rpErr || psErr || opErr) {
+      setError((rErr || pErr || rpErr || psErr || opErr).message);
     } else {
       setRoles(r);
       setPermissions(p);
       setGrants(new Set(rp.map((row) => `${row.role_id}:${row.permission_id}`)));
+      setScopes(new Map(ps.map((row) => [`${row.role_id}:${row.permission_id}`, row.scope])));
+      setScopeModules(new Set(op.map((row) => row.module)));
     }
     setLoading(false);
   }, []);
@@ -47,6 +67,8 @@ export default function RolesManager() {
         .eq("role_id", role.id)
         .eq("permission_id", perm.id);
       if (err) return alert(`Không gỡ được: ${err.message}`);
+      // Gỡ permission thì scope đi kèm (nếu có) cũng không còn ý nghĩa.
+      await supabase.from("permission_scope").delete().eq("role_id", role.id).eq("permission_id", perm.id);
     } else {
       const { error: err } = await supabase.from("role_permissions").insert({ role_id: role.id, permission_id: perm.id });
       if (err) return alert(`Không cấp được: ${err.message}`);
@@ -56,6 +78,34 @@ export default function RolesManager() {
       const next = new Set(s);
       if (has) next.delete(key);
       else next.add(key);
+      return next;
+    });
+    setScopes((s) => {
+      const next = new Map(s);
+      if (has) next.delete(key);
+      return next;
+    });
+  }
+
+  async function setScope(role, perm, scope) {
+    if (!canManage) return;
+    const key = `${role.id}:${perm.id}`;
+    if (scope === "all") {
+      // "all" = mặc định khi không có dòng permission_scope — xoá cho gọn
+      // thay vì lưu thừa 1 dòng "all".
+      const { error: err } = await supabase.from("permission_scope").delete().eq("role_id", role.id).eq("permission_id", perm.id);
+      if (err) return alert(`Không đổi được scope: ${err.message}`);
+    } else {
+      const { error: err } = await supabase
+        .from("permission_scope")
+        .upsert({ role_id: role.id, permission_id: perm.id, scope }, { onConflict: "role_id,permission_id" });
+      if (err) return alert(`Không đổi được scope: ${err.message}`);
+    }
+    recordActivity("permission_scope.change", "roles", role.id, { permission: perm.key, scope });
+    setScopes((s) => {
+      const next = new Map(s);
+      if (scope === "all") next.delete(key);
+      else next.set(key, scope);
       return next;
     });
   }
@@ -97,8 +147,11 @@ export default function RolesManager() {
       </div>
       {error && <p className="field-error">{error}</p>}
       <p className="muted small">
-        Tick để cấp/gỡ permission cho từng role. Thay đổi có hiệu lực ngay (không cần Rebuild site — đây chỉ ảnh
-        hưởng Dashboard, không ảnh hưởng website công khai).
+        Tick để cấp/gỡ permission cho từng role. Với permission có Scope (module đánh dấu <em>*</em> — hiện chỉ
+        "articles", xem <code>ownership_policy</code>), chọn thêm phạm vi áp dụng: Own (chỉ nội dung của chính
+        mình) / Assigned (được gán làm assigned editor/reviewer/publisher) / Team / Department / All (toàn bộ,
+        bỏ qua ownership). Không chọn = mặc định All. Thay đổi có hiệu lực ngay, không ảnh hưởng website công
+        khai.
       </p>
 
       {canManage && (
@@ -155,7 +208,10 @@ export default function RolesManager() {
               <Fragment key={mod}>
                 <tr>
                   <td colSpan={roles.length + 1} className="muted small" style={{ background: "var(--surface-alt, transparent)" }}>
-                    <strong>{mod}</strong>
+                    <strong>
+                      {mod}
+                      {scopeModules.has(mod) && " *"}
+                    </strong>
                   </td>
                 </tr>
                 {permissions
@@ -166,16 +222,32 @@ export default function RolesManager() {
                         {perm.action}
                         <div className="muted small">{perm.description}</div>
                       </td>
-                      {roles.map((r) => (
-                        <td key={r.id} style={{ textAlign: "center" }}>
-                          <input
-                            type="checkbox"
-                            checked={grants.has(`${r.id}:${perm.id}`)}
-                            disabled={!canManage}
-                            onChange={() => toggle(r, perm)}
-                          />
-                        </td>
-                      ))}
+                      {roles.map((r) => {
+                        const key = `${r.id}:${perm.id}`;
+                        const checked = grants.has(key);
+                        return (
+                          <td key={r.id} style={{ textAlign: "center" }}>
+                            <input type="checkbox" checked={checked} disabled={!canManage} onChange={() => toggle(r, perm)} />
+                            {checked && scopeModules.has(mod) && (
+                              <div>
+                                <select
+                                  className="btn--sm"
+                                  style={{ marginTop: 4, fontSize: 11 }}
+                                  value={scopes.get(key) || "all"}
+                                  disabled={!canManage}
+                                  onChange={(e) => setScope(r, perm, e.target.value)}
+                                >
+                                  {SCOPE_OPTIONS.map((o) => (
+                                    <option key={o.value} value={o.value}>
+                                      {o.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
               </Fragment>
