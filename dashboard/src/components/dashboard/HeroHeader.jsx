@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { DASHBOARD_VERSION } from "../../lib/version";
+import { TNCOS_VERSION } from "../../lib/version";
 
 export default function HeroHeader({ editorName }) {
   const [now, setNow] = useState(new Date());
@@ -16,13 +16,13 @@ export default function HeroHeader({ editorName }) {
   return (
     <div className="hero-header">
       <h1>Xin chào, {editorName || "Editor"}</h1>
-      <p className="hero-header__subtitle">The New Culture Editorial Dashboard</p>
+      <p className="hero-header__subtitle">The New Culture Operating System</p>
       <div className="hero-header__meta">
         <span>{dateStr}</span>
         <span className="hero-header__dot">·</span>
         <span>{timeStr}</span>
         <span className="hero-header__dot">·</span>
-        <span>Dashboard v{DASHBOARD_VERSION}</span>
+        <span>TNCOS v{TNCOS_VERSION}</span>
       </div>
     </div>
   );

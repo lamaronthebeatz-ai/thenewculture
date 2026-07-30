@@ -572,6 +572,56 @@ details summary {
   font-weight: 700;
 }
 
+/* ---------- TNCOS Home: Continue Working / Publishing Queue / Notifications ---------- */
+.continue-working__list,
+.notifications__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.continue-working__list li,
+.notifications__list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-sm);
+}
+
+.notifications__list li {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.publishing-queue__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.publishing-queue__list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.publishing-queue__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
 /* ---------- Editorial health / System status lists ---------- */
 .editorial-health,
 .system-status {
