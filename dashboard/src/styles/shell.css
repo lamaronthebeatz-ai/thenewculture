@@ -1,0 +1,443 @@
+/* ============================================================================
+   TNCOS Shell — 3-panel desktop / 2-panel tablet / bottom-nav mobile
+   ----------------------------------------------------------------------------
+   Breakpoint: desktop > 1080px, tablet 641-1080px, mobile <= 640px (khớp
+   tokens.css). Mỗi thiết bị có UX riêng, không chỉ scale lại cùng 1 layout.
+   ============================================================================ */
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ---------- Sidebar (panel 1/3) ---------- */
+.sidebar {
+  flex-shrink: 0;
+  background: var(--brand-dark);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: width var(--duration-base) var(--ease-standard);
+}
+
+.sidebar--collapsed {
+  width: var(--sidebar-width-collapsed);
+}
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--weight-bold);
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  font-size: var(--text-md);
+  letter-spacing: 0.02em;
+}
+
+.sidebar__brand-mark {
+  color: var(--brand);
+}
+
+.sidebar__collapse-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  font-size: var(--text-base);
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+}
+.sidebar__collapse-btn:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+.sidebar--collapsed .sidebar__brand {
+  padding: var(--space-5) var(--space-2) var(--space-4);
+  justify-content: center;
+}
+.sidebar--collapsed .sidebar__collapse-btn {
+  margin-left: 0;
+  position: absolute;
+  top: var(--space-5);
+  right: -10px;
+  background: var(--brand-dark);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  width: 20px;
+  height: 20px;
+}
+
+.sidebar__scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar__group-label {
+  padding: var(--space-4) var(--space-5) var(--space-1);
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.sidebar__group:first-child .sidebar__group-label {
+  padding-top: 0;
+}
+
+.sidebar__nav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar__item {
+  display: flex;
+  align-items: center;
+}
+
+.sidebar__link {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-5);
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  font-size: var(--text-base);
+  min-width: 0;
+  transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+}
+
+.sidebar--collapsed .sidebar__link {
+  justify-content: center;
+  padding: var(--space-3) var(--space-2);
+}
+
+.sidebar__link-icon {
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.sidebar__link-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__link:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sidebar__link.is-active {
+  color: white;
+  background: rgba(255, 255, 255, 0.12);
+  font-weight: var(--weight-semibold);
+}
+
+.sidebar__fav-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  width: 28px;
+  height: 28px;
+  margin-right: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+.sidebar__item:hover .sidebar__fav-btn,
+.sidebar__fav-btn.is-active {
+  color: rgba(255, 255, 255, 0.35);
+}
+.sidebar__fav-btn.is-active {
+  color: #f4c430;
+}
+.sidebar__fav-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f4c430;
+}
+
+.sidebar__rebuild {
+  margin-top: var(--space-2);
+  padding: var(--space-4) var(--space-5) var(--space-2);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.sidebar__rebuild--collapsed {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-3) 0;
+}
+
+.sidebar__rebuild .tncos-btn--ghost {
+  width: 100%;
+  justify-content: center;
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+.sidebar__rebuild .tncos-btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.sidebar__rebuild--collapsed .tncos-btn--ghost {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+.sidebar__rebuild .muted.small {
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: var(--space-2);
+}
+.sidebar__rebuild .field-error {
+  color: #fca5a5;
+  margin-top: var(--space-2);
+}
+
+.sidebar__resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: var(--z-sidebar);
+}
+.sidebar__resize-handle:hover,
+.sidebar__resize-handle:focus-visible {
+  background: rgba(47, 111, 237, 0.4);
+}
+
+/* ---------- Main workspace (panel 2/3) ---------- */
+.app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.topbar {
+  height: var(--topbar-height);
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0 var(--space-6);
+}
+
+.topbar__menu-btn {
+  display: none;
+}
+
+.topbar__search-trigger {
+  flex: 1;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--control-height-md);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  text-align: left;
+}
+.topbar__search-trigger:hover {
+  border-color: var(--border-strong);
+}
+
+.topbar__user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-base);
+  flex-shrink: 0;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-6);
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+/* ---------- Inspector panel (panel 3/3, desktop only) ---------- */
+.tncos-inspector {
+  width: var(--inspector-width);
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  overflow-y: auto;
+  z-index: var(--z-inspector);
+}
+.tncos-inspector__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}
+.tncos-inspector__header h2 {
+  margin: 0;
+  font-size: var(--text-md);
+}
+.tncos-inspector__body {
+  padding: var(--space-5);
+}
+
+/* ---------- Universal Search ---------- */
+.universal-search__results {
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.universal-search__list {
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+}
+.universal-search__item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2);
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.universal-search__item:hover {
+  background: var(--bg);
+}
+
+/* ---------- Mobile bottom navigation ---------- */
+.mobile-nav {
+  display: none;
+}
+
+.mobile-nav-drawer__group {
+  margin-bottom: var(--space-4);
+}
+.mobile-nav-drawer__group .sidebar__group-label {
+  color: var(--text-subtle);
+  padding-left: 0;
+}
+.mobile-nav-drawer__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.mobile-nav-drawer__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  color: var(--text);
+  text-decoration: none;
+  font-size: var(--text-base);
+  min-height: var(--touch-target-min);
+}
+
+/* ============================================================================
+   Responsive: Tablet (641–1080px) — 2 panel. Sidebar trở thành overlay
+   (toggle qua nút hamburger ở Topbar), Inspector trở thành Drawer thay vì
+   cột cố định thứ 3.
+   ============================================================================ */
+@media (max-width: 1080px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: var(--z-sidebar);
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-lg);
+    transition: transform var(--duration-base) var(--ease-standard);
+  }
+  .sidebar.is-open-mobile {
+    transform: translateX(0);
+  }
+  .sidebar__resize-handle {
+    display: none;
+  }
+  .topbar__menu-btn {
+    display: inline-flex;
+  }
+  .sidebar-overlay-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(16, 20, 27, var(--opacity-overlay));
+    z-index: 19;
+  }
+}
+
+/* ============================================================================
+   Responsive: Mobile (<=640px) — bottom nav, fullscreen workspace.
+   ============================================================================ */
+@media (max-width: 640px) {
+  .content {
+    padding: var(--space-4);
+    padding-bottom: calc(var(--bottom-nav-height) + var(--space-4));
+  }
+  .topbar {
+    padding: 0 var(--space-4);
+  }
+  .topbar__search-trigger span.topbar__search-label {
+    display: none;
+  }
+  .mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--bottom-nav-height);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    z-index: var(--z-sticky);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .mobile-nav__item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 10px;
+    cursor: pointer;
+    min-height: var(--touch-target-min);
+  }
+  .mobile-nav__item span:first-child {
+    font-size: var(--icon-md);
+  }
+  .mobile-nav__item.is-active {
+    color: var(--brand);
+  }
+}

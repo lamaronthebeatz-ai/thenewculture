@@ -1,0 +1,154 @@
+/* ============================================================================
+   TNCOS Design Tokens — Phase 1 UX Foundation
+   ----------------------------------------------------------------------------
+   Nguồn duy nhất cho spacing/radius/typography/elevation/shadow/opacity/
+   motion/z-index/breakpoint/kích thước icon-button-input. Không hardcode giá
+   trị này trực tiếp trong component — luôn tham chiếu qua biến ở đây, để đổi
+   1 chỗ áp dụng toàn hệ thống (đúng yêu cầu "Component Library thống nhất").
+
+   Giữ nguyên toàn bộ biến màu cũ (--brand/--surface/--border/...) đã dùng
+   xuyên suốt Dashboard trước đây — không đổi để không phá vỡ style hiện có,
+   chỉ MỞ RỘNG thêm token mới bên cạnh.
+   ============================================================================ */
+
+:root {
+  /* ---------- Màu nền tảng (giữ nguyên từ trước) ---------- */
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-alt: #fafbfc;
+  --surface-raised: #ffffff;
+  --border: #e2e4e9;
+  --border-strong: #cbd0d9;
+  --text: #1a1d23;
+  --text-muted: #6b7280;
+  --text-subtle: #9aa1ac;
+  --brand: #c0392b;
+  --brand-hover: #a5311f;
+  --brand-dark: #1a1d23;
+  --danger: #c0392b;
+  --danger-bg: #fbe7e6;
+  --success: #2f9e44;
+  --success-bg: #e6f6ea;
+  --warning: #b06a00;
+  --warning-bg: #fff4e0;
+  --focus-ring: #2f6fed;
+
+  /* ---------- Spacing scale (bội số 4px) ---------- */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---------- Radius scale ---------- */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 999px;
+
+  /* ---------- Typography scale ---------- */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 28px;
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ---------- Elevation / shadow scale ---------- */
+  --shadow-none: none;
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 4px 8px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.06);
+  --shadow-lg: 0 12px 24px rgba(16, 24, 40, 0.12), 0 4px 8px rgba(16, 24, 40, 0.06);
+  --shadow-focus: 0 0 0 3px rgba(47, 111, 237, 0.35);
+
+  /* ---------- Opacity scale ---------- */
+  --opacity-disabled: 0.5;
+  --opacity-muted: 0.7;
+  --opacity-overlay: 0.4;
+  --opacity-hover: 0.06;
+  --opacity-active: 0.12;
+
+  /* ---------- Motion (xem thêm motion.css) ---------- */
+  --duration-instant: 80ms;
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 260ms;
+  --duration-slower: 400ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0, 1);
+  --ease-accelerate: cubic-bezier(0.3, 0, 1, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  /* ---------- Z-index scale ---------- */
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-sidebar: 20;
+  --z-inspector: 20;
+  --z-dropdown: 30;
+  --z-popover: 40;
+  --z-drawer: 50;
+  --z-dialog: 60;
+  --z-toast: 70;
+  --z-tooltip: 80;
+
+  /* ---------- Icon / button / input size ---------- */
+  --icon-sm: 14px;
+  --icon-md: 18px;
+  --icon-lg: 22px;
+  --control-height-sm: 28px;
+  --control-height-md: 36px;
+  --control-height-lg: 44px;
+  --touch-target-min: 44px;
+
+  /* ---------- Layout ---------- */
+  --sidebar-width: 240px;
+  --sidebar-width-collapsed: 64px;
+  --sidebar-width-min: 200px;
+  --sidebar-width-max: 360px;
+  --inspector-width: 320px;
+  --topbar-height: 56px;
+  --bottom-nav-height: 60px;
+}
+
+/* Breakpoint tham chiếu (không thể dùng custom property trong @media — giữ
+   1 nguồn ghi chú duy nhất để mọi @media trong codebase dùng đúng 3 mốc
+   này, tránh mỗi file tự bịa 1 con số khác nhau):
+     Mobile:  max-width: 640px
+     Tablet:  max-width: 1080px
+     Desktop: > 1080px                                                      */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 0ms;
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+    --duration-slower: 0ms;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

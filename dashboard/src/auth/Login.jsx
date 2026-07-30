@@ -39,8 +39,8 @@ export default function Login() {
   return (
     <div className="auth-screen">
       <form className="auth-card" onSubmit={handleSubmit}>
-        <h1>TNC Dashboard</h1>
-        <p className="auth-subtitle">Đăng nhập bằng tài khoản biên tập viên</p>
+        <h1>TNCOS</h1>
+        <p className="auth-subtitle">The New Culture Operating System — Đăng nhập bằng tài khoản biên tập viên</p>
         <label>
           Email
           <input

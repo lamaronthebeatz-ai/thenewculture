@@ -1,0 +1,81 @@
+/* ============================================================================
+   TNCOS Motion Foundation — Phase 1
+   ----------------------------------------------------------------------------
+   Motion tinh tế, không gây mất tập trung. Mọi duration/easing tham chiếu
+   token ở tokens.css. prefers-reduced-motion đã được xử lý tập trung ở đó
+   (đặt mọi --duration-* về 0 + tắt animation/transition toàn cục) — file này
+   chỉ định nghĩa CÁCH các state (hover/focus/pressed/open/close) chuyển động,
+   không cần lặp lại xử lý reduced-motion ở từng nơi.
+   ============================================================================ */
+
+.tncos-fade-in {
+  animation: tncos-fade-in var(--duration-base) var(--ease-decelerate);
+}
+
+@keyframes tncos-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tncos-scale-in {
+  animation: tncos-scale-in var(--duration-base) var(--ease-spring);
+}
+
+@keyframes tncos-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.tncos-slide-in-right {
+  animation: tncos-slide-in-right var(--duration-slow) var(--ease-decelerate);
+}
+
+@keyframes tncos-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.tncos-slide-up {
+  animation: tncos-slide-up var(--duration-slow) var(--ease-decelerate);
+}
+
+@keyframes tncos-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tncos-overlay-fade {
+  animation: tncos-fade-in var(--duration-base) var(--ease-standard);
+}
+
+/* Pressed state — dùng cho button/tag/interactive card */
+.tncos-pressable {
+  transition: transform var(--duration-instant) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.tncos-pressable:active {
+  transform: scale(0.98);
+}

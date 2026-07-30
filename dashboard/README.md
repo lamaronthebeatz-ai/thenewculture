@@ -1,4 +1,15 @@
-# TNC Dashboard
+# TNCOS — The New Culture Operating System
+
+Kể từ TNCOS Phase 1 (UX Foundation), ứng dụng trước đây gọi là "TNC Dashboard"
+được đổi tên thành **TNCOS**. Đây không chỉ là đổi tên — mục tiêu UX là một
+"operating system" cho ban biên tập (điều hướng/bố cục/component lấy cảm
+hứng triết lý từ Linear/Notion/Vercel/GitHub/Figma/Arc/Stripe, không sao
+chép), không còn cảm giác 1 CMS thuần tuý. Database/Supabase/API/
+Authentication/RBAC/Business Logic/Workflow/Publishing **không đổi** ở
+Phase 1 — chỉ đổi Information Architecture/Navigation/Layout/Component/
+Interaction/Responsive/Design Token. Các mục "Giai đoạn"/"Phase" bên dưới
+mô tả lịch sử phát triển tính năng, giữ nguyên thuật ngữ "Dashboard" đã dùng
+tại thời điểm đó — không viết lại lịch sử.
 
 Ứng dụng quản trị nội dung nội bộ cho The New Culture, kết nối trực tiếp với
 Supabase (Auth + Database + Storage). Thay thế Sveltia CMS — không còn ghi
