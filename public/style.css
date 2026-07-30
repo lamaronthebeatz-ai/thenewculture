@@ -133,7 +133,15 @@
   --z-header: 50;         /* masthead */
   --z-promo: 60;          /* sticky bottom promo banner — trên header, dưới menu overlay toàn màn hình */
   --z-overlay: 200;       /* menu overlay toàn màn hình */
-  --z-toast: 9998;        /* progress bar đọc bài */
+  /* Bug fix (production audit): --z-toast trước là 9998 — cao hơn cả
+     --z-overlay (200) tới 9798 bậc. .read-progress dùng token này, luôn
+     hiển thị khi cuộn trang bài viết; .menu-overlay (200) mở được ngay
+     trên trang bài viết, không có JS nào ẩn read-progress khi menu mở
+     -> thanh 3px đè lên trên menu full-screen, ngược thứ bậc "trên header,
+     dưới menu overlay" mà --z-promo đã nêu. Hạ xuống dưới --z-overlay,
+     vẫn trên --z-promo/--z-header để không đổi hành vi hiện có (progress
+     bar vẫn nổi trên header khi không mở menu). */
+  --z-toast: 150;         /* progress bar đọc bài */
   --z-cursor: 9999;       /* cursor tùy chỉnh, luôn trên cùng */
 
   /* Container & reading width */
@@ -847,7 +855,10 @@ a:hover .media__zoom{transform:scale(1.04);box-shadow:inset 0 -120px 90px -50px 
    Editor. Tái dùng token màu/spacing + component sẵn có (.tag/.series-cell/
    .series-pager/.card) — không tạo bảng màu mới.
    ========================================================================== */
-html{scroll-behavior:smooth;}
+/* Bug fix (production audit): "html{scroll-behavior:smooth}" đã khai báo ở
+   dòng 170 — dòng dưới đây trước là khai báo lặp lại cùng giá trị, không
+   đổi kết quả render nhưng dư thừa. Chỉ xoá phần lặp, giữ nguyên override
+   prefers-reduced-motion (không trùng ở đâu khác trong file). */
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto;}}
 
 .editor-quicknav{margin-block:var(--s-6);}
