@@ -1,6 +1,7 @@
 @import "./tokens.css";
 @import "./motion.css";
 @import "./ui.css";
+@import "./shell.css";
 
 * {
   box-sizing: border-box;
@@ -111,121 +112,7 @@ button {
   cursor: pointer;
 }
 
-/* ---------- Shell ---------- */
-.app-shell {
-  display: flex;
-  min-height: 100vh;
-}
-
-.sidebar {
-  width: 220px;
-  flex-shrink: 0;
-  background: var(--brand-dark);
-  color: white;
-  padding: 20px 0;
-}
-
-.sidebar__brand {
-  font-weight: 700;
-  padding: 0 20px 20px;
-  font-size: 15px;
-  letter-spacing: 0.02em;
-}
-
-.sidebar__group-label {
-  padding: 16px 20px 6px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.sidebar__group:first-child .sidebar__group-label {
-  padding-top: 0;
-}
-
-.sidebar__nav {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.sidebar__link {
-  display: block;
-  padding: 10px 20px;
-  color: rgba(255, 255, 255, 0.7);
-  text-decoration: none;
-  font-size: 14px;
-}
-
-.sidebar__link:hover {
-  color: white;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.sidebar__link.is-active {
-  color: white;
-  background: rgba(255, 255, 255, 0.12);
-  font-weight: 600;
-}
-
-.sidebar__rebuild {
-  margin-top: 20px;
-  padding: 16px 20px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.sidebar__rebuild .btn--ghost {
-  width: 100%;
-  justify-content: center;
-  border-color: rgba(255, 255, 255, 0.3);
-  color: white;
-}
-
-.sidebar__rebuild .btn--ghost:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.sidebar__rebuild .muted.small {
-  color: rgba(255, 255, 255, 0.6);
-  margin-top: 8px;
-}
-
-.sidebar__rebuild .field-error {
-  color: #fca5a5;
-  margin-top: 8px;
-}
-
-.app-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.topbar {
-  height: 56px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-}
-
-.topbar__user {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 14px;
-}
-
-.content {
-  padding: 24px;
-  overflow-x: auto;
-}
+/* ---------- Shell — xem shell.css (Sidebar 3-panel/Inspector/Mobile Nav) ---------- */
 
 /* ---------- Page ---------- */
 .page {

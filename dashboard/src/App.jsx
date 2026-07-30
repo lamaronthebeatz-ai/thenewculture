@@ -4,7 +4,8 @@ import { AuthProvider } from "./auth/AuthContext";
 import RequireEditor from "./auth/RequireEditor";
 import ForgotPassword from "./auth/ForgotPassword";
 import ResetPassword from "./auth/ResetPassword";
-import DashboardLayout from "./layout/DashboardLayout";
+import AppShell from "./layout/AppShell";
+import { ToastProvider } from "./components/ui";
 
 // Code-split theo route — mỗi page là 1 chunk riêng, tải khi điều hướng tới
 // thay vì gộp chung 1 bundle >500KB (cảnh báo từ Vite ở Dashboard V2.1).
@@ -44,7 +45,7 @@ function DashboardRoutes() {
   return (
     <Suspense fallback={<RouteFallback />}>
       <Routes>
-        <Route element={<DashboardLayout />}>
+        <Route element={<AppShell />}>
           <Route index element={<DashboardHome />} />
 
           <Route path="articles" element={<ArticlesList />} />
@@ -99,18 +100,20 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route
-            path="/*"
-            element={
-              <RequireEditor>
-                <DashboardRoutes />
-              </RequireEditor>
-            }
-          />
-        </Routes>
+        <ToastProvider>
+          <Routes>
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route
+              path="/*"
+              element={
+                <RequireEditor>
+                  <DashboardRoutes />
+                </RequireEditor>
+              }
+            />
+          </Routes>
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   );
