@@ -622,6 +622,14 @@ def load_menu(key):
 # đây, đúng khuôn mẫu SITE_SETTINGS/ADS_BY_PLACEMENT/CAMPAIGNS đã áp dụng.
 HEADER_PRIMARY_MENU = load_menu("header_primary")
 FOOTER_MENU = load_menu("footer")
+# Rev 12 — Dashboard Coverage Completion (Batch B): 2 trong 5 key menu đã
+# seed sẵn từ Rev 7 ("header_mega", "quick_link") có đủ UI quản lý trong
+# Menu Builder từ lâu nhưng build.py chưa từng đọc — sửa trong Dashboard
+# không có tác dụng gì trên site. Nay wire vào masthead(), giữ đúng fallback
+# hardcode hiện tại khi rỗng/chưa có dữ liệu (không đổi output khi chưa ai
+# nhập liệu qua Dashboard).
+HEADER_MEGA_MENU = load_menu("header_mega")
+QUICK_LINK_MENU = load_menu("quick_link")
 
 # -----------------------------------------------------------------
 # EDITOR IDENTITY SYSTEM (PR2) — Role / Badge / Honor registries.
@@ -1687,6 +1695,44 @@ def masthead(active=None):
     for s in SERIES:
         menu_series += f'<a href="{series_url(s["slug"])}"><span class="menu-code">{s["code"]} · {s["num"]}</span>{s["name"]}</a>'
 
+    # Rev 12: quick_link (3 link ở .masthead__util) và header_mega (2 cột
+    # "Khám phá"/"Tổ chức" trong menu-overlay) đọc từ Menu Builder nếu đã có
+    # dữ liệu; rỗng/chưa cấu hình thì dùng đúng HTML hardcode như trước.
+    if QUICK_LINK_MENU:
+        quick_links_html = "".join(f'<a href="{_menu_item_url(m)}">{m["label"]}</a>' for m in QUICK_LINK_MENU)
+    else:
+        quick_links_html = """<a href="all-series.html">Series</a>
+        <a href="tnc-sessions.html">TNC Sessions</a>
+        <a href="hop-tac.html">Hợp tác</a>"""
+
+    if HEADER_MEGA_MENU:
+        mega_columns_html = "".join(
+            f'<div class="menu-col"><h4>{col["label"]}</h4>'
+            + "".join(f'<a href="{_menu_item_url(c)}">{c["label"]}</a>' for c in col["children"])
+            + "</div>"
+            for col in HEADER_MEGA_MENU
+        )
+    else:
+        mega_columns_html = """<div class="menu-col">
+      <h4>Khám phá</h4>
+      <a href="all-series.html">Tất cả Series</a>
+      <a href="archive.html">Toàn bộ bài viết</a>
+      <a href="all-categories.html">Chuyên mục</a>
+      <a href="all-tags.html">Tất cả chủ đề</a>
+      <a href="video.html">Video</a>
+      <a href="su-kien.html">Sự kiện</a>
+      <a href="tnc-sessions.html">TNC Sessions</a>
+      <a href="newsletter.html">Newsletter</a>
+    </div>
+    <div class="menu-col">
+      <h4>Tổ chức</h4>
+      <a href="ve-tnc.html">Về TNC</a>
+      <a href="hop-tac.html">Hợp tác</a>
+      <a href="lien-he.html">Liên hệ</a>
+      <a href="tuyen-dung.html">Tuyển dụng</a>
+      <a href="theo-doi.html">Theo dõi TNC</a>
+    </div>"""
+
     # Module 5 — Announcement Manager: hiển thị phía trên masthead. Không có
     # announcement hợp lệ -> render_announcement_bar() trả về "", không đổi
     # gì so với trước Rev 9.
@@ -1696,9 +1742,7 @@ def masthead(active=None):
     <div class="container">
       <span>{TODAY_VN} · Sài Gòn</span>
       <div class="u-links">
-        <a href="all-series.html">Series</a>
-        <a href="tnc-sessions.html">TNC Sessions</a>
-        <a href="hop-tac.html">Hợp tác</a>
+        {quick_links_html}
       </div>
     </div>
   </div>
@@ -1738,25 +1782,7 @@ def masthead(active=None):
       <h4>16 Series</h4>
       <div class="menu-series">{menu_series}</div>
     </div>
-    <div class="menu-col">
-      <h4>Khám phá</h4>
-      <a href="all-series.html">Tất cả Series</a>
-      <a href="archive.html">Toàn bộ bài viết</a>
-      <a href="all-categories.html">Chuyên mục</a>
-      <a href="all-tags.html">Tất cả chủ đề</a>
-      <a href="video.html">Video</a>
-      <a href="su-kien.html">Sự kiện</a>
-      <a href="tnc-sessions.html">TNC Sessions</a>
-      <a href="newsletter.html">Newsletter</a>
-    </div>
-    <div class="menu-col">
-      <h4>Tổ chức</h4>
-      <a href="ve-tnc.html">Về TNC</a>
-      <a href="hop-tac.html">Hợp tác</a>
-      <a href="lien-he.html">Liên hệ</a>
-      <a href="tuyen-dung.html">Tuyển dụng</a>
-      <a href="theo-doi.html">Theo dõi TNC</a>
-    </div>
+    {mega_columns_html}
   </div>
 </div>
 """
