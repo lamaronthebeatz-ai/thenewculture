@@ -20,20 +20,26 @@ export default function MediaList() {
   const [folderForm, setFolderForm] = useState(EMPTY_FOLDER_FORM);
   const [editingFolderId, setEditingFolderId] = useState(null);
   const [folderError, setFolderError] = useState("");
+  const [savingFolder, setSavingFolder] = useState(false);
 
   const loadFolders = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error: err } = await supabase
       .from("media_folders")
       .select("id, name, slug, deleted_at")
       .is("deleted_at", null)
       .order("sort_order")
       .order("name");
-    setFolders(data || []);
+    // Bug fix (production audit): trước đây không bắt error — lỗi query âm
+    // thầm khiến dropdown lọc theo thư mục chỉ còn "Tất cả thư mục" mà
+    // không có cảnh báo nào cho biên tập viên.
+    if (err) setError(err.message);
+    else setFolders(data || []);
   }, []);
 
   const loadTags = useCallback(async () => {
-    const { data } = await supabase.from("tags").select("id, name").is("deleted_at", null).order("name");
-    setTags(data || []);
+    const { data, error: err } = await supabase.from("tags").select("id, name").is("deleted_at", null).order("name");
+    if (err) setError(err.message);
+    else setTags(data || []);
   }, []);
 
   const load = useCallback(async () => {
@@ -110,11 +116,13 @@ export default function MediaList() {
       return;
     }
     const payload = { name: folderForm.name.trim(), slug: folderForm.slug.trim() };
+    setSavingFolder(true);
     const query =
       editingFolderId === "new"
         ? supabase.from("media_folders").insert(payload)
         : supabase.from("media_folders").update(payload).eq("id", editingFolderId);
     const { error: err } = await query;
+    setSavingFolder(false);
     if (err) {
       setFolderError(err.code === "23505" ? "Slug thư mục này đã tồn tại." : err.message);
       return;
@@ -145,6 +153,7 @@ export default function MediaList() {
       <div className="toolbar">
         <input
           type="search"
+          aria-label="Tìm theo caption, alt text, credit, URL"
           placeholder="Tìm theo caption, alt text, credit, URL…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -216,8 +225,8 @@ export default function MediaList() {
                 <button type="button" className="btn btn--ghost" onClick={cancelFolderEdit}>
                   Huỷ
                 </button>
-                <button type="submit" className="btn btn--solid">
-                  Lưu
+                <button type="submit" className="btn btn--solid" disabled={savingFolder}>
+                  {savingFolder ? "Đang lưu…" : "Lưu"}
                 </button>
               </div>
             </form>

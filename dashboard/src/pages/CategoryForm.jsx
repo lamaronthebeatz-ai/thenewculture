@@ -16,16 +16,25 @@ export default function CategoryForm() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // Bug fix (production audit): chặn setState nếu :id đã đổi trước khi
+    // request này về (React Router không remount, chỉ re-run effect).
+    let cancelled = false;
     async function load() {
-      const { data: parents } = await supabase
+      const { data: parents, error: parentsErr } = await supabase
         .from("categories")
         .select("id, name")
         .is("deleted_at", null)
         .order("name");
-      setCandidateParents((parents || []).filter((p) => p.id !== id));
+      if (cancelled) return;
+      if (parentsErr) {
+        setError(parentsErr.message);
+      } else {
+        setCandidateParents((parents || []).filter((p) => p.id !== id));
+      }
 
       if (!isNew) {
         const { data, error: err } = await supabase.from("categories").select("*").eq("id", id).maybeSingle();
+        if (cancelled) return;
         if (err || !data) {
           setError(err?.message || "Không tìm thấy category.");
         } else {
@@ -41,6 +50,9 @@ export default function CategoryForm() {
       setLoading(false);
     }
     load();
+    return () => {
+      cancelled = true;
+    };
   }, [id, isNew]);
 
   function update(field, value) {

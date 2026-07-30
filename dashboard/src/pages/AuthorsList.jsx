@@ -57,6 +57,7 @@ export default function AuthorsList() {
       <div className="toolbar">
         <input
           type="search"
+          aria-label="Tìm theo tên hoặc slug"
           placeholder="Tìm theo tên hoặc slug…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}

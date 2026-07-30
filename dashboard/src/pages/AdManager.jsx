@@ -46,7 +46,13 @@ export default function AdManager() {
       .from("ad_placements")
       .select("id, label")
       .order("label")
-      .then(({ data }) => setPlacements(data || []));
+      .then(({ data, error: err }) => {
+        // Bug fix (production audit): trước đây không bắt error — nếu lỗi,
+        // dropdown "Vị trí *" (bắt buộc) trống hoàn toàn mà không rõ lý do,
+        // người dùng chỉ thấy validate chung chung khi submit.
+        if (err) setError(err.message);
+        else setPlacements(data || []);
+      });
   }, []);
 
   const load = useCallback(async () => {

@@ -31,12 +31,17 @@ export default function AuthorForm() {
       setLoading(false);
       return;
     }
+    // Bug fix (production audit): chặn setState nếu :id đã đổi trước khi
+    // request này về (React Router không remount, chỉ re-run effect) —
+    // tránh ghi đè form đang hiển thị đúng bằng dữ liệu của author khác.
+    let cancelled = false;
     supabase
       .from("authors")
       .select("*")
       .eq("id", id)
       .maybeSingle()
       .then(({ data, error: err }) => {
+        if (cancelled) return;
         if (err || !data) {
           setError(err?.message || "Không tìm thấy author.");
         } else {
@@ -54,6 +59,9 @@ export default function AuthorForm() {
         }
         setLoading(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [id, isNew]);
 
   function update(field, value) {
