@@ -22,6 +22,7 @@ import AdManager from "./pages/AdManager";
 import PromotionManager from "./pages/PromotionManager";
 import AnnouncementManager from "./pages/AnnouncementManager";
 import TncSelectsManager from "./pages/TncSelectsManager";
+import MagazineManager from "./pages/MagazineManager";
 
 export default function App() {
   return (
@@ -51,6 +52,7 @@ export default function App() {
               <Route path="tags" element={<TagsList />} />
 
               <Route path="tnc-selects" element={<TncSelectsManager />} />
+              <Route path="magazine" element={<MagazineManager />} />
 
               <Route path="media" element={<MediaList />} />
               <Route path="media/new" element={<MediaForm />} />

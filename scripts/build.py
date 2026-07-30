@@ -1323,13 +1323,17 @@ for a in ARTICLES:
 print(f"Đã nạp {len(SERIES)} series, {len(ARTICLES)} bài viết từ Supabase.")
 
 # -----------------------------------------------------------------
-# TNC MAGAZINE (Monthly Digital Magazine) — đọc metadata Issue từ
-# content/magazine/*.md. Collection này KHÔNG chứa bài viết — build.py
-# chỉ đọc/parse frontmatter (tái dùng _parse_frontmatter có sẵn), toàn bộ
-# logic gộp bài theo Tháng/Năm + tính Issue Number nằm trong
-# scripts/magazine.py (Issue Builder, module độc lập).
+# TNC MAGAZINE (Monthly Digital Magazine) — Rev 11: đọc metadata Issue từ
+# bảng magazine_issues (Supabase) nếu đã migrate; rỗng/chưa migrate thì
+# fallback đọc content/magazine/*.md y hệt hành vi gốc (cùng mẫu
+# load_campaigns()/_load_campaigns_from_file() ở Rev 8). Collection này
+# KHÔNG chứa bài viết — toàn bộ logic gộp bài theo Tháng/Năm + tính Issue
+# Number nằm trong scripts/magazine.py (Issue Builder, module độc lập),
+# không đổi ở Rev 11.
 # -----------------------------------------------------------------
-def load_magazine_issues_raw():
+def _load_magazine_issues_from_file():
+    """Đọc content/magazine/*.md (Sveltia CMS, hành vi gốc trước Rev 11) —
+    dùng làm fallback khi bảng magazine_issues (Supabase) rỗng/chưa migrate."""
     magazine_dir = os.path.join(REPO_ROOT, "content", "magazine")
     raw = []
     if not os.path.isdir(magazine_dir):
@@ -1348,6 +1352,30 @@ def load_magazine_issues_raw():
             "status": (meta.get("status") or "draft").strip(),
         })
     return raw
+
+def load_magazine_issues_raw():
+    try:
+        rows = _supabase_get(
+            "magazine_issues",
+            "select=slug,cover_image_url,cover_story_slug,editors_note,month,year,status"
+            "&deleted_at=is.null"
+        )
+    except RuntimeError:
+        rows = None
+    if not rows:
+        return _load_magazine_issues_from_file()
+    return [
+        {
+            "slug": row["slug"],
+            "cover_image": row.get("cover_image_url") or "",
+            "cover_story": row.get("cover_story_slug") or "",
+            "editors_note": row.get("editors_note") or "",
+            "month": row.get("month"),
+            "year": row.get("year"),
+            "status": row.get("status") or "draft",
+        }
+        for row in rows
+    ]
 
 def _resolve_magazine_article(raw_slug):
     """Cover Story field (relation) lưu slug thô của Sveltia CMS (có thể

@@ -13,6 +13,7 @@ const NAV_GROUPS = [
       { to: "/series", label: "Series" },
       { to: "/tags", label: "Tags" },
       { to: "/tnc-selects", label: "TNC Selects" },
+      { to: "/magazine", label: "TNC Magazine" },
     ],
   },
   {
