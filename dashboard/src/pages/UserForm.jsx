@@ -91,9 +91,7 @@ export default function UserForm() {
     setLookupBusy(false);
     const row = Array.isArray(data) ? data[0] : data;
     if (err || !row) {
-      setLookupError(
-        "Không tìm thấy tài khoản Supabase Auth khớp email này. Tạo tài khoản tại Supabase Studio → Authentication → Users trước, rồi thử lại.",
-      );
+      setLookupError("not_found");
       return;
     }
     if (row.already_provisioned) {
@@ -102,6 +100,26 @@ export default function UserForm() {
     }
     setCandidate(row);
     setEmail(row.email);
+  }
+
+  async function handleCreateAuthAccount() {
+    setLookupError("");
+    setLookupBusy(true);
+    const { data, error: err } = await supabase.functions.invoke("admin-create-user", {
+      body: { email: lookupEmail.trim() },
+    });
+    setLookupBusy(false);
+    if (err || !data?.ok) {
+      const reason = data?.reason || err?.message || "Không tạo được tài khoản.";
+      setLookupError(
+        reason === "email already registered"
+          ? "Email này đã có tài khoản Auth — bấm 'Tra cứu' thay vì tạo mới."
+          : `Không tạo được tài khoản Auth: ${reason} (function admin-create-user có thể chưa được deploy — xem supabase/functions/admin-create-user/README.md, hoặc tạo tài khoản thủ công tại Supabase Studio rồi bấm 'Tra cứu').`,
+      );
+      return;
+    }
+    setCandidate({ auth_user_id: data.id, email: data.email });
+    setEmail(data.email);
   }
 
   async function handleSubmit(e) {
@@ -141,18 +159,25 @@ export default function UserForm() {
           <h1>User mới</h1>
         </div>
         <p className="muted small">
-          Nhập email tài khoản Supabase Auth đã được tạo sẵn (Supabase Studio → Authentication → Users). Dashboard
-          không tự tạo được tài khoản Auth mới (cần quyền admin/service_role, không được nhúng vào client).
+          Nhập email — nếu tài khoản Supabase Auth đã tồn tại (tạo qua Supabase Studio), bấm "Tra cứu"; nếu chưa,
+          bấm "Tạo tài khoản Auth mới" (gọi Edge Function <code>admin-create-user</code>, dùng service_role phía
+          server — Dashboard không bao giờ giữ key này).
         </p>
         <form className="form" onSubmit={handleLookup}>
           <label>
             Email
             <input type="email" required value={lookupEmail} onChange={(e) => setLookupEmail(e.target.value)} />
           </label>
-          {lookupError && <p className="field-error">{lookupError}</p>}
+          {lookupError && lookupError !== "not_found" && <p className="field-error">{lookupError}</p>}
+          {lookupError === "not_found" && (
+            <p className="field-error">Không tìm thấy tài khoản Supabase Auth khớp email này.</p>
+          )}
           <div className="form-actions">
             <button type="submit" className="btn btn--solid" disabled={lookupBusy}>
               {lookupBusy ? "Đang tra cứu…" : "Tra cứu"}
+            </button>
+            <button type="button" className="btn btn--ghost" disabled={lookupBusy || !lookupEmail.trim()} onClick={handleCreateAuthAccount}>
+              {lookupBusy ? "Đang tạo…" : "Tạo tài khoản Auth mới"}
             </button>
           </div>
         </form>
