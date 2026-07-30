@@ -45,9 +45,15 @@ const GITHUB_REPO = Deno.env.get("GITHUB_REPO");
 // "Failed to send a request to the Edge Function" dù function chạy bình
 // thường phía server. on-article-published không cần CORS vì nó chỉ được
 // Supabase Database Webhook gọi server-to-server, không phải từ browser.
+//
+// Danh sách header ở đây PHẢI khớp đúng danh sách supabase-js tự gắn vào
+// MỌI request (xem node_modules/@supabase/supabase-js/src/cors.ts,
+// export SUPABASE_HEADERS) — thiếu "x-client-info" (SDK tự gắn để báo phiên
+// bản client, không phải do code Dashboard chủ động thêm) khiến trình duyệt
+// từ chối cả request thật dù preflight OPTIONS đã trả 204 đúng origin.
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-retry-count",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 

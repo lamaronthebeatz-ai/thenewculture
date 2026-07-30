@@ -53,6 +53,11 @@ function RebuildButton() {
     setMessage("");
     const { data, error } = await supabase.functions.invoke("trigger-rebuild", { method: "POST" });
     if (error) {
+      // Debug: "Failed to send a request..." (FunctionsFetchError) nghĩa là
+      // fetch() thất bại trước khi có phản hồi (CORS/network) — không phải
+      // lỗi logic bên trong function. Log rõ URL thực tế đã gọi + toàn bộ
+      // error để so khớp đúng project/tab Network khi cần điều tra tiếp.
+      console.error("[trigger-rebuild] invoke thất bại:", error.name, error.message, error);
       setState("error");
       setMessage(error.message || "Không kích hoạt được.");
       return;
