@@ -25,6 +25,7 @@ export default function UserForm() {
   const [teams, setTeams] = useState([]);
   const [positions, setPositions] = useState([]);
   const [authors, setAuthors] = useState([]);
+  const [extraRoleIds, setExtraRoleIds] = useState(new Set());
 
   const [lookupEmail, setLookupEmail] = useState("");
   const [candidate, setCandidate] = useState(null); // { auth_user_id, email } sau khi tra cứu thành công
@@ -57,7 +58,10 @@ export default function UserForm() {
   useEffect(() => {
     if (isNew) return;
     async function load() {
-      const { data, error: err } = await supabase.from("dashboard_users").select("*").eq("id", id).maybeSingle();
+      const [{ data, error: err }, { data: ur }] = await Promise.all([
+        supabase.from("dashboard_users").select("*").eq("id", id).maybeSingle(),
+        supabase.from("user_roles").select("role_id").eq("user_id", id),
+      ]);
       if (err) {
         setError(err.message);
       } else if (data) {
@@ -72,11 +76,30 @@ export default function UserForm() {
           position_id: data.position_id || "",
           author_id: data.author_id || "",
         });
+        setExtraRoleIds(new Set((ur || []).map((r) => r.role_id).filter((rid) => rid !== data.role_id)));
       }
       setLoading(false);
     }
     load();
   }, [id, isNew]);
+
+  async function toggleExtraRole(roleId) {
+    const has = extraRoleIds.has(roleId);
+    if (has) {
+      const { error: err } = await supabase.from("user_roles").delete().eq("user_id", id).eq("role_id", roleId);
+      if (err) return alert(`Không gỡ được role: ${err.message}`);
+    } else {
+      const { error: err } = await supabase.from("user_roles").insert({ user_id: id, role_id: roleId });
+      if (err) return alert(`Không thêm được role: ${err.message}`);
+    }
+    recordActivity("user_roles.change", "dashboard_users", id, { role_id: roleId, added: !has });
+    setExtraRoleIds((s) => {
+      const next = new Set(s);
+      if (has) next.delete(roleId);
+      else next.add(roleId);
+      return next;
+    });
+  }
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -223,6 +246,31 @@ export default function UserForm() {
           Lưu ý: nếu đây là hồ sơ của chính bạn và bạn không có quyền users.manage, hệ thống sẽ tự giữ nguyên
           Role/Department/Team/Position/Tác giả liên kết bất kể form gửi gì lên (chống tự leo thang quyền).
         </p>
+
+        {!isNew && (
+          <div>
+            <label className="field-label">Vai trò bổ sung (multi-role — v2.2)</label>
+            <p className="muted small">
+              User có thể có nhiều role cùng lúc (permission là UNION của mọi role). Role chính ở trên luôn được
+              tính; tick thêm role khác nếu cần (vd vừa Author vừa Reviewer). Có hiệu lực ngay khi tick, không
+              cần bấm Lưu.
+            </p>
+            <div className="tag-chips">
+              {roles
+                .filter((r) => r.id !== form.role_id)
+                .map((r) => (
+                  <button
+                    type="button"
+                    key={r.id}
+                    className={extraRoleIds.has(r.id) ? "tag-chip is-selected" : "tag-chip"}
+                    onClick={() => toggleExtraRole(r.id)}
+                  >
+                    {r.name}
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
 
         <label>
           Liên kết hồ sơ tác giả (nếu có byline công khai)
