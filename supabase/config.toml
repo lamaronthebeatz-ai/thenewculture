@@ -7,3 +7,9 @@
 # xem index.ts) nên không cần Supabase chặn hộ ở tầng platform.
 [functions.trigger-rebuild]
 verify_jwt = false
+
+# admin-create-user tự xác thực bằng has_permission('users.create') (JWT của
+# người gọi, xem index.ts) — cùng lý do verify_jwt=false như trigger-rebuild
+# ở trên.
+[functions.admin-create-user]
+verify_jwt = false
