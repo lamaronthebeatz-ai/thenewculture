@@ -735,3 +735,86 @@ details summary {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- TNC Selects (Ranking) — kéo-thả đổi thứ hạng ---------- */
+.tnc-selects__list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tnc-selects__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+}
+
+.tnc-selects__row:last-child {
+  border-bottom: none;
+}
+
+.tnc-selects__row:active {
+  cursor: grabbing;
+}
+
+.tnc-selects__handle {
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.tnc-selects__rank,
+.tnc-selects__preview-num {
+  font-weight: 700;
+  color: var(--brand);
+  min-width: 24px;
+}
+
+.tnc-selects__thumb {
+  width: 56px;
+  height: 32px;
+  flex-shrink: 0;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.tnc-selects__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tnc-selects__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tnc-selects__actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.tnc-selects__preview {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.tnc-selects__preview-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+}
