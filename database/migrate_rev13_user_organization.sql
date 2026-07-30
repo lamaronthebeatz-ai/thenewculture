@@ -297,6 +297,28 @@ create trigger trg_dashboard_users_guard_self_update
   before update on public.dashboard_users
   for each row execute function public.dashboard_users_guard_self_update();
 
+-- Dashboard (role "authenticated", KHÔNG dùng service_role) không có quyền
+-- tạo tài khoản Supabase Auth mới (cần admin API/service_role) và cũng không
+-- SELECT trực tiếp được auth.users. Quy trình thêm nhân sự mới: 1) admin tạo
+-- tài khoản Supabase Auth thủ công tại Supabase Studio (đúng quy ước Rev 5
+-- đã áp dụng cho editor), 2) vào Dashboard bấm "+ User mới", nhập email —
+-- hàm này tra cứu đúng 1 dòng auth.users khớp email (chỉ cho người gọi có
+-- permission users.create), rồi Dashboard tự INSERT dashboard_users bằng
+-- đúng id đó.
+create or replace function public.find_dashboard_candidate(lookup_email text)
+returns table (auth_user_id uuid, email text, already_provisioned boolean)
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select u.id, u.email, exists(select 1 from public.dashboard_users du where du.id = u.id)
+  from auth.users u
+  where lower(u.email) = lower(lookup_email)
+    and public.has_permission('users.create')
+  limit 1;
+$$;
+
 -- Tiện ích cho Dashboard client: trả về toàn bộ permission key mà user hiện
 -- tại đang có, gọi 1 lần khi đăng nhập thay vì gọi has_permission() lặp lại
 -- cho từng permission riêng lẻ.
