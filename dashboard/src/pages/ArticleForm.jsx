@@ -227,6 +227,14 @@ export default function ArticleForm() {
 
   if (loading) return <div className="page">Đang tải…</div>;
 
+  const rankingCount = (() => {
+    try {
+      return JSON.parse(form.ranking || "[]").length;
+    } catch {
+      return 0;
+    }
+  })();
+
   return (
     <div className="page">
       <h1>{isNew ? "Bài viết mới" : "Sửa bài viết"}</h1>
@@ -381,14 +389,15 @@ export default function ArticleForm() {
           </div>
         </div>
 
-        <details>
-          <summary>Nâng cao: Ranking (JSON) — chỉ dùng cho bài có bảng xếp hạng</summary>
-          <textarea
-            rows={8}
-            value={form.ranking}
-            onChange={(e) => update("ranking", e.target.value)}
-          />
-        </details>
+        {/* Migration TNC Selects: ô JSON thô trước đây đã chuyển thành trang
+            riêng /tnc-selects (kéo-thả, preview, tìm kiếm) — giữ nguyên dữ
+            liệu (form.ranking vẫn được gửi lại y nguyên khi Lưu bài viết ở
+            đây), chỉ không còn sửa trực tiếp tại chỗ này nữa. */}
+        {!isNew && rankingCount > 0 && (
+          <p className="muted small">
+            Bài viết này có {rankingCount} mục Ranking (TNC Selects) — quản lý tại <a href="/tnc-selects">TNC Selects</a>.
+          </p>
+        )}
 
         {error && <p className="field-error">{error}</p>}
 
