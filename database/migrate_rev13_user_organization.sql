@@ -297,6 +297,25 @@ create trigger trg_dashboard_users_guard_self_update
   before update on public.dashboard_users
   for each row execute function public.dashboard_users_guard_self_update();
 
+-- Tiện ích cho Dashboard client: trả về toàn bộ permission key mà user hiện
+-- tại đang có, gọi 1 lần khi đăng nhập thay vì gọi has_permission() lặp lại
+-- cho từng permission riêng lẻ.
+create or replace function public.my_permissions()
+returns table (permission_key text)
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select p.key
+  from public.dashboard_users du
+  join public.role_permissions rp on rp.role_id = du.role_id
+  join public.permissions p on p.id = rp.permission_id
+  where du.id = auth.uid()
+    and du.deleted_at is null
+    and du.status = 'active';
+$$;
+
 
 -- ============================================================================
 -- PHẦN 6 — Row Level Security
