@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import { useInspector } from "../layout/InspectorContext";
+import { buildArticleInspectorContent } from "../components/ArticleInspector";
 
 const STATUS_LABELS = {
   draft: "Nháp",
@@ -11,6 +13,7 @@ const STATUS_LABELS = {
 };
 
 export default function ArticlesList() {
+  const { open: openInspector } = useInspector();
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -127,8 +130,11 @@ export default function ArticlesList() {
                   <span className={`badge badge--${a.status}`}>{STATUS_LABELS[a.status] || a.status}</span>
                   {a.deleted_at && <span className="badge badge--deleted">Đã xoá</span>}
                 </td>
-                <td>
-                  <button className="btn btn--ghost btn--sm" onClick={() => toggleDeleted(a)}>
+                <td className="table-actions">
+                  <button className="tncos-btn tncos-btn--ghost tncos-btn--sm" onClick={() => openInspector(buildArticleInspectorContent(a))}>
+                    Inspect
+                  </button>
+                  <button className="tncos-btn tncos-btn--ghost tncos-btn--sm" onClick={() => toggleDeleted(a)}>
                     {a.deleted_at ? "Khôi phục" : "Xoá"}
                   </button>
                 </td>
