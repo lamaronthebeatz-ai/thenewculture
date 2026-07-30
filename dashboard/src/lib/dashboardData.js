@@ -24,9 +24,12 @@ export async function loadDashboardData() {
     // published_at: TNCOS Home cần hiển thị "Upcoming Schedule" (ngày bài
     // scheduled sẽ lên) — cột đã có sẵn trên articles, chỉ thêm vào select
     // list, không đổi logic/thứ tự truy vấn.
+    // authors!articles_author_id_fkey — Rev 15 (v2.2) thêm owner_id (cũng tham chiếu
+    // authors) khiến embed ngầm định "authors(name)" bị mơ hồ (PostgREST:
+    // "more than one relationship was found") — chỉ rõ đi qua author_id.
     supabase
       .from("articles")
-      .select("id, slug, title, status, updated_at, published_at, authors(name), series(name)")
+      .select("id, slug, title, status, updated_at, published_at, authors!articles_author_id_fkey(name), series(name)")
       .is("deleted_at", null)
       .order("updated_at", { ascending: false })
       .limit(10),
