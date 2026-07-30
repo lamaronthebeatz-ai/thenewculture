@@ -1,0 +1,510 @@
+/* ============================================================================
+   TNCOS Component Library — styles
+   ============================================================================ */
+
+/* ---------- Button ---------- */
+.tncos-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tncos-btn--sm {
+  height: var(--control-height-sm);
+  padding: 0 var(--space-3);
+  font-size: var(--text-xs);
+}
+
+.tncos-btn--md {
+  height: var(--control-height-md);
+  padding: 0 var(--space-4);
+  font-size: var(--text-base);
+}
+
+.tncos-btn--lg {
+  height: var(--control-height-lg);
+  padding: 0 var(--space-5);
+  font-size: var(--text-md);
+}
+
+.tncos-btn--icon.tncos-btn--sm {
+  width: var(--control-height-sm);
+  padding: 0;
+}
+.tncos-btn--icon.tncos-btn--md {
+  width: var(--control-height-md);
+  padding: 0;
+}
+.tncos-btn--icon.tncos-btn--lg {
+  width: var(--control-height-lg);
+  padding: 0;
+}
+
+.tncos-btn--solid {
+  background: var(--brand);
+  color: white;
+}
+.tncos-btn--solid:hover {
+  background: var(--brand-hover);
+}
+.tncos-btn--solid:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+.tncos-btn--ghost {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text);
+}
+.tncos-btn--ghost:hover {
+  background: var(--bg);
+}
+
+.tncos-btn--subtle {
+  background: var(--bg);
+  color: var(--text);
+}
+.tncos-btn--subtle:hover {
+  background: var(--border);
+}
+
+.tncos-btn--danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.tncos-btn--danger:hover {
+  background: #f5cfcd;
+}
+
+/* ---------- Badge ---------- */
+.tncos-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  background: var(--bg);
+  color: var(--text-muted);
+}
+.tncos-badge--success {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.tncos-badge--warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+.tncos-badge--danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.tncos-badge--brand {
+  background: var(--brand);
+  color: white;
+}
+
+/* ---------- Avatar ---------- */
+.tncos-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--brand-dark);
+  color: white;
+  font-weight: var(--weight-semibold);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.tncos-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.tncos-avatar--sm {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+}
+.tncos-avatar--md {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
+.tncos-avatar--lg {
+  width: 44px;
+  height: 44px;
+  font-size: 15px;
+}
+
+/* ---------- Card ---------- */
+.tncos-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+.tncos-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+.tncos-card__header h2 {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+}
+
+/* ---------- Tabs ---------- */
+.tncos-tabs__list {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-4);
+}
+.tncos-tabs__tab {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+}
+.tncos-tabs__tab:hover {
+  color: var(--text);
+}
+.tncos-tabs__tab.is-active {
+  color: var(--brand);
+  border-bottom-color: var(--brand);
+}
+
+/* ---------- Accordion ---------- */
+.tncos-accordion__item {
+  border-bottom: 1px solid var(--border);
+}
+.tncos-accordion__item:last-child {
+  border-bottom: none;
+}
+.tncos-accordion__trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  padding: var(--space-3) 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.tncos-accordion__chevron {
+  transition: transform var(--duration-fast) var(--ease-standard);
+  color: var(--text-muted);
+}
+.tncos-accordion__chevron.is-open {
+  transform: rotate(180deg);
+}
+.tncos-accordion__panel {
+  padding-bottom: var(--space-4);
+}
+
+/* ---------- Breadcrumb ---------- */
+.tncos-breadcrumb ol {
+  list-style: none;
+  display: flex;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.tncos-breadcrumb a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.tncos-breadcrumb a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+.tncos-breadcrumb__sep {
+  margin: 0 var(--space-1);
+  opacity: 0.5;
+}
+
+/* ---------- Overlay / Dialog / Drawer ---------- */
+.tncos-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 20, 27, var(--opacity-overlay));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-dialog);
+  padding: var(--space-4);
+}
+
+.tncos-dialog {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.tncos-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+.tncos-dialog__header h2 {
+  margin: 0;
+  font-size: var(--text-md);
+}
+.tncos-dialog__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: var(--text-base);
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  border-radius: var(--radius-md);
+}
+.tncos-dialog__close:hover {
+  background: var(--bg);
+}
+.tncos-dialog__body {
+  padding: var(--space-5);
+}
+.tncos-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border);
+}
+
+.tncos-overlay--drawer {
+  justify-content: flex-end;
+  align-items: stretch;
+  padding: 0;
+}
+.tncos-drawer {
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 420px;
+  height: 100%;
+  overflow-y: auto;
+}
+.tncos-drawer--bottom {
+  max-width: none;
+  height: auto;
+  max-height: 80vh;
+  margin-top: auto;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.tncos-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}
+.tncos-drawer__header h2 {
+  margin: 0;
+  font-size: var(--text-md);
+}
+.tncos-drawer__body {
+  padding: var(--space-5);
+}
+
+/* ---------- Popover / Tooltip ---------- */
+.tncos-popover-wrap {
+  position: relative;
+  display: inline-block;
+}
+.tncos-popover {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  z-index: var(--z-popover);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-3);
+  min-width: 200px;
+}
+.tncos-popover--start {
+  left: 0;
+}
+.tncos-popover--end {
+  right: 0;
+}
+
+.tncos-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.tncos-tooltip {
+  position: absolute;
+  bottom: calc(100% + var(--space-1));
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--brand-dark);
+  color: white;
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  z-index: var(--z-tooltip);
+  pointer-events: none;
+}
+
+/* ---------- Toast ---------- */
+.tncos-toast-region {
+  position: fixed;
+  bottom: var(--space-5);
+  right: var(--space-5);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 360px;
+}
+.tncos-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  background: var(--brand-dark);
+  color: white;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
+}
+.tncos-toast--success {
+  background: var(--success);
+}
+.tncos-toast--danger {
+  background: var(--danger);
+}
+.tncos-toast button {
+  background: none;
+  border: none;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+}
+.tncos-toast button:hover {
+  opacity: 1;
+}
+
+/* ---------- Empty / Error state ---------- */
+.tncos-empty-state,
+.tncos-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-2);
+  padding: var(--space-10) var(--space-5);
+  color: var(--text-muted);
+}
+.tncos-empty-state__icon,
+.tncos-error-state__icon {
+  font-size: 32px;
+  opacity: 0.5;
+}
+.tncos-empty-state__title,
+.tncos-error-state__title {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+  margin: 0;
+}
+.tncos-empty-state__action {
+  margin-top: var(--space-2);
+}
+
+/* ---------- Progress ---------- */
+.tncos-progress__track {
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--bg);
+  overflow: hidden;
+}
+.tncos-progress__bar {
+  height: 100%;
+  background: var(--brand);
+  border-radius: var(--radius-full);
+  transition: width var(--duration-slow) var(--ease-standard);
+}
+
+/* ---------- Field / Input / Textarea / Select ---------- */
+.tncos-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.tncos-field__label {
+  font-weight: var(--weight-medium);
+}
+.tncos-field__error {
+  color: var(--danger);
+  font-size: var(--text-xs);
+}
+.tncos-field__hint {
+  color: var(--text-subtle);
+  font-size: var(--text-xs);
+}
+.tncos-input {
+  height: var(--control-height-md);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  font-size: var(--text-base);
+  color: var(--text);
+  font-family: inherit;
+  background: var(--surface);
+  transition: border-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard);
+}
+.tncos-input:focus {
+  border-color: var(--focus-ring);
+  box-shadow: var(--shadow-focus);
+  outline: none;
+}
+.tncos-input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.tncos-textarea {
+  height: auto;
+  min-height: 96px;
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+}

@@ -1,24 +1,46 @@
-:root {
-  --bg: #f5f6f8;
-  --surface: #ffffff;
-  --border: #e2e4e9;
-  --text: #1a1d23;
-  --text-muted: #6b7280;
-  --brand: #c0392b;
-  --brand-dark: #1a1d23;
-  --danger: #c0392b;
-  --success: #2f9e44;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
+@import "./tokens.css";
+@import "./motion.css";
+@import "./ui.css";
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
 }
 
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
+  font-size: var(--text-base);
+}
+
+/* ---------- Accessibility: skip link + focus ring ---------- */
+.skip-link {
+  position: absolute;
+  top: -48px;
+  left: 8px;
+  z-index: var(--z-toast);
+  background: var(--brand-dark);
+  color: white;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+  transition: top var(--duration-fast) var(--ease-standard);
+}
+
+.skip-link:focus {
+  top: 8px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 button {
