@@ -14,6 +14,13 @@ const KINDS = [
   "campaign",
 ];
 
+// Bug fix (production audit): trước đây placement là <input> text tự do —
+// scripts/build.py (pick_active_campaign) chỉ so khớp CHÍNH XÁC 1 chuỗi
+// literal "sticky_bottom", nên gõ sai 1 ký tự khiến promotion lưu thành
+// công nhưng không bao giờ hiện trên site, không cảnh báo gì. Khớp đúng
+// CHECK constraint mới thêm ở migrate_rev10_production_audit_fixes.sql.
+const PLACEMENTS = ["sticky_bottom"];
+
 const EMPTY_FORM = {
   slug: "",
   kind: "campaign",
@@ -185,7 +192,13 @@ export default function PromotionManager() {
             </label>
             <label>
               Vị trí (placement)
-              <input value={form.placement} onChange={(e) => setForm((f) => ({ ...f, placement: e.target.value }))} placeholder="sticky_bottom" />
+              <select value={form.placement} onChange={(e) => setForm((f) => ({ ...f, placement: e.target.value }))}>
+                {PLACEMENTS.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
 

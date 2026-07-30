@@ -60,6 +60,14 @@ export default function ArticleForm() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // Bug fix (production audit): React Router không remount component khi
+    // chỉ đổi :id trên cùng route — nếu request của id CŨ trả về SAU request
+    // của id MỚI (thứ tự mạng không đảm bảo), setState ở đây sẽ ghi đè dữ
+    // liệu bài viết đang hiển thị đúng bằng dữ liệu bài KHÁC. Cờ `cancelled`
+    // chặn mọi setState từ 1 lượt effect đã bị thay bởi lượt sau (đúng mẫu
+    // đã dùng ở DashboardHome.jsx).
+    let cancelled = false;
+
     async function loadLookups() {
       const [{ data: a }, { data: s }, { data: c }, { data: t }] = await Promise.all([
         supabase.from("authors").select("id, name").is("deleted_at", null).order("name"),
@@ -67,6 +75,7 @@ export default function ArticleForm() {
         supabase.from("categories").select("id, name").is("deleted_at", null).order("sort_order"),
         supabase.from("tags").select("id, name").is("deleted_at", null).order("name"),
       ]);
+      if (cancelled) return;
       setAuthors(a || []);
       setSeries(s || []);
       setCategories(c || []);
@@ -83,6 +92,7 @@ export default function ArticleForm() {
         .select("*, article_tags(tag_id)")
         .eq("id", id)
         .maybeSingle();
+      if (cancelled) return;
       if (err || !data) {
         setError(err?.message || "Không tìm thấy bài viết.");
         setLoading(false);
@@ -115,6 +125,9 @@ export default function ArticleForm() {
 
     loadLookups();
     loadArticle();
+    return () => {
+      cancelled = true;
+    };
   }, [id, isNew]);
 
   function update(field, value) {

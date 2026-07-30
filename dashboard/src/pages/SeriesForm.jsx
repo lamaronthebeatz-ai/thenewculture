@@ -28,12 +28,16 @@ export default function SeriesForm() {
       setLoading(false);
       return;
     }
+    // Bug fix (production audit): chặn setState nếu :id đã đổi trước khi
+    // request này về (React Router không remount, chỉ re-run effect).
+    let cancelled = false;
     supabase
       .from("series")
       .select("*")
       .eq("id", id)
       .maybeSingle()
       .then(({ data, error: err }) => {
+        if (cancelled) return;
         if (err || !data) {
           setError(err?.message || "Không tìm thấy series.");
         } else {
@@ -49,6 +53,9 @@ export default function SeriesForm() {
         }
         setLoading(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [id, isNew]);
 
   function update(field, value) {

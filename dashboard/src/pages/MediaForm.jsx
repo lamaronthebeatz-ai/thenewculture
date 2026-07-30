@@ -53,6 +53,10 @@ export default function MediaForm() {
   const [replaceError, setReplaceError] = useState("");
 
   useEffect(() => {
+    // Bug fix (production audit): chặn setState nếu :id đã đổi trước khi
+    // request này về (React Router không remount, chỉ re-run effect).
+    let cancelled = false;
+
     async function loadLookups() {
       const [{ data: a }, { data: art }, { data: fol }, { data: tg }] = await Promise.all([
         supabase.from("authors").select("id, name").is("deleted_at", null).order("name"),
@@ -60,6 +64,7 @@ export default function MediaForm() {
         supabase.from("media_folders").select("id, name").is("deleted_at", null).order("name"),
         supabase.from("tags").select("id, name").is("deleted_at", null).order("name"),
       ]);
+      if (cancelled) return;
       setAuthors(a || []);
       setArticles(art || []);
       setFolders(fol || []);
@@ -75,6 +80,7 @@ export default function MediaForm() {
         .select("*, media_tags(tag_id)")
         .eq("id", id)
         .maybeSingle();
+      if (cancelled) return;
       if (err || !data) {
         setError(err?.message || "Không tìm thấy media.");
         setLoading(false);
@@ -104,6 +110,7 @@ export default function MediaForm() {
         supabase.from("articles").select("id, slug, title").eq("poster_image_url", data.url).is("deleted_at", null),
         supabase.from("authors").select("id, slug, name").eq("avatar_url", data.url).is("deleted_at", null),
       ]);
+      if (cancelled) return;
       setUsage({
         articlesCover: cover.data || [],
         articlesPoster: poster.data || [],
@@ -113,6 +120,9 @@ export default function MediaForm() {
     }
     loadLookups();
     loadMedia();
+    return () => {
+      cancelled = true;
+    };
   }, [id, isNew]);
 
   function update(field, value) {

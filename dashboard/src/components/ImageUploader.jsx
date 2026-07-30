@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -8,6 +8,7 @@ export default function ImageUploader({ label, value, onChange, pathPrefix }) {
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const fieldId = useId();
 
   async function handleFileChange(e) {
     const file = e.target.files?.[0];
@@ -42,13 +43,14 @@ export default function ImageUploader({ label, value, onChange, pathPrefix }) {
 
   return (
     <div className="image-uploader">
-      <label className="field-label">{label}</label>
+      <label className="field-label" htmlFor={fieldId}>{label}</label>
       {value ? (
         <div className="image-uploader__preview">
           <img src={value} alt="" />
         </div>
       ) : null}
       <input
+        id={fieldId}
         type="text"
         placeholder="URL ảnh (hoặc upload bên dưới)"
         value={value || ""}

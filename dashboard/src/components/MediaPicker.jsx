@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -14,6 +14,7 @@ export default function MediaPicker({ label, mediaId, onChange }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const inputRef = useRef(null);
+  const selectId = useId();
 
   useEffect(() => {
     supabase
@@ -22,7 +23,12 @@ export default function MediaPicker({ label, mediaId, onChange }) {
       .eq("type", "image")
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
-      .then(({ data }) => setOptions(data || []));
+      .then(({ data, error: err }) => {
+        // Bug fix (production audit): trước đây không bắt error — nếu lỗi,
+        // <select> chọn ảnh chỉ còn "— Không có —" mà không cảnh báo gì.
+        if (err) setError(err.message);
+        else setOptions(data || []);
+      });
   }, []);
 
   useEffect(() => {
@@ -71,13 +77,13 @@ export default function MediaPicker({ label, mediaId, onChange }) {
 
   return (
     <div className="image-uploader">
-      <label className="field-label">{label}</label>
+      <label className="field-label" htmlFor={selectId}>{label}</label>
       {preview && (
         <div className="image-uploader__preview">
           <img src={preview} alt="" />
         </div>
       )}
-      <select value={mediaId || ""} onChange={(e) => onChange(e.target.value || null)}>
+      <select id={selectId} value={mediaId || ""} onChange={(e) => onChange(e.target.value || null)}>
         <option value="">— Không có —</option>
         {options.map((o) => (
           <option key={o.id} value={o.id}>

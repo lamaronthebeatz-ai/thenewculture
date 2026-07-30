@@ -18,11 +18,24 @@ export default function FooterBuilder() {
   const [partnerForm, setPartnerForm] = useState(EMPTY_PARTNER);
   const [editingId, setEditingId] = useState(null);
   const [partnerError, setPartnerError] = useState("");
+  const [savingPartner, setSavingPartner] = useState(false);
+  // Bug fix (production audit): tải footer_settings trước đây không bắt
+  // `error` — nếu request lỗi (mất mạng...), form âm thầm giữ nguyên
+  // EMPTY_SETTINGS mà không báo gì. Nếu người dùng không để ý và bấm Lưu,
+  // handleSettingsSubmit sẽ UPDATE đè description/copyright_text thật đang
+  // chạy trên site thành NULL. loadFailed chặn hẳn nút Lưu cho tới khi tải
+  // lại thành công, không chỉ hiển thị lỗi suông.
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.from("footer_settings").select("*").eq("id", true).maybeSingle();
-      if (data) setSettings({ description: data.description || "", copyright_text: data.copyright_text || "" });
+      const { data, error: err } = await supabase.from("footer_settings").select("*").eq("id", true).maybeSingle();
+      if (err) {
+        setSettingsError(err.message);
+        setLoadFailed(true);
+      } else if (data) {
+        setSettings({ description: data.description || "", copyright_text: data.copyright_text || "" });
+      }
       setLoadingSettings(false);
     }
     load();
@@ -91,11 +104,13 @@ export default function FooterBuilder() {
       logo_media_id: partnerForm.logo_media_id || null,
       sort_order: Number(partnerForm.sort_order) || 0,
     };
+    setSavingPartner(true);
     const query =
       editingId === "new"
         ? supabase.from("footer_partners").insert(payload)
         : supabase.from("footer_partners").update(payload).eq("id", editingId);
     const { error } = await query;
+    setSavingPartner(false);
     if (error) return setPartnerError(error.message);
     cancelPartnerEdit();
     loadPartners();
@@ -143,7 +158,7 @@ export default function FooterBuilder() {
           {settingsError && <p className="field-error">{settingsError}</p>}
           {settingsSaved && <p className="muted small">Đã lưu.</p>}
           <div className="form-actions">
-            <button type="submit" className="btn btn--solid" disabled={savingSettings}>
+            <button type="submit" className="btn btn--solid" disabled={savingSettings || loadFailed}>
               {savingSettings ? "Đang lưu…" : "Lưu"}
             </button>
           </div>
@@ -192,8 +207,8 @@ export default function FooterBuilder() {
             <button type="button" className="btn btn--ghost" onClick={cancelPartnerEdit}>
               Huỷ
             </button>
-            <button type="submit" className="btn btn--solid">
-              Lưu
+            <button type="submit" className="btn btn--solid" disabled={savingPartner}>
+              {savingPartner ? "Đang lưu…" : "Lưu"}
             </button>
           </div>
         </form>

@@ -75,6 +75,7 @@ export default function ArticlesList() {
       <div className="toolbar">
         <input
           type="search"
+          aria-label="Tìm theo tiêu đề hoặc slug"
           placeholder="Tìm theo tiêu đề hoặc slug…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}

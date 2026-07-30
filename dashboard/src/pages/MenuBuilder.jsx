@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 const MENU_KEYS = [
@@ -23,8 +23,17 @@ export default function MenuBuilder() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
+  // Bug fix (production audit): đổi activeKey (chọn menu khác) trong lúc
+  // request của menu TRƯỚC chưa xong — nếu request cũ trả về SAU request
+  // mới, setItems/setMenuId sẽ ghi đè bằng item của menu KHÁC trong khi UI
+  // vẫn hiển thị đúng activeKey mới, dễ dẫn tới sửa/xoá nhầm item sai menu.
+  // requestRef giữ đúng (key, showDeleted) của lượt gọi MỚI NHẤT — lượt nào
+  // không còn khớp khi trả về bị bỏ qua, không setState.
+  const requestRef = useRef(null);
 
   const load = useCallback(async () => {
+    const requestKey = `${activeKey}:${showDeleted}`;
+    requestRef.current = requestKey;
     setLoading(true);
     setError("");
     const { data: menu, error: menuErr } = await supabase
@@ -32,6 +41,7 @@ export default function MenuBuilder() {
       .select("id")
       .eq("key", activeKey)
       .maybeSingle();
+    if (requestRef.current !== requestKey) return;
     if (menuErr || !menu) {
       setError(menuErr?.message || "Chưa chạy migration Rev 7 (bảng menus rỗng).");
       setMenuId(null);
@@ -47,6 +57,7 @@ export default function MenuBuilder() {
       .order("sort_order");
     if (!showDeleted) query = query.is("deleted_at", null);
     const { data, error: err } = await query;
+    if (requestRef.current !== requestKey) return;
     if (err) {
       setError(err.message);
       setItems([]);
