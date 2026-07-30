@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 
 // Dịch nghĩa các lỗi phổ biến nhất từ Supabase Auth (GoTrue) — hiện nguyên
@@ -64,6 +65,9 @@ export default function Login() {
         <button type="submit" disabled={submitting}>
           {submitting ? "Đang đăng nhập…" : "Đăng nhập"}
         </button>
+        <p className="auth-subtitle">
+          <Link to="/forgot-password">Quên mật khẩu?</Link>
+        </p>
       </form>
     </div>
   );
