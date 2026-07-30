@@ -109,6 +109,18 @@ def _format_vn_date(iso_ts):
     vn = dt.astimezone(datetime.timezone(datetime.timedelta(hours=7)))
     return f"{vn.day} Tháng {vn.month}, {vn.year}"
 
+def _esc(value):
+    """Escape để chèn an toàn dữ liệu do editor tự nhập (title/dek/tag...)
+    vào nội dung/thuộc tính HTML — bug fix (production audit): trước đây
+    những giá trị này được in thẳng không escape ở nhiều nơi, cho phép một
+    tài khoản editor (is_active_editor(), không cần service_role) lưu
+    title/dek chứa "<script>" và thực thi cho MỌI khách truy cập site tĩnh
+    công khai (stored XSS). CHỈ dùng ở điểm render HTML cuối cùng — head()
+    và article_schema_json() (JSON-LD) đã tự escape đúng theo ngữ cảnh
+    riêng của chúng, không gọi hàm này để tránh escape 2 lần."""
+    import html as _html
+    return _html.escape(str(value), quote=True)
+
 # ---------------------------------------------------------------
 # DỮ LIỆU TRUNG TÂM: 16 SERIES — đọc từ bảng public.series trên Supabase
 # (đã seed đúng nguyên văn do Lamar cung cấp, xem database/seed.sql).
@@ -2520,11 +2532,11 @@ def render_poster_card(a):
     return f"""
       <a class="poster-card" href="{article_url(a['slug'])}">
         <div class="poster-card__media">
-          <img src="{a['poster']}" alt="{a['title']}" loading="lazy">
+          <img src="{a['poster']}" alt="{_esc(a['title'])}" loading="lazy">
           <span class="poster-card__archive">{art_code(a)}</span>
         </div>
         <div class="poster-card__body">
-          <h3 class="poster-card__title">{a['title']}</h3>
+          <h3 class="poster-card__title">{_esc(a['title'])}</h3>
           <span class="poster-card__meta">{a['date']}</span>
         </div>
       </a>"""
@@ -2628,7 +2640,7 @@ def share_bar(a, path):
     return f"""
     <div class="share-bar" aria-label="Chia sẻ bài viết">
       <span class="share-bar__label">Chia sẻ</span>
-      <button class="share-btn share-native" data-url="{url}" data-title="{a['title']}" type="button" hidden>Chia sẻ...</button>
+      <button class="share-btn share-native" data-url="{url}" data-title="{_esc(a['title'])}" type="button" hidden>Chia sẻ...</button>
       <a class="share-btn" href="{fb}" target="_blank" rel="noopener" aria-label="Chia sẻ Facebook">Facebook</a>
       <a class="share-btn" href="{x}" target="_blank" rel="noopener" aria-label="Chia sẻ X">X</a>
       <button class="share-btn share-copy" data-url="{url}" type="button">Sao chép link</button>
@@ -2655,8 +2667,8 @@ def render_hero_slideshow(slides):
     <div class="hero-full__media">{zoom(a, eager=True)}<div class="hero-full__scrim"></div></div>
     <div class="hero-full__content">
       <span class="hero-full__eyebrow eyebrow{s['accent']}">{s['name']}</span>
-      <h1 class="hero-full__title js-scramble"><a href="{article_url(a['slug'])}">{a['title']}</a></h1>
-      <p class="hero-full__dek">{a['dek']}</p>
+      <h1 class="hero-full__title js-scramble"><a href="{article_url(a['slug'])}">{_esc(a['title'])}</a></h1>
+      <p class="hero-full__dek">{_esc(a['dek'])}</p>
       <a href="{article_url(a['slug'])}" class="hero-full__cta">Đọc bài</a>
     </div>
   </section>"""
@@ -2672,8 +2684,8 @@ def render_hero_slideshow(slides):
         <div class="hero-full__media">{zoom(a, eager=(i==0))}<div class="hero-full__scrim"></div></div>
         <div class="hero-full__content">
           <span class="hero-full__eyebrow eyebrow{s['accent']}">{s['name']}</span>
-          <{title_tag} class="hero-full__title{scramble_cls}"><a href="{article_url(a['slug'])}">{a['title']}</a></{title_tag}>
-          <p class="hero-full__dek">{a['dek']}</p>
+          <{title_tag} class="hero-full__title{scramble_cls}"><a href="{article_url(a['slug'])}">{_esc(a['title'])}</a></{title_tag}>
+          <p class="hero-full__dek">{_esc(a['dek'])}</p>
           <a href="{article_url(a['slug'])}" class="hero-full__cta">Đọc bài</a>
         </div>
       </div>"""
@@ -2793,7 +2805,7 @@ def render_ranking_spotlight():
         <h2>Bảng Xếp Hạng — {s['name']}</h2>
         <a class="more" href="{article_url(a['slug'])}">Xem toàn bộ →</a>
       </div>
-      <a class="ranking-spotlight__title-link" href="{article_url(a['slug'])}">{a['title']}</a>
+      <a class="ranking-spotlight__title-link" href="{article_url(a['slug'])}">{_esc(a['title'])}</a>
       <div class="spot-rows">{rows}
       </div>
       {more_note}
@@ -2860,7 +2872,7 @@ def render_index():
           <div class="media media--1-1">{zoom(a)}</div>
           <div>
             <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
-            <h3>{a['title']}</h3>
+            <h3>{_esc(a['title'])}</h3>
           </div>
         </a>"""
         if side_count >= len(ARTICLES) - len(slide_articles):
@@ -2875,7 +2887,7 @@ def render_index():
         <span class="trending__num">{i:02d}</span>
         <div>
           <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
-          <h3>{a['title']}</h3>
+          <h3>{_esc(a['title'])}</h3>
         </div>
       </a>"""
 
@@ -2902,7 +2914,7 @@ def render_index():
       <a class="card" href="{article_url(a['slug'])}">
         <div class="media media--3-2">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
         <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
-        <h3>{a['title']}</h3>
+        <h3>{_esc(a['title'])}</h3>
         <span class="byline">{a['author']} · {a['date']}</span>
       </a>"""
         latest_count += 1
@@ -2923,7 +2935,7 @@ def render_index():
           <span class="dur">{dur}</span>
         </div>
         <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
-        <h3>{a['title']}</h3>
+        <h3>{_esc(a['title'])}</h3>
       </a>"""
 
     html = head("The New Culture - Tạp chí âm nhạc đương đại đầu tiên tại Việt Nam", append_site_name=False) + masthead()
@@ -3338,7 +3350,7 @@ def render_community_series_page(s):
       <a class="card" href="{article_url(a['slug'])}">
         <div class="media media--3-2">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
         <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
-        <h3>{a['title']}</h3>
+        <h3>{_esc(a['title'])}</h3>
         <span class="byline">{a['author']} · {a['date']}</span>
       </a>"""
         grid_class = "poster-grid"
@@ -3403,8 +3415,8 @@ def render_series_page(s):
         <div class="media media--3-2" style="flex:0 0 260px;">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
         <div>
           <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
-          <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{a['title']}</h3>
-          <p style="color:var(--c-ink-2);font-size:var(--t-sm);margin-bottom:var(--s-2);">{a['dek']}</p>
+          <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{_esc(a['title'])}</h3>
+          <p style="color:var(--c-ink-2);font-size:var(--t-sm);margin-bottom:var(--s-2);">{_esc(a['dek'])}</p>
           <span class="byline">{a['author']} · {a['date']} · {a['read_time']}</span>
         </div>
       </a>"""
@@ -3553,7 +3565,7 @@ def render_body_blocks(blocks):
 
 def article_schema_json(a, s, path):
     """JSON-LD Article schema cho SEO rich snippet."""
-    import html as _html, json as _json
+    import json as _json
     img = a.get("cover", "")
     img_url = img if img.startswith("http") else f"{SITE_URL}/{img.lstrip('/')}" if img else f"{SITE_URL}/og-default.png"
     data = {
@@ -3570,7 +3582,15 @@ def article_schema_json(a, s, path):
         "articleSection": s["name"],
         "keywords": ", ".join(a.get("tags", [])),
     }
-    return f'<script type="application/ld+json">{_json.dumps(data, ensure_ascii=False)}</script>'
+    # Bug fix (production audit): json.dumps() không tự escape chuỗi
+    # "</script>" bên trong giá trị string — nếu title/dek chứa literal
+    # "</script><script>...", thẻ script JSON-LD này bị đóng sớm và
+    # HTML/script phía sau chèn thẳng vào <head>, thực thi cho mọi khách
+    # truy cập (stored XSS độc lập với việc escape HTML ở _esc()). "<\/"
+    # vẫn là JSON hợp lệ (JSON cho phép escape "/" thành "\/") nhưng phá
+    # đúng chuỗi "</script" mà trình duyệt/HTML parser tìm để đóng thẻ.
+    safe_json = _json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+    return f'<script type="application/ld+json">{safe_json}</script>'
 
 def render_series_pager(a):
     """Điều hướng 'Bài trước / Bài sau' trong cùng series, theo đúng thứ tự
@@ -3623,7 +3643,7 @@ def render_article_page(a):
         <span class="byline">{rs['name']} · {r['date']}</span>
       </a>"""
 
-    tags = "".join(f'<a href="{tag_url(slugify(t))}" class="tag">{t}</a>' for t in a["tags"])
+    tags = "".join(f'<a href="{tag_url(slugify(t))}" class="tag">{_esc(t)}</a>' for t in a["tags"])
 
     _path = article_url(a["slug"])
     schema = article_schema_json(a, s, _path)
@@ -3638,8 +3658,8 @@ def render_article_page(a):
         <button class="reader-mode-toggle" type="button" aria-label="Chế độ đọc" title="Chế độ đọc">Chế độ đọc</button>
       </nav>
       <span class="eyebrow eyebrow{s['accent']}" style="font-size:var(--t-sm);">{s['name']} · {art_code(a)}</span>
-      <h1 style="font-size:var(--t-3xl);margin:var(--s-4) 0;">{a['title']}</h1>
-      <p style="font-size:var(--t-lg);color:var(--c-ink-2);line-height:1.4;margin-bottom:var(--s-5);">{a['dek']}</p>
+      <h1 style="font-size:var(--t-3xl);margin:var(--s-4) 0;">{_esc(a['title'])}</h1>
+      <p style="font-size:var(--t-lg);color:var(--c-ink-2);line-height:1.4;margin-bottom:var(--s-5);">{_esc(a['dek'])}</p>
       {author_byline_html(a['author'])}
           <div class="byline">{a['date']} · {a['read_time']}</div>
         </div>
@@ -4016,7 +4036,10 @@ def editor_schema_json(name, ed, intel):
         "jobTitle": role_label,
         "worksFor": {"@type": "Organization", "name": SITE_SETTINGS["site_name"]},
     }
-    return f'<script type="application/ld+json">{_json.dumps(data, ensure_ascii=False)}</script>'
+    # Bug fix (production audit): xem giải thích ở article_schema_json() —
+    # cùng lỗi script-tag breakout, name/bio cũng do editor tự nhập.
+    safe_json = _json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+    return f'<script type="application/ld+json">{safe_json}</script>'
 
 def render_author_page(name, arts, intel, nav_editors=(None, None)):
     """Trang hồ sơ biên tập viên: identity page căn giữa (không phải trang bài
@@ -4072,8 +4095,8 @@ def render_author_page(name, arts, intel, nav_editors=(None, None)):
         <div class="media media--3-2" style="flex:0 0 220px;">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
         <div>
           <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
-          <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{a['title']}</h3>
-          <p style="color:var(--c-ink-2);font-size:var(--t-sm);margin-bottom:var(--s-2);">{a['dek']}</p>
+          <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{_esc(a['title'])}</h3>
+          <p style="color:var(--c-ink-2);font-size:var(--t-sm);margin-bottom:var(--s-2);">{_esc(a['dek'])}</p>
           <span class="byline">{a['date']} · {a['read_time']}</span>
         </div>
       </a>"""
@@ -4122,7 +4145,7 @@ def render_author_page(name, arts, intel, nav_editors=(None, None)):
 
     # Chuyên mục (PR4): danh sách đầy đủ intel["categories"] (đã có sẵn từ
     # PR3), liên kết tới trang tag đã tồn tại — không thêm dữ liệu mới.
-    category_links = "".join(f'<a href="{tag_url(slugify(c))}" class="tag">{c}</a>' for c in intel["categories"])
+    category_links = "".join(f'<a href="{tag_url(slugify(c))}" class="tag">{_esc(c)}</a>' for c in intel["categories"])
     categories_section = f"""
   <section id="chuyen-muc" tabindex="-1" class="container author-categories js-reveal">
     <div class="section-head"><h2>Chuyên mục</h2></div>
@@ -4135,7 +4158,7 @@ def render_author_page(name, arts, intel, nav_editors=(None, None)):
     timeline_years = ""
     for year_block in reversed(intel["timeline"]):
         items = "".join(
-            f'<li><a href="{article_url(a["slug"])}">{a["title"]}</a> <span class="byline">{a["date"]}</span></li>'
+            f'<li><a href="{article_url(a["slug"])}">{_esc(a["title"])}</a> <span class="byline">{a["date"]}</span></li>'
             for a in year_block["articles"]
         )
         timeline_years += f"""
@@ -4177,7 +4200,7 @@ def render_author_page(name, arts, intel, nav_editors=(None, None)):
 
     frequent_categories = compute_frequent_categories(arts)
     frequent_cat_links = "".join(
-        f'<a href="{tag_url(slugify(c["name"]))}" class="tag">{c["name"]} <span class="tag-count">{c["count"]}</span></a>'
+        f'<a href="{tag_url(slugify(c["name"]))}" class="tag">{_esc(c["name"])} <span class="tag-count">{c["count"]}</span></a>'
         for c in frequent_categories
     )
     frequent_cat_block = f"""
@@ -4267,8 +4290,8 @@ def render_tag_page(tslug, tag_name, arts):
         <div class="media media--3-2" style="flex:0 0 220px;">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
         <div>
           <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
-          <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{a['title']}</h3>
-          <p style="color:var(--c-ink-2);font-size:var(--t-sm);margin-bottom:var(--s-2);">{a['dek']}</p>
+          <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{_esc(a['title'])}</h3>
+          <p style="color:var(--c-ink-2);font-size:var(--t-sm);margin-bottom:var(--s-2);">{_esc(a['dek'])}</p>
           <span class="byline">{a['author']} · {a['date']} · {a['read_time']}</span>
         </div>
       </a>"""
@@ -4301,8 +4324,8 @@ def render_category_page(c):
         <div class="media media--3-2" style="flex:0 0 220px;">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
         <div>
           <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
-          <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{a['title']}</h3>
-          <p style="color:var(--c-ink-2);font-size:var(--t-sm);margin-bottom:var(--s-2);">{a['dek']}</p>
+          <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{_esc(a['title'])}</h3>
+          <p style="color:var(--c-ink-2);font-size:var(--t-sm);margin-bottom:var(--s-2);">{_esc(a['dek'])}</p>
           <span class="byline">{a['author']} · {a['date']} · {a['read_time']}</span>
         </div>
       </a>"""
@@ -4431,8 +4454,8 @@ def render_archive_page():
         <div class="media media--3-2" style="flex:0 0 260px;">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
         <div>
           <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
-          <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{a['title']}</h3>
-          <p style="color:var(--c-ink-2);font-size:var(--t-sm);margin-bottom:var(--s-2);">{a['dek']}</p>
+          <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{_esc(a['title'])}</h3>
+          <p style="color:var(--c-ink-2);font-size:var(--t-sm);margin-bottom:var(--s-2);">{_esc(a['dek'])}</p>
           <span class="byline">{a['author']} · {a['date']} · {a['read_time']}</span>
         </div>
       </a>"""
@@ -4460,7 +4483,7 @@ def render_video_page():
       <a class="video-card" href="{article_url(a['slug'])}">
         <div class="media media--16-9"><div class="media__zoom"></div><div class="play"><span></span></div><span class="dur">{dur}</span></div>
         <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
-        <h3>{a['title']}</h3>
+        <h3>{_esc(a['title'])}</h3>
       </a>"""
     inner = f"""
   <section class="container">
@@ -4640,7 +4663,7 @@ def render_sessions_page():
       <a class="video-card" href="{article_url(a['slug'])}">
         <div class="media media--16-9"><div class="media__zoom"></div><div class="play"><span></span></div><span class="dur">{dur}</span></div>
         <span class="eyebrow eyebrow{s['accent']}">TNC Sessions</span>
-        <h3>{a['title']}</h3>
+        <h3>{_esc(a['title'])}</h3>
       </a>"""
     inner = f"""
   <section class="container">
@@ -4716,7 +4739,7 @@ def render_magazine_toc(issue):
         items += f"""
       <a href="{article_url(a['slug'])}">
         <span class="magazine-toc__series">{s['name']}</span>
-        <span class="magazine-toc__title">{a['title']}</span>
+        <span class="magazine-toc__title">{_esc(a['title'])}</span>
       </a>"""
     return f"""
     <div class="magazine-toc">{items}
@@ -4736,7 +4759,7 @@ def render_magazine_article_list(issue):
         <div class="media media--3-2" style="flex:0 0 220px;">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
         <div>
           <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
-          <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{a['title']}</h3>
+          <h3 style="font-size:var(--t-lg);margin:var(--s-2) 0;">{_esc(a['title'])}</h3>
           <span class="byline">{a['author']} · {a['read_time']}</span>
         </div>
       </a>"""
@@ -4757,7 +4780,7 @@ def render_magazine_cover_story(a):
         <div class="media media--3-2">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>
         <div>
           <span class="eyebrow eyebrow--red">Cover Story</span>
-          <h3 style="font-size:var(--t-2xl);margin:var(--s-3) 0;">{a['title']}</h3>
+          <h3 style="font-size:var(--t-2xl);margin:var(--s-3) 0;">{_esc(a['title'])}</h3>
           <span class="byline">{a['author']} · {a['date']}</span>
           <span class="btn btn--ghost" style="margin-top:var(--s-4);">Read Article →</span>
         </div>
@@ -4898,7 +4921,7 @@ def render_homepage_magazine_block():
         group = by_series.get(s["slug"])
         if not group:
             continue
-        items = "".join(f'<li><a href="{article_url(a["slug"])}">{a["title"]}</a></li>' for a in group)
+        items = "".join(f'<li><a href="{article_url(a["slug"])}">{_esc(a["title"])}</a></li>' for a in group)
         groups_html += f"""
         <div class="magazine-spread__group">
           <span class="magazine-spread__group-label">{s['name']}</span>
