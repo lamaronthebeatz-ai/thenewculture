@@ -525,8 +525,13 @@ def _build_menu_tree(rows):
 
 def _menu_item_url(item):
     """Suy ra URL thật từ (link_kind, link_value) — tái dùng đúng hàm URL
-    hiện có cho từng loại, không tự chế thêm quy tắc đặt tên file mới."""
+    hiện có cho từng loại, không tự chế thêm quy tắc đặt tên file mới.
+    link_value NULL (dữ liệu bất thường, ngoài ý muốn của Dashboard form vốn
+    luôn gửi chuỗi) trả về "#" thay vì None — tránh sinh href="None" âm thầm
+    trong HTML thật."""
     kind, value = item["link_kind"], item["link_value"]
+    if not value:
+        return "#"
     if kind == "series":
         return series_url(value)
     if kind == "category":
@@ -557,6 +562,14 @@ def load_menu(key):
     if not rows:
         return None
     return _build_menu_tree(rows)
+
+# Bug fix (production audit): masthead()/footer() gọi lại load_menu() ở MỌI
+# trang được build (article, category, tag, series, trang phụ...) dù kết quả
+# không đổi trong suốt 1 lần build — mỗi lần tốn 2 lượt HTTP round-trip tới
+# Supabase (bảng menus + menu_items) không cần thiết. Tính 1 lần duy nhất ở
+# đây, đúng khuôn mẫu SITE_SETTINGS/ADS_BY_PLACEMENT/CAMPAIGNS đã áp dụng.
+HEADER_PRIMARY_MENU = load_menu("header_primary")
+FOOTER_MENU = load_menu("footer")
 
 # -----------------------------------------------------------------
 # EDITOR IDENTITY SYSTEM (PR2) — Role / Badge / Honor registries.
@@ -1020,12 +1033,18 @@ def load_announcements():
     ]
     return eligible[0] if eligible else None
 
+# Bug fix (production audit): render_announcement_bar() được masthead() gọi
+# lại ở MỌI trang, nên load_announcements() (1 lượt HTTP tới Supabase) bị
+# lặp lại vô ích cho cùng 1 kết quả suốt 1 lần build — tính 1 lần duy nhất,
+# đúng khuôn mẫu SITE_SETTINGS/ADS_BY_PLACEMENT/CAMPAIGNS.
+ANNOUNCEMENT = load_announcements()
+
 def render_announcement_bar():
     """Thanh thông báo phía trên masthead. Chỉ 1 kiểu hiển thị tĩnh duy
     nhất (không phân biệt hành vi theo kind — không ticker cuộn, không
     đếm ngược động, đúng phạm vi đã duyệt), màu sắc đổi theo `style`.
     Không có announcement hợp lệ -> trả về chuỗi rỗng, không render gì."""
-    a = load_announcements()
+    a = ANNOUNCEMENT
     if not a:
         return ""
     message = a.get("message") or ""
@@ -1563,9 +1582,8 @@ def masthead(active=None):
     # Module 8 — Menu Builder: menu chính đọc từ Supabase (menus.key=
     # 'header_primary') nếu đã có dữ liệu; rỗng/chưa migrate thì dùng đúng
     # NAV_ITEMS hardcode như trước — không bao giờ mất menu giữa lúc chuyển đổi.
-    header_primary_menu = load_menu("header_primary")
-    if header_primary_menu:
-        nav_pairs = [(_menu_item_url(m), m["label"]) for m in header_primary_menu]
+    if HEADER_PRIMARY_MENU:
+        nav_pairs = [(_menu_item_url(m), m["label"]) for m in HEADER_PRIMARY_MENU]
         active_url = f"series-{active}.html" if active else None
     else:
         nav_pairs = [(f"series-{slug}.html", label) for slug, label in NAV_ITEMS]
@@ -1762,6 +1780,12 @@ def load_footer_partners():
         return []
     return rows or []
 
+# Bug fix (production audit): footer() được gọi lại ở MỌI trang, nên 2 loader
+# này bị lặp lại vô ích cho cùng 1 kết quả suốt 1 lần build — tính 1 lần duy
+# nhất, đúng khuôn mẫu SITE_SETTINGS/ADS_BY_PLACEMENT/CAMPAIGNS.
+FOOTER_SETTINGS = load_footer_settings()
+FOOTER_PARTNERS = load_footer_partners()
+
 # 3 cột liên kết chân trang hiện tại (Khám phá / Series chính / Tổ chức) —
 # dùng làm fallback đúng nguyên trạng khi menus.key='footer' chưa có dữ liệu.
 _FOOTER_FALLBACK_COLUMNS = [
@@ -1799,8 +1823,8 @@ def footer():
         for label, url in socials
     )
 
-    footer_settings = load_footer_settings()
-    footer_menu = load_menu("footer")
+    footer_settings = FOOTER_SETTINGS
+    footer_menu = FOOTER_MENU
     if footer_menu:
         columns = [(col["label"], [(c["label"], _menu_item_url(c)) for c in col["children"]]) for col in footer_menu]
     else:
@@ -1820,7 +1844,7 @@ def footer():
     column_blocks.insert(insert_at, social_column)
     columns_html = "".join(column_blocks)
 
-    partners = load_footer_partners()
+    partners = FOOTER_PARTNERS
     partners_html = ""
     if partners:
         partner_items = "".join(
