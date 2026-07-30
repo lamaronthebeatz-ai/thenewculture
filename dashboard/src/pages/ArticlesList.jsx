@@ -26,7 +26,11 @@ export default function ArticlesList() {
     setError("");
     let query = supabase
       .from("articles")
-      .select("id, slug, title, status, sort_order, published_at, deleted_at, authors(name), series(name)")
+      // authors!articles_author_id_fkey — Rev 15 (v2.2) thêm owner_id (cũng tham chiếu
+      // authors) khiến articles có 2 FK tới authors; embed ngầm định
+      // "authors(name)" trở nên mơ hồ (PostgREST trả lỗi "more than one
+      // relationship was found") nếu không chỉ rõ đi qua cột nào.
+      .select("id, slug, title, status, sort_order, published_at, deleted_at, authors!articles_author_id_fkey(name), series(name)")
       .order("sort_order", { ascending: true })
       .order("slug", { ascending: true });
 

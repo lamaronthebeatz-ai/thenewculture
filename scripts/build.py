@@ -398,11 +398,21 @@ def load_articles():
     render_* bên dưới đang dùng — không đổi tên khoá, không đổi kiểu dữ liệu.
     'ranking' lấy thẳng từ cột jsonb (đã ở dạng chuẩn hoá sẵn khi import —
     xem database/import_real_content.sql — KHÔNG chuẩn hoá lại lần 2)."""
+    # Bug fix SẢN XUẤT (khẩn cấp): Dashboard v2.2 (Rev 15) thêm cột
+    # articles.owner_id (cũng tham chiếu authors, cho engine RBAC + Ownership
+    # Scope) — kể từ đó, articles có 2 FK tới authors (author_id VÀ owner_id)
+    # nên embed ngầm định "authors(name)" bị PostgREST từ chối: "Could not
+    # embed because more than one relationship was found for 'articles' and
+    # 'authors'". _supabase_get() raise RuntimeError khi Supabase trả lỗi ->
+    # TOÀN BỘ build.py (mọi lần cron/rebuild) đã crash ngay từ load_articles()
+    # kể từ khi Rev 15 merge, không build được site nào cả. Sửa bằng cách chỉ
+    # rõ embed đi qua đúng cột author_id (authors!articles_author_id_fkey), khớp đúng cách
+    # dashboard/src đã sửa cho Dashboard React (ArticlesList.jsx/dashboardData.js).
     rows = _supabase_get(
         "articles",
         "select=slug,title,dek,body,cover_image_url,cover_credit,poster_image_url,"
         "sort_order,featured,hero_priority,read_time_minutes,ranking,published_at,"
-        "authors(name),series(slug),categories(slug),article_tags(tags(name))"
+        "authors!articles_author_id_fkey(name),series(slug),categories(slug),article_tags(tags(name))"
         "&status=eq.published&deleted_at=is.null&order=sort_order.asc,slug.asc"
     )
     articles = []
