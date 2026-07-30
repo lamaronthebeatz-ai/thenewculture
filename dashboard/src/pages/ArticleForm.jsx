@@ -29,6 +29,11 @@ const EMPTY_FORM = {
   sort_order: 999,
   published_at: "",
   ranking: "[]",
+  department: "",
+  team: "",
+  assigned_editor: "",
+  reviewer: "",
+  publisher: "",
 };
 
 // datetime-local <-> timestamptz ISO helpers
@@ -53,6 +58,9 @@ export default function ArticleForm() {
   const [series, setSeries] = useState([]);
   const [categories, setCategories] = useState([]);
   const [tags, setTags] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [staff, setStaff] = useState([]);
   const [selectedTagIds, setSelectedTagIds] = useState(new Set());
   const [originalTagIds, setOriginalTagIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
@@ -69,17 +77,25 @@ export default function ArticleForm() {
     let cancelled = false;
 
     async function loadLookups() {
-      const [{ data: a }, { data: s }, { data: c }, { data: t }] = await Promise.all([
+      const [{ data: a }, { data: s }, { data: c }, { data: t }, { data: d }, { data: tm }, { data: du }] = await Promise.all([
         supabase.from("authors").select("id, name").is("deleted_at", null).order("name"),
         supabase.from("series").select("id, name").is("deleted_at", null).order("sort_order"),
         supabase.from("categories").select("id, name").is("deleted_at", null).order("sort_order"),
         supabase.from("tags").select("id, name").is("deleted_at", null).order("name"),
+        supabase.from("departments").select("id, name").is("deleted_at", null).order("sort_order"),
+        supabase.from("teams").select("id, name, department_id").is("deleted_at", null).order("sort_order"),
+        // Chỉ thấy toàn bộ staff nếu có quyền users.view — nếu không, RLS tự
+        // thu hẹp về đúng hồ sơ của chính mình (không phải lỗi).
+        supabase.from("dashboard_users").select("id, display_name, username, email").is("deleted_at", null).order("display_name"),
       ]);
       if (cancelled) return;
       setAuthors(a || []);
       setSeries(s || []);
       setCategories(c || []);
       setTags(t || []);
+      setDepartments(d || []);
+      setTeams(tm || []);
+      setStaff(du || []);
     }
 
     async function loadArticle() {
@@ -116,6 +132,11 @@ export default function ArticleForm() {
         sort_order: data.sort_order,
         published_at: toLocalInput(data.published_at),
         ranking: JSON.stringify(data.ranking ?? [], null, 2),
+        department: data.department || "",
+        team: data.team || "",
+        assigned_editor: data.assigned_editor || "",
+        reviewer: data.reviewer || "",
+        publisher: data.publisher || "",
       });
       const tagIds = new Set((data.article_tags || []).map((r) => r.tag_id));
       setSelectedTagIds(tagIds);
@@ -187,6 +208,11 @@ export default function ArticleForm() {
       sort_order: Number(form.sort_order) || 999,
       published_at: fromLocalInput(form.published_at),
       ranking: rankingParsed,
+      department: form.department || null,
+      team: form.team || null,
+      assigned_editor: form.assigned_editor || null,
+      reviewer: form.reviewer || null,
+      publisher: form.publisher || null,
     };
 
     let articleId = id;
@@ -388,6 +414,74 @@ export default function ArticleForm() {
             ))}
           </div>
         </div>
+
+        <details>
+          <summary>Phân công &amp; Sở hữu (RBAC + Ownership — v2.2)</summary>
+          <p className="muted small">
+            Dùng để giới hạn quyền sửa theo Department/Team (role Editor) và xác định ai được duyệt/xuất bản
+            (role Reviewer/Publisher — scope "assigned"). Để trống = mở cho mọi editor cùng scope thao tác (chưa
+            gán, không phải "không ai được").
+          </p>
+          <div className="form-grid form-grid--3">
+            <label>
+              Department
+              <select value={form.department} onChange={(e) => update("department", e.target.value)}>
+                <option value="">— Không gán —</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Team
+              <select value={form.team} onChange={(e) => update("team", e.target.value)}>
+                <option value="">— Không gán —</option>
+                {teams.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="form-grid form-grid--3">
+            <label>
+              Assigned Editor
+              <select value={form.assigned_editor} onChange={(e) => update("assigned_editor", e.target.value)}>
+                <option value="">— Không gán —</option>
+                {staff.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.display_name || u.username || u.email}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Reviewer
+              <select value={form.reviewer} onChange={(e) => update("reviewer", e.target.value)}>
+                <option value="">— Không gán —</option>
+                {staff.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.display_name || u.username || u.email}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Publisher
+              <select value={form.publisher} onChange={(e) => update("publisher", e.target.value)}>
+                <option value="">— Không gán —</option>
+                {staff.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.display_name || u.username || u.email}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </details>
 
         {/* Migration TNC Selects: ô JSON thô trước đây đã chuyển thành trang
             riêng /tnc-selects (kéo-thả, preview, tìm kiếm) — giữ nguyên dữ
