@@ -66,7 +66,7 @@ function json(body: unknown, status = 200) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: CORS_HEADERS });
+    return new Response("ok", { status: 200, headers: CORS_HEADERS });
   }
   if (req.method !== "POST") {
     return json({ ok: false, reason: "method not allowed" }, 405);
