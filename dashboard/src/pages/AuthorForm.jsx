@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import ImageUploader from "../components/ImageUploader";
+import AuthorMedals from "../components/AuthorMedals";
 import { GENERIC_ROLES, EDITOR_ROLES, EDITOR_HONORS, EDITOR_BADGES } from "../lib/editorRegistries";
 
 const EMPTY_FORM = {
@@ -212,6 +213,19 @@ export default function AuthorForm() {
           </button>
         </div>
       </form>
+
+      {/* Huân chương (Rev 16): cần author_id thật nên chỉ quản lý được sau khi
+          đã lưu author lần đầu — giống mọi bảng con phụ thuộc author_id khác
+          trong kiến trúc hiện có (vd media gắn theo article đã lưu). */}
+      {isNew ? (
+        <p className="muted" style={{ marginTop: "var(--s-6)" }}>
+          Lưu author trước để quản lý huân chương.
+        </p>
+      ) : (
+        <div style={{ marginTop: "var(--s-6)" }}>
+          <AuthorMedals authorId={id} />
+        </div>
+      )}
     </div>
   );
 }

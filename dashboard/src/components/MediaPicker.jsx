@@ -8,7 +8,14 @@ const MAX_SIZE_BYTES = 10 * 1024 * 1024;
 // đường đều kết thúc bằng 1 media.id thật, dùng cho các cột *_media_id
 // (site_settings, footer_partners...). Không tạo hệ thống upload riêng —
 // tái dùng đúng bucket Storage "media" đã có từ Rev 5.
-export default function MediaPicker({ label, mediaId, onChange }) {
+//
+// allowedTypes: media.type được liệt kê trong <select> + type gán khi
+// quick-upload — mặc định chỉ "image" (hành vi gốc, không đổi cho các nơi
+// gọi hiện có). Truyền thêm "gif" (vd Author Medals, Rev 16) để chọn/tải
+// được ảnh GIF thật (media.type='gif', khác 'image' — xem MediaForm.jsx) và
+// giữ hoạt ảnh khi render công khai (build.py in thẳng <img src>, không
+// convert/resize).
+export default function MediaPicker({ label, mediaId, onChange, allowedTypes = ["image"] }) {
   const [options, setOptions] = useState([]);
   const [preview, setPreview] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -20,7 +27,7 @@ export default function MediaPicker({ label, mediaId, onChange }) {
     supabase
       .from("media")
       .select("id, url, caption")
-      .eq("type", "image")
+      .in("type", allowedTypes)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .then(({ data, error: err }) => {
@@ -29,7 +36,8 @@ export default function MediaPicker({ label, mediaId, onChange }) {
         if (err) setError(err.message);
         else setOptions(data || []);
       });
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allowedTypes.join(",")]);
 
   useEffect(() => {
     const match = options.find((o) => o.id === mediaId);
@@ -61,9 +69,10 @@ export default function MediaPicker({ label, mediaId, onChange }) {
       return;
     }
     const { data: pub } = supabase.storage.from("media").getPublicUrl(path);
+    const mediaType = file.type === "image/gif" && allowedTypes.includes("gif") ? "gif" : "image";
     const { data: row, error: insertError } = await supabase
       .from("media")
-      .insert({ url: pub.publicUrl, type: "image" })
+      .insert({ url: pub.publicUrl, type: mediaType })
       .select("id, url, caption")
       .single();
     setUploading(false);

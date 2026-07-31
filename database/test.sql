@@ -719,6 +719,72 @@ begin
   );
 end $$;
 
+-- Rev 16 — Author Medals: medals (master) + author_medals (assignment) đều
+-- đã ENABLE RLS, đúng policy Public read (chỉ đọc medal active/author
+-- active) + permission catalog module "medals" đã tồn tại + managing_editor
+-- đã được cấp đủ (cùng nguyên tắc kiểm tra catalog/pg_policies như trên,
+-- không mô phỏng vai trò auth thật).
+do $$
+declare
+  cnt int;
+begin
+  select count(*) into cnt from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity = true
+      and c.relname in ('medals', 'author_medals');
+  perform public._tnc_test_assert(
+    cnt = 2, format('RLS: cả 2 bảng medals/author_medals đều đã ENABLE ROW LEVEL SECURITY (đang có %s/2)', cnt)
+  );
+
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from pg_policies
+      where schemaname = 'public' and tablename = 'medals' and policyname = 'Public read active medals'
+        and cmd = 'SELECT' and qual ilike '%is_active%'
+    ),
+    'RLS: policy "Public read active medals" tồn tại trên medals, đúng điều kiện lọc theo is_active'
+  );
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from pg_policies
+      where schemaname = 'public' and tablename = 'author_medals' and policyname = 'Public read visible author_medals'
+        and cmd = 'SELECT' and qual ilike '%is_visible%'
+    ),
+    'RLS: policy "Public read visible author_medals" tồn tại trên author_medals, đúng điều kiện lọc theo is_visible + author còn public'
+  );
+  perform public._tnc_test_assert(
+    exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'medals' and policyname = 'Editors can insert medals'),
+    'RLS: policy "Editors can insert medals" tồn tại trên medals'
+  );
+  perform public._tnc_test_assert(
+    exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'author_medals' and policyname = 'Editors can insert author_medals'),
+    'RLS: policy "Editors can insert author_medals" tồn tại trên author_medals'
+  );
+
+  perform public._tnc_test_assert(
+    (select count(*) from public.permissions where module = 'medals' and action in ('view', 'create', 'edit', 'delete')) = 4,
+    'Permissions: module "medals" có đủ 4 action (view/create/edit/delete)'
+  );
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from public.role_permissions rp
+      join public.roles r on r.id = rp.role_id
+      join public.permissions p on p.id = rp.permission_id
+      where r.key = 'managing_editor' and p.key = 'medals.delete'
+    ),
+    'Role_permissions: managing_editor đã được cấp "medals.delete"'
+  );
+
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from information_schema.table_constraints
+      where table_schema = 'public' and table_name = 'author_medals'
+        and constraint_type = 'UNIQUE' and constraint_name = 'author_medals_unique_pair'
+    ),
+    'Constraint: author_medals_unique_pair (unique author_id+medal_id) tồn tại — 1 author không gán trùng 1 medal 2 lần'
+  );
+end $$;
+
 rollback to savepoint sp_part_c;
 
 -- Dọn hàm khẳng định dùng chung — không phải object tạm/session nên phải

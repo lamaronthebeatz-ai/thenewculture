@@ -768,9 +768,10 @@ def load_editors():
     ("tránh trang trống cho các tên chuyên mục như 'TNC Editorial'")."""
     rows = _supabase_get(
         "authors",
-        "select=slug,name,avatar_url,bio,role,honor,badges&deleted_at=is.null"
+        "select=id,slug,name,avatar_url,bio,role,honor,badges&deleted_at=is.null"
     )
     editors = {}
+    author_id_to_name = {}
     for row in rows:
         name = (row.get("name") or "").strip()
         if not name:
@@ -796,7 +797,45 @@ def load_editors():
             "role_id": role_id,
             "badge_ids": badge_ids,
             "honor_ids": honor_ids,
+            "medals": [],
         }
+        if row.get("id"):
+            author_id_to_name[row["id"]] = name
+
+    # Huân chương (Rev 16) — đọc author_medals (chỉ is_visible=true) join
+    # medals (master — RLS "Public read active medals" tự lọc is_active=true/
+    # chưa xoá; hàng không khớp trả về medal=null, bỏ qua an toàn bên dưới,
+    # không raise). Bọc try/except như mọi loader không bắt buộc khác (site
+    # phải build được kể cả khi bảng medals rỗng/tạm lỗi) — KHÔNG nằm trong
+    # nhóm loader bắt buộc (series/categories/articles/authors).
+    try:
+        medal_rows = _supabase_get(
+            "author_medals",
+            "select=author_id,sort_order,"
+            "medal:medals(id,name,short_description,detailed_description,alt_text,media:media_id(url))"
+            "&is_visible=eq.true&order=sort_order.asc"
+        )
+    except RuntimeError as e:
+        print(f"  ! Không tải được author_medals (Rev 16) — bỏ qua huân chương: {e}")
+        medal_rows = []
+    for row in medal_rows:
+        name = author_id_to_name.get(row.get("author_id"))
+        if not name:
+            continue
+        medal = row.get("medal")
+        if not medal:
+            continue  # medal đã bị ẩn/xoá (không qua nổi RLS public) — bỏ qua
+        image_url = (medal.get("media") or {}).get("url", "").strip()
+        if not image_url:
+            continue  # chưa gắn ảnh -> không đủ dữ liệu hiển thị an toàn
+        editors[name]["medals"].append({
+            "id": medal.get("id"),
+            "name": (medal.get("name") or "").strip(),
+            "short_description": (medal.get("short_description") or "").strip(),
+            "detailed_description": (medal.get("detailed_description") or "").strip(),
+            "alt_text": (medal.get("alt_text") or "").strip(),
+            "image_url": image_url,
+        })
     return editors
 
 # ----- Components: RoleChip / BadgeChip / HonorChip -----
@@ -861,6 +900,37 @@ def render_badge_overflow_chip(hidden_badge_ids):
         f'<span class="badge-chip__popover-desc">{desc}</span></span>'
         f'</span>'
     )
+
+def render_medal_chip(medal):
+    """MedalChip (Rev 16, Author Medals) — 1 huân chương: icon ảnh nhỏ (PNG/
+    WebP/GIF; GIF giữ nguyên hoạt ảnh vì chỉ in thẳng <img src>, không
+    convert/resize) + tooltip (hover, CSS thuần) + popover (tap/click). Tái
+    dùng NGUYÊN VẸN cơ chế click-toggle .is-open đã có cho BadgeChip/HonorChip
+    (xem querySelector '.badge-chip,.honor-chip,.medal-chip' trong footer())
+    — chỉ khác: nội dung/ảnh đọc từ dict đã build sẵn ở load_editors() (bảng
+    medals/author_medals), không tra registry tĩnh như Badge/Honor."""
+    if not medal.get("image_url"):
+        return ""
+    name = medal.get("name", "")
+    alt = medal.get("alt_text") or name
+    tooltip = medal.get("short_description") or name
+    detail = medal.get("detailed_description") or medal.get("short_description") or ""
+    popover_desc_html = f'<span class="medal-chip__popover-desc">{_esc(detail)}</span>' if detail else ""
+    return (
+        f'<span class="medal-chip" tabindex="0">'
+        f'<img class="medal-chip__icon" src="{medal["image_url"]}" alt="{_esc(alt)}" loading="lazy">'
+        f'<span class="medal-chip__tooltip">{_esc(tooltip)}</span>'
+        f'<span class="medal-chip__popover">'
+        f'<span class="medal-chip__popover-name">{_esc(name)}</span>'
+        f'{popover_desc_html}'
+        f'</span>'
+        f'</span>'
+    )
+
+def render_medals_html(medals):
+    """Danh sách MedalChip liên tiếp cho 1 author — dùng chung cho author-box
+    (cuối bài) và trang hồ sơ. Trả '' nếu rỗng (render only if data exists)."""
+    return "".join(render_medal_chip(m) for m in medals)
 
 EDITORS = load_editors()
 
@@ -2564,16 +2634,17 @@ if('serviceWorker' in navigator){
     });
   }
 })();
-// BadgePopover: bấm vào BadgeChip/HonorChip để mở popover chi tiết (nhóm/độ
-// hiếm/mô tả) — bấm lại hoặc bấm ra ngoài để đóng. Tooltip (hover) xử lý
-// thuần bằng CSS, không cần JS.
+// BadgePopover: bấm vào BadgeChip/HonorChip/MedalChip (Rev 16) để mở popover
+// chi tiết (nhóm/độ hiếm/mô tả, hoặc tên+mô tả huân chương) — bấm lại hoặc
+// bấm ra ngoài để đóng. Tooltip (hover, desktop) xử lý thuần bằng CSS; tap
+// (mobile) dùng đúng cơ chế click-toggle này, không cần xử lý riêng.
 (function(){
   var openChip=null;
   function closeOpen(){
     if(openChip){openChip.classList.remove('is-open');openChip=null;}
   }
   document.addEventListener('click',function(e){
-    var chip=e.target.closest('.badge-chip,.honor-chip');
+    var chip=e.target.closest('.badge-chip,.honor-chip,.medal-chip');
     if(chip){
       var wasOpen=chip.classList.contains('is-open');
       closeOpen();
@@ -2606,13 +2677,14 @@ if('serviceWorker' in navigator){
   }
   selects.forEach(function(s){s.addEventListener('change',apply);});
 })();
-// Author Card (PR4.1): cả khung .author-box là 1 link tới trang hồ sơ, nhưng
-// BadgeChip/HonorChip bên trong cần click độc lập để mở đúng BadgePopover
-// hiện có (không điều hướng nhầm sang trang hồ sơ). Không đổi BadgePopover/
-// BadgeTooltip hiện có — chỉ chặn hành vi điều hướng mặc định của <a> bao
-// ngoài khi click trúng chip, ở capture phase (chạy trước khi <a> điều hướng).
+// Author Card (PR4.1, +MedalChip Rev 16): cả khung .author-box là 1 link tới
+// trang hồ sơ, nhưng BadgeChip/HonorChip/MedalChip bên trong cần click độc
+// lập để mở đúng BadgePopover hiện có (không điều hướng nhầm sang trang hồ
+// sơ). Không đổi BadgePopover/BadgeTooltip hiện có — chỉ chặn hành vi điều
+// hướng mặc định của <a> bao ngoài khi click trúng chip, ở capture phase
+// (chạy trước khi <a> điều hướng).
 document.addEventListener('click',function(e){
-  var chip=e.target.closest('.author-box .badge-chip,.author-box .honor-chip');
+  var chip=e.target.closest('.author-box .badge-chip,.author-box .honor-chip,.author-box .medal-chip');
   if(chip) e.preventDefault();
 },true);
 </script>
@@ -2727,6 +2799,11 @@ def author_bio_box_html(author_name):
     badges_html = "".join(render_badge_chip(b) for b in badge_ids[:3]) + render_badge_overflow_chip(badge_ids[3:])
     badges_section = f'<div class="author-box__badges">{badges_html}</div>' if badges_html else ""
 
+    # Huân chương (Rev 16): nhỏ/tinh gọn, đặt sau badges — không đổi bố cục
+    # author-box hiện có, chỉ thêm 1 hàng icon nếu author có huân chương.
+    medals_html = render_medals_html(ed.get("medals", []))
+    medals_section = f'<div class="author-box__medals">{medals_html}</div>' if medals_html else ""
+
     return f"""
     <div class="container" style="max-width:680px;">
       <a class="author-box" href="{author_url(author_name)}" aria-label="Xem hồ sơ biên tập viên {author_name}">
@@ -2737,6 +2814,7 @@ def author_bio_box_html(author_name):
           <div class="author-box__role">{role_chip_html}</div>
           {honor_section}
           {badges_section}
+          {medals_section}
           <p class="author-box__bio">{ed['bio']}</p>
         </div>
       </a>
@@ -4168,10 +4246,14 @@ def render_author_page(name, arts, intel, nav_editors=(None, None)):
     honors_section = f'<div class="editor-honors">{honors_html}</div>' if honors_html else ""
     badges_html = "".join(render_badge_chip(b) for b in ed.get("badge_ids", []))
     badges_section = f'<div class="editor-badges">{badges_html}</div>' if badges_html else ""
+    # Huân chương (Rev 16): cùng khối "Thành tựu" với Honors/Badges — nhỏ/
+    # tinh gọn, không redesign Hero hiện có.
+    medals_html = render_medals_html(ed.get("medals", []))
+    medals_section = f'<div class="editor-medals">{medals_html}</div>' if medals_html else ""
     # PR4: bọc chung Honors+Badges (nguyên markup/CSS PR2, không đổi) trong 1
     # khối có id="thanh-tuu" để mục điều hướng nhanh "Thành tựu" có nơi nhảy tới.
-    achievements_section = (f'<div id="thanh-tuu" tabindex="-1">{honors_section}{badges_section}</div>'
-                             if (honors_section or badges_section) else "")
+    achievements_section = (f'<div id="thanh-tuu" tabindex="-1">{honors_section}{badges_section}{medals_section}</div>'
+                             if (honors_section or badges_section or medals_section) else "")
 
     # Bài viết gần đây: giữ nguyên vòng lặp qua `arts` — chỉ thêm data-* cho
     # bộ lọc PR4 (Series/Chuyên mục/Năm), không đổi nội dung/thứ tự hiển thị.
