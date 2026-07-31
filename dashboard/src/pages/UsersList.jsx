@@ -26,7 +26,12 @@ export default function UsersList() {
     let query = supabase
       .from("dashboard_users")
       .select(
-        "id, username, display_name, avatar_url, email, status, provider, last_login_at, created_at, deleted_at, role:roles(id, name), department:departments(name), team:teams(name)",
+        // roles!dashboard_users_role_id_fkey — Rev 15 (v2.2) thêm bảng
+        // user_roles (multi-role) tạo thêm 1 đường quan hệ nhiều-nhiều giữa
+        // dashboard_users và roles, khiến embed ngầm định "roles(id, name)"
+        // trở nên mơ hồ (PostgREST: "more than one relationship was found")
+        // — chỉ rõ đi qua FK role_id (cột chính, không phải qua user_roles).
+        "id, username, display_name, avatar_url, email, status, provider, last_login_at, created_at, deleted_at, role:roles!dashboard_users_role_id_fkey(id, name), department:departments(name), team:teams(name)",
         { count: "exact" },
       )
       .order("created_at", { ascending: false })
