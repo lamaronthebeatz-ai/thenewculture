@@ -3034,25 +3034,6 @@ def render_index():
       </a>"""
         latest_count += 1
 
-    # video (tối đa 3, an toàn khi ít bài)
-    _durs = ["38:12", "24:50", "45:03"]
-    vids = [(_get(i), _durs[i], None) for i in range(min(3, len(ARTICLES)))]
-    video_html = ""
-    for a, dur, _ in vids:
-        if not a:
-            continue
-        s = SERIES_BY_SLUG[a["series"]]
-        video_html += f"""
-      <a class="video-card" href="{article_url(a['slug'])}">
-        <div class="media media--16-9">
-          <div class="media__zoom"></div>
-          <div class="play"><span></span></div>
-          <span class="dur">{dur}</span>
-        </div>
-        <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
-        <h3>{_esc(a['title'])}</h3>
-      </a>"""
-
     html = head("The New Culture - Tạp chí âm nhạc đương đại đầu tiên tại Việt Nam", append_site_name=False) + masthead()
     html += render_gif_hero()
     html += render_spotify_block()
@@ -3099,12 +3080,6 @@ def render_index():
     </div>
   </section>
 {render_homepage_ad_block()}
-  <section class="section container js-reveal">
-    <div class="section-head"><h2>Video</h2><a class="more" href="video.html" id="video">Tất cả tập →</a></div>
-    <div class="video-row">{video_html}
-    </div>
-  </section>
-
   <section class="section container js-reveal">
     <div class="section-head"><h2>Mới đăng</h2><a class="more" href="all-series.html">Xem thêm →</a></div>
     <div class="grid grid-3">{latest}
