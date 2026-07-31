@@ -402,6 +402,71 @@ button {
   border-color: var(--brand-dark);
 }
 
+/* ---------- Author Medals (Rev 16) ---------- */
+.author-medals__list {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.author-medals__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.author-medals__item.is-hidden {
+  opacity: 0.55;
+}
+
+.author-medals__thumb {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  object-fit: contain;
+  background: var(--brand-dark, #111);
+  flex: none;
+}
+
+.author-medals__thumb--empty {
+  border: 1px dashed var(--border);
+}
+
+.author-medals__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.author-medals__name {
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.author-medals__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.author-medals__add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
 details summary {
   cursor: pointer;
   font-size: 13px;
