@@ -198,6 +198,7 @@ This is where the culture links up ⬆️</p>
           <div class="author-box__role"><span class="role-chip">Tổng Biên tập</span></div>
           <div class="author-box__honor"><span class="honor-chip honor-chip--huyen-thoai" style="--chip-color:#FFD700;" tabindex="0">Người Sáng lập<span class="badge-chip__tooltip">Vinh danh người đã khai sinh The New Culture, đặt nền móng cho toàn bộ hệ thống biên tập.</span><span class="badge-chip__popover"><span class="badge-chip__popover-rarity">Huyền thoại</span><span class="badge-chip__popover-desc">Vinh danh người đã khai sinh The New Culture, đặt nền móng cho toàn bộ hệ thống biên tập.</span></span></span></div>
           <div class="author-box__badges"><span class="badge-chip badge-chip--xuat-sac" style="--chip-color:#D4AF37;" tabindex="0">Kiến trúc Nền tảng<span class="badge-chip__tooltip">Xây dựng cấu trúc biên tập/tuyến nội dung cốt lõi của toà soạn.</span><span class="badge-chip__popover"><span class="badge-chip__popover-category">Sáng lập</span><span class="badge-chip__popover-rarity">Xuất sắc</span><span class="badge-chip__popover-desc">Xây dựng cấu trúc biên tập/tuyến nội dung cốt lõi của toà soạn.</span></span></span><span class="badge-chip badge-chip--xuat-sac" style="--chip-color:#D4AF37;" tabindex="0">Chuyên gia Hip-Hop<span class="badge-chip__tooltip">Kiến thức chuyên sâu, được công nhận về văn hóa hip-hop underground.</span><span class="badge-chip__popover"><span class="badge-chip__popover-category">Chuyên môn</span><span class="badge-chip__popover-rarity">Xuất sắc</span><span class="badge-chip__popover-desc">Kiến thức chuyên sâu, được công nhận về văn hóa hip-hop underground.</span></span></span><span class="badge-chip badge-chip--noi-bat" style="--chip-color:#3B82F6;" tabindex="0">Đại sứ Cộng đồng<span class="badge-chip__tooltip">Đại diện tích cực cho tiếng nói và giá trị của cộng đồng underground.</span><span class="badge-chip__popover"><span class="badge-chip__popover-category">Cộng đồng</span><span class="badge-chip__popover-rarity">Nổi bật</span><span class="badge-chip__popover-desc">Đại diện tích cực cho tiếng nói và giá trị của cộng đồng underground.</span></span></span></div>
+          
           <p class="author-box__bio">Founder & Editor-in-Chief của The New Culture. Theo dõi và ghi chép văn hóa hip-hop underground Việt Nam từ những ngày đầu.</p>
         </div>
       </a>
@@ -841,16 +842,17 @@ if('serviceWorker' in navigator){
     });
   }
 })();
-// BadgePopover: bấm vào BadgeChip/HonorChip để mở popover chi tiết (nhóm/độ
-// hiếm/mô tả) — bấm lại hoặc bấm ra ngoài để đóng. Tooltip (hover) xử lý
-// thuần bằng CSS, không cần JS.
+// BadgePopover: bấm vào BadgeChip/HonorChip/MedalChip (Rev 16) để mở popover
+// chi tiết (nhóm/độ hiếm/mô tả, hoặc tên+mô tả huân chương) — bấm lại hoặc
+// bấm ra ngoài để đóng. Tooltip (hover, desktop) xử lý thuần bằng CSS; tap
+// (mobile) dùng đúng cơ chế click-toggle này, không cần xử lý riêng.
 (function(){
   var openChip=null;
   function closeOpen(){
     if(openChip){openChip.classList.remove('is-open');openChip=null;}
   }
   document.addEventListener('click',function(e){
-    var chip=e.target.closest('.badge-chip,.honor-chip');
+    var chip=e.target.closest('.badge-chip,.honor-chip,.medal-chip');
     if(chip){
       var wasOpen=chip.classList.contains('is-open');
       closeOpen();
@@ -883,13 +885,14 @@ if('serviceWorker' in navigator){
   }
   selects.forEach(function(s){s.addEventListener('change',apply);});
 })();
-// Author Card (PR4.1): cả khung .author-box là 1 link tới trang hồ sơ, nhưng
-// BadgeChip/HonorChip bên trong cần click độc lập để mở đúng BadgePopover
-// hiện có (không điều hướng nhầm sang trang hồ sơ). Không đổi BadgePopover/
-// BadgeTooltip hiện có — chỉ chặn hành vi điều hướng mặc định của <a> bao
-// ngoài khi click trúng chip, ở capture phase (chạy trước khi <a> điều hướng).
+// Author Card (PR4.1, +MedalChip Rev 16): cả khung .author-box là 1 link tới
+// trang hồ sơ, nhưng BadgeChip/HonorChip/MedalChip bên trong cần click độc
+// lập để mở đúng BadgePopover hiện có (không điều hướng nhầm sang trang hồ
+// sơ). Không đổi BadgePopover/BadgeTooltip hiện có — chỉ chặn hành vi điều
+// hướng mặc định của <a> bao ngoài khi click trúng chip, ở capture phase
+// (chạy trước khi <a> điều hướng).
 document.addEventListener('click',function(e){
-  var chip=e.target.closest('.author-box .badge-chip,.author-box .honor-chip');
+  var chip=e.target.closest('.author-box .badge-chip,.author-box .honor-chip,.author-box .medal-chip');
   if(chip) e.preventDefault();
 },true);
 </script>
