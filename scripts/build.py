@@ -3057,17 +3057,22 @@ def select_hero_articles(articles, count=3):
         hero += rest[: count - len(hero)]
     return hero
 
-def render_index():
+def _compute_homepage_ctx():
+    """Dữ liệu tính 1 LẦN, dùng chung cho mọi khối trang chủ (Hero/Tin nổi
+    bật/Bài viết mới...) — đúng yêu cầu hiệu năng "không query lặp" của Rev
+    17 (Layout Builder). Tách riêng khỏi render_index()/render_homepage_blocks()
+    để cả 2 đường render (Block Engine và fallback hardcode) dùng chung
+    đúng 1 logic chọn Hero/Cover Story, không lệch nhau."""
     # Hero trang chủ: luôn đúng 3 bài, chọn theo hero_priority rồi mới nhất
     # (select_hero_articles — đã tự loại trùng, không cần lọc thêm ở đây).
     slide_articles = select_hero_articles(ARTICLES)
 
     # Câu chuyện nổi bật (Cover Story): TRƯỚC ĐÂY cố định lấy đúng bài thứ 5
-    # theo sort_order thủ công, không bao giờ đổi
-    # trừ khi biên tập viên tự sắp lại sort_order, kể cả khi có bài mới hoặc
-    # bài được đánh dấu "featured" — đây là lý do khối này "đứng yên" theo
-    # thời gian. Sửa: ưu tiên bài featured=true MỚI NHẤT (theo published_at
-    # thật, tái dùng _parse_vn_date — cùng cách "mới nhất trước" đã dùng cho
+    # theo sort_order thủ công, không bao giờ đổi trừ khi biên tập viên tự
+    # sắp lại sort_order, kể cả khi có bài mới hoặc bài được đánh dấu
+    # "featured" — đây là lý do khối này "đứng yên" theo thời gian. Sửa: ưu
+    # tiên bài featured=true MỚI NHẤT (theo published_at thật, tái dùng
+    # _parse_vn_date — cùng cách "mới nhất trước" đã dùng cho
     # select_hero_articles ở trên, không phát minh lại logic ngày tháng);
     # nếu chưa bài nào được đánh dấu featured, dùng bài mới nhất nói chung.
     # Loại trừ các bài đã dùng cho Hero slide để không lặp lại ngay bên dưới.
@@ -3084,9 +3089,22 @@ def render_index():
         feat = max(feat_pool, key=lambda a: _parse_vn_date(a["date"]))
     else:
         feat = None
+    return {"slide_articles": slide_articles, "feat": feat}
+
+
+def _render_hardcoded_homepage_body(ctx):
+    """Fallback BẮT BUỘC (Rev 17): thân trang chủ y HỆT bản hardcode trước
+    Layout Builder — dùng khi chưa có page_layouts active cho 'homepage'
+    (site mới/CSDL chưa migrate) hoặc load_page_layout() lỗi. Không được sửa
+    nội dung hàm này để khác với các hàm _render_block_* — 2 bên PHẢI tạo ra
+    HTML tương đương (đã verify bằng build.py chạy qua mock PostgREST, xem
+    báo cáo Rev 17), giữ hàm riêng ở đây là để có 1 bản KHÔNG BAO GIỜ đổi
+    theo cấu hình Layout Builder, đảm bảo đúng yêu cầu "chưa có dữ liệu thì
+    render giống hệt production hiện tại"."""
+    slide_articles = ctx["slide_articles"]
+    feat = ctx["feat"]
     fs = SERIES_BY_SLUG[feat["series"]] if feat else None
 
-    # trending: 6 bài
     trending = ""
     for i, a in enumerate(ARTICLES[:6], 1):
         s = SERIES_BY_SLUG[a["series"]]
@@ -3099,7 +3117,6 @@ def render_index():
         </div>
       </a>"""
 
-    # series grid (16 cells)
     cells = ""
     for s in SERIES:
         cells += f"""
@@ -3109,12 +3126,6 @@ def render_index():
         <p>{s['desc']}</p>
       </a>"""
 
-    # latest grid (6 bài, loại trừ bài đã dùng làm Cover Story để không trùng lặp).
-    # TRƯỚC ĐÂY duyệt thẳng ARTICLES (thứ tự sort_order thủ công) — "Mới đăng"
-    # vì vậy không thật sự hiển thị bài mới đăng nhất, chỉ đứng yên theo
-    # sort_order cho tới khi biên tập viên tự sắp lại. Sửa: sắp theo
-    # published_at thật (mới nhất trước, dùng _parse_vn_date) để khối này
-    # tự động đổi khi có bài mới, đúng tên gọi "Mới đăng".
     latest_pool = sorted(ARTICLES, key=lambda a: _parse_vn_date(a["date"]), reverse=True)
     latest = ""
     latest_count = 0
@@ -3133,10 +3144,7 @@ def render_index():
       </a>"""
         latest_count += 1
 
-    html = head("The New Culture - Tạp chí âm nhạc đương đại đầu tiên tại Việt Nam", append_site_name=False) + masthead()
-    html += render_gif_hero()
-    html += render_spotify_block()
-    html += f"""
+    return f"""{render_gif_hero()}{render_spotify_block()}
 {render_hero_slideshow(slide_articles)}
 <main>
   <section class="section container cover-story js-reveal">
@@ -3180,6 +3188,383 @@ def render_index():
   </section>
 </main>
 """
+
+
+# ===================================================================
+# LAYOUT BUILDER (Rev 17) — Block Engine.
+#
+# 3 khái niệm tách biệt (xem migrate_rev17_layout_builder.sql):
+#   layout_block_types — Registry, CHỈ phục vụ Dashboard (form "Thêm Khối"/
+#     cấu hình tự sinh theo config_schema) — build.py KHÔNG đọc bảng này.
+#   page_layouts        — 1 "trang" có bố cục quản lý được (page_key).
+#   layout_blocks        — các Khối thật trong 1 page_layout (thứ tự/bật-tắt/
+#     hiển thị theo thiết bị/điều kiện/lịch chạy/cấu hình riêng).
+#
+# BLOCK_RENDERERS ánh xạ block_type_key -> hàm Python render — đây là "nửa
+# code" của kiến trúc plugin (nửa dữ liệu là layout_block_types ở Dashboard).
+# Đăng ký 1 module tương lai = thêm 1 hàng layout_block_types (Dashboard,
+# không cần deploy) + thêm 1 hàm ở đây (cần deploy) — build.py không có cách
+# nào sinh HTML tuỳ ý từ thuần dữ liệu (trừ custom_html/custom_markdown).
+# ===================================================================
+
+def _render_block_gif_hero(block, ctx):
+    return render_gif_hero()
+
+def _render_block_spotify(block, ctx):
+    return render_spotify_block()
+
+def _render_block_hero(block, ctx):
+    return render_hero_slideshow(ctx["slide_articles"])
+
+def _render_block_featured_story(block, ctx):
+    """Tin nổi bật — mặc định dùng ctx['feat'] (xem _compute_homepage_ctx).
+    config.manual_slug (tuỳ chọn): ghim tay 1 bài cụ thể, bỏ qua logic tự
+    động — trả "" an toàn nếu slug không tồn tại/đã bị xoá thay vì lỗi."""
+    cfg = block.get("config") or {}
+    manual_slug = (cfg.get("manual_slug") or "").strip()
+    feat = None
+    if manual_slug:
+        feat = ARTICLES_BY_SLUG.get(manual_slug)
+    if not feat:
+        feat = ctx.get("feat")
+    if not feat:
+        return ""
+    fs = SERIES_BY_SLUG[feat["series"]]
+    return f"""
+  <section class="section container cover-story js-reveal">
+    <div class="section-head"><h2>Câu chuyện nổi bật</h2></div>
+    <div class="feature">
+      <a href="{article_url(feat['slug'])}" aria-hidden="true" tabindex="-1">
+        <div class="media media--16-9">{zoom(feat)}<span class="archive-code">{art_code(feat)}</span></div>
+      </a>
+      <div>
+        <span class="eyebrow eyebrow{fs['accent']}">{fs['name']}</span>
+        <h2><a href="{article_url(feat['slug'])}">{feat['title']}</a></h2>
+        <p>{feat['dek']}</p>
+        <a class="btn btn--ghost" href="{article_url(feat['slug'])}">Đọc bài</a>
+      </div>
+    </div>
+  </section>"""
+
+def _render_block_magazine(block, ctx):
+    return render_homepage_magazine_block()
+
+def _render_block_trending(block, ctx):
+    cfg = block.get("config") or {}
+    try:
+        limit = max(1, int(cfg.get("limit") or 6))
+    except (TypeError, ValueError):
+        limit = 6
+    trending = ""
+    for i, a in enumerate(ARTICLES[:limit], 1):
+        s = SERIES_BY_SLUG[a["series"]]
+        trending += f"""
+      <a class="trending__item" href="{article_url(a['slug'])}">
+        <span class="trending__num">{i:02d}</span>
+        <div>
+          <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
+          <h3>{_esc(a['title'])}</h3>
+        </div>
+      </a>"""
+    if not trending:
+        return ""
+    return f"""
+  <section class="trending container js-reveal">
+    <div class="section-head"><h2>Đang được quan tâm</h2></div>
+    <div class="trending__grid">{trending}
+    </div>
+  </section>"""
+
+def _render_block_ranking_spotlight(block, ctx):
+    return render_ranking_spotlight()
+
+def _render_block_profiles_homepage(block, ctx):
+    return render_profiles_homepage_block()
+
+def _render_block_community_homepage(block, ctx):
+    return render_community_homepage_block()
+
+def _render_block_series_grid(block, ctx):
+    if not SERIES:
+        return ""
+    cells = ""
+    for s in SERIES:
+        cells += f"""
+      <a class="series-cell" href="{series_url(s['slug'])}">
+        <span class="series-cell__code">{s['code']} · {s['num']}</span>
+        <h3>{s['name']}</h3>
+        <p>{s['desc']}</p>
+      </a>"""
+    return f"""
+  <section class="series-band js-reveal">
+    <div class="container">
+      <div class="section-head">
+        <h2>Series</h2>
+        <a class="more" href="all-series.html">16 tuyến nội dung — bản đồ tri thức TNC</a>
+      </div>
+      <div class="series-grid">{cells}
+      </div>
+    </div>
+  </section>"""
+
+def _render_block_homepage_ad(block, ctx):
+    return render_homepage_ad_block()
+
+def _render_block_latest_articles(block, ctx):
+    """"Bài viết mới" — khối cờ đầu, cấu hình đầy đủ theo config_schema
+    (migrate_rev17): nguồn dữ liệu/số lượng/cột/hiển thị ảnh-mô tả-ngày.
+    Config rỗng (mặc định seed) tái tạo ĐÚNG hành vi "Mới đăng" cũ — đã
+    verify bằng build.py qua mock PostgREST (xem báo cáo Rev 17)."""
+    cfg = block.get("config") or {}
+    # Mặc định "Mới đăng" — ĐÚNG tiêu đề khối này đang hiện trên production
+    # (khác "Bài viết mới", chỉ là label của block TYPE trong Danh mục Khối/
+    # "Thêm Khối", xem migrate_rev17_layout_builder.sql — 2 chuỗi khác mục
+    # đích, không được lẫn) — đảm bảo config rỗng (seed mặc định) render y
+    # hệt "Mới đăng" cũ, không đổi tiêu đề ngoài ý muốn.
+    title = (cfg.get("title") or "Mới đăng").strip()
+    data_source = cfg.get("data_source") or "latest"
+    try:
+        limit = max(1, int(cfg.get("limit") or 6))
+    except (TypeError, ValueError):
+        limit = 6
+    try:
+        columns_desktop = max(1, int(cfg.get("columns_desktop") or 3))
+    except (TypeError, ValueError):
+        columns_desktop = 3
+    try:
+        columns_mobile = max(1, int(cfg.get("columns_mobile") or 1))
+    except (TypeError, ValueError):
+        columns_mobile = 1
+    show_image = cfg.get("show_image", True)
+    show_excerpt = cfg.get("show_excerpt", False)
+    show_date = cfg.get("show_date", True)
+
+    exclude_slug = ctx["feat"]["slug"] if ctx.get("feat") else None
+    pool = [a for a in ARTICLES if a["slug"] != exclude_slug]
+
+    if data_source == "manual":
+        by_slug = {a["slug"]: a for a in pool}
+        picked = [by_slug[s] for s in (cfg.get("manual_slugs") or []) if s in by_slug][:limit]
+    elif data_source == "by_series":
+        series_slug = cfg.get("series_slug") or ""
+        picked = sorted(
+            (a for a in pool if a["series"] == series_slug),
+            key=lambda a: _parse_vn_date(a["date"]), reverse=True,
+        )[:limit]
+    elif data_source == "by_category":
+        category_slug = cfg.get("category_slug") or ""
+        picked = sorted(
+            (a for a in pool if a["category"] == category_slug),
+            key=lambda a: _parse_vn_date(a["date"]), reverse=True,
+        )[:limit]
+    elif data_source == "by_tag":
+        tag = (cfg.get("tag") or "").strip().lower()
+        picked = sorted(
+            (a for a in pool if tag and tag in [t.lower() for t in a.get("tags", [])]),
+            key=lambda a: _parse_vn_date(a["date"]), reverse=True,
+        )[:limit] if tag else []
+    elif data_source == "random":
+        import random
+        picked = random.sample(pool, min(limit, len(pool))) if pool else []
+    elif data_source == "most_viewed":
+        # "Xem nhiều" cần cột view_count (Phase 6, CHƯA triển khai) — tạm
+        # fallback về "Mới nhất" cho tới khi có, không bịa số liệu giả.
+        picked = sorted(pool, key=lambda a: _parse_vn_date(a["date"]), reverse=True)[:limit]
+    else:  # "latest" (mặc định)
+        picked = sorted(pool, key=lambda a: _parse_vn_date(a["date"]), reverse=True)[:limit]
+
+    if not picked:
+        return ""
+
+    cards = ""
+    for a in picked:
+        s = SERIES_BY_SLUG[a["series"]]
+        # media_line/excerpt_line: chỉ chèn dòng riêng khi field bật — để
+        # trống khi tắt (thay vì luôn có 1 dòng rỗng ở đúng vị trí) mới khớp
+        # byte-for-byte với "Mới đăng" cũ lúc show_image=true/show_excerpt=false
+        # (mặc định) — đã verify bằng build.py qua mock PostgREST.
+        media_line = (
+            f'\n        <div class="media media--3-2">{zoom(a)}<span class="archive-code">{art_code(a)}</span></div>'
+            if show_image else ""
+        )
+        excerpt_line = f'\n        <p class="card__excerpt">{_esc(a["dek"])}</p>' if show_excerpt else ""
+        byline = f'{a["author"]} · {a["date"]}' if show_date else a["author"]
+        cards += f"""
+      <a class="card" href="{article_url(a['slug'])}">{media_line}
+        <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
+        <h3>{_esc(a['title'])}</h3>{excerpt_line}
+        <span class="byline">{byline}</span>
+      </a>"""
+
+    # columns_desktop=3/columns_mobile=1 (mặc định) -> tái dùng NGUYÊN class
+    # .grid-3 cũ (parity byte-for-byte với "Mới đăng" trước đây); chỉ khi
+    # biên tập viên đổi số cột mới cần cơ chế CSS biến số tổng quát
+    # (.layout-grid-cols, xem style.css) — 2 giá trị .grid-3/.grid-4 hardcode
+    # trước đây không có sẵn cho số cột tuỳ ý.
+    if columns_desktop == 3 and columns_mobile == 1:
+        grid_attrs = ' class="grid grid-3"'
+    else:
+        grid_attrs = f' class="grid layout-grid-cols" style="--lb-cols-desktop:{columns_desktop};--lb-cols-mobile:{columns_mobile};"'
+
+    return f"""
+  <section class="section container js-reveal">
+    <div class="section-head"><h2>{_esc(title)}</h2><a class="more" href="archive.html">Xem thêm →</a></div>
+    <div{grid_attrs}>{cards}
+    </div>
+  </section>"""
+
+def _render_block_custom_html(block, ctx):
+    """HTML tùy chỉnh — in THẲNG, không escape (đây là mục đích của khối:
+    nhúng iframe/widget tuỳ ý). Ranh giới an toàn nằm ở RLS: chỉ tài khoản có
+    quyền 'layout.edit'/'layout.create' (managing_editor/editor/admin) mới
+    ghi được vào layout_blocks.config — cùng mức tin cậy đã áp dụng cho
+    Spotify/YouTube embed trong nội dung bài viết, KHÔNG áp dụng cho input
+    công khai nào."""
+    cfg = block.get("config") or {}
+    raw = (cfg.get("html") or "").strip()
+    if not raw:
+        return ""
+    return f"""
+  <section class="container layout-custom-block js-reveal">{raw}
+  </section>"""
+
+def _render_block_custom_markdown(block, ctx):
+    """Markdown tùy chỉnh — tái dùng NGUYÊN VẸN _md_body_to_blocks()/
+    render_body_blocks() đã có cho nội dung bài viết, không viết lại
+    converter thứ 2."""
+    cfg = block.get("config") or {}
+    raw = (cfg.get("markdown") or "").strip()
+    if not raw:
+        return ""
+    inner = render_body_blocks(_md_body_to_blocks(raw))
+    if not inner.strip():
+        return ""
+    return f"""
+  <section class="container layout-custom-block js-reveal">
+    {inner}
+  </section>"""
+
+BLOCK_RENDERERS = {
+    "gif_hero": _render_block_gif_hero,
+    "spotify": _render_block_spotify,
+    "hero": _render_block_hero,
+    "featured_story": _render_block_featured_story,
+    "magazine": _render_block_magazine,
+    "trending": _render_block_trending,
+    "ranking_spotlight": _render_block_ranking_spotlight,
+    "profiles_homepage": _render_block_profiles_homepage,
+    "community_homepage": _render_block_community_homepage,
+    "series_grid": _render_block_series_grid,
+    "homepage_ad": _render_block_homepage_ad,
+    "latest_articles": _render_block_latest_articles,
+    "custom_html": _render_block_custom_html,
+    "custom_markdown": _render_block_custom_markdown,
+}
+
+def load_page_layout(page_key):
+    """Đọc 1 page_layout đang active + toàn bộ layout_blocks is_enabled=true
+    (chưa xoá), sắp theo sort_order rồi priority giảm dần (tie-break khi
+    trùng sort_order — xem ghi chú cột priority trong migration). Trả về:
+      - None  nếu CHƯA CÓ page_layouts active nào cho page_key (site mới/
+        CSDL chưa chạy Rev 17, hoặc bảng tạm lỗi) -> nơi gọi PHẢI fallback
+        về render hardcode, đúng yêu cầu bắt buộc "chưa có dữ liệu thì
+        render giống hệt production hiện tại".
+      - []    nếu page_layout tồn tại nhưng biên tập viên đã chủ động xoá
+        hết khối — tôn trọng lựa chọn đó, KHÔNG fallback (khác "chưa có dữ
+        liệu"), main sẽ trống thay vì hiện lại bố cục cũ ngoài ý muốn.
+      - list các dict layout_blocks nếu có dữ liệu thật."""
+    try:
+        layouts = _supabase_get(
+            "page_layouts",
+            f"select=id&page_key=eq.{page_key}&is_active=eq.true&deleted_at=is.null&limit=1"
+        )
+    except RuntimeError as e:
+        print(f"  ! Không tải được page_layouts (Rev 17) cho '{page_key}' — dùng bố cục mặc định: {e}")
+        return None
+    if not layouts:
+        return None
+    layout_id = layouts[0]["id"]
+    try:
+        blocks = _supabase_get(
+            "layout_blocks",
+            "select=id,block_type_key,sort_order,priority,visibility,visibility_condition,starts_at,ends_at,config"
+            f"&page_layout_id=eq.{layout_id}&is_enabled=eq.true&deleted_at=is.null"
+            "&order=sort_order.asc,priority.desc"
+        )
+    except RuntimeError as e:
+        print(f"  ! Không tải được layout_blocks (Rev 17) cho '{page_key}' — dùng bố cục mặc định: {e}")
+        return None
+    return blocks
+
+def _block_condition_met(block):
+    """'date_range': so sánh thời gian build (UTC) với starts_at/ends_at.
+    Các điều kiện còn lại ('always'/'manual_toggle'/'has_content'/
+    'has_promotion'/'has_magazine_issue'/'has_membership') không cần nhánh
+    riêng — MỌI hàm _render_block_* (và các render_* nó gọi) đã tự trả ""
+    khi thiếu dữ liệu (nguyên tắc "render only if data exists" toàn bộ
+    codebase); render_homepage_blocks() bỏ qua khối có kết quả rỗng, nên 4
+    điều kiện "has_*" tự động đúng nghĩa mà không cần code riêng cho từng cái."""
+    if (block.get("visibility_condition") or "always") != "date_range":
+        return True
+    import datetime
+    now = datetime.datetime.now(datetime.timezone.utc)
+    starts_at = block.get("starts_at")
+    ends_at = block.get("ends_at")
+    if starts_at and now < datetime.datetime.fromisoformat(starts_at.replace("Z", "+00:00")):
+        return False
+    if ends_at and now > datetime.datetime.fromisoformat(ends_at.replace("Z", "+00:00")):
+        return False
+    return True
+
+def _wrap_block_visibility(html, visibility, block_type_key):
+    """'desktop'/'mobile': website tĩnh không thể render 2 bản HTML khác
+    nhau theo thiết bị lúc build — bọc div + class CSS ẩn theo @media (xem
+    .layout-block--desktop-only/--mobile-only trong style.css) thay vì lược
+    bỏ HTML, đã xác nhận không có CSS/JS nào phụ thuộc vị trí lồng của các
+    khối (không có selector 'main > ...')."""
+    if not html:
+        return ""
+    if visibility == "hidden":
+        return ""
+    if visibility == "desktop":
+        return f'\n  <div class="layout-block layout-block--desktop-only" data-block="{block_type_key}">{html}\n  </div>'
+    if visibility == "mobile":
+        return f'\n  <div class="layout-block layout-block--mobile-only" data-block="{block_type_key}">{html}\n  </div>'
+    return html
+
+def render_homepage_blocks(ctx):
+    """Dispatcher (Rev 17): Đọc Bố cục -> Đọc Danh sách Khối -> Sắp xếp (đã
+    ORDER BY ở load_page_layout) -> Dispatcher (BLOCK_RENDERERS) -> Render.
+    Trả None nếu chưa có Layout Builder data (nơi gọi tự fallback hardcode);
+    trả chuỗi HTML (có thể rỗng) nếu đã có page_layout active."""
+    blocks = load_page_layout("homepage")
+    if blocks is None:
+        return None
+    parts = []
+    for block in blocks:
+        key = block.get("block_type_key")
+        renderer = BLOCK_RENDERERS.get(key)
+        if not renderer:
+            # block_type_key có trong registry (Dashboard) nhưng chưa có hàm
+            # render Python tương ứng (chưa deploy) -> bỏ qua an toàn, không
+            # crash toàn bộ trang chủ vì 1 khối chưa hỗ trợ.
+            continue
+        if not _block_condition_met(block):
+            continue
+        html = renderer(block, ctx)
+        parts.append(_wrap_block_visibility(html, block.get("visibility") or "all", key))
+    return "<main>\n" + "".join(parts) + "\n</main>\n" if parts else "<main></main>\n"
+
+
+def render_index():
+    ctx = _compute_homepage_ctx()
+    html = head("The New Culture - Tạp chí âm nhạc đương đại đầu tiên tại Việt Nam", append_site_name=False) + masthead()
+
+    body = render_homepage_blocks(ctx)
+    if body is None:
+        body = _render_hardcoded_homepage_body(ctx)
+    html += body
+
     html += newsletter() + footer()
     return html
 

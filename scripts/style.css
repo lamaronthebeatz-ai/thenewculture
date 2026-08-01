@@ -328,6 +328,23 @@ a:hover .media__zoom{transform:scale(1.04);box-shadow:inset 0 -120px 90px -50px 
 .card:hover h3{color:var(--c-red);}
 .card:active,.profile-card:active,.poster-card:active{transform:translateY(-1px) scale(0.99);}
 .card .byline{margin-top:auto;padding-top:var(--s-2);}
+.card__excerpt{color:var(--c-ink-2);font-size:var(--t-sm);line-height:1.5;margin-bottom:var(--s-2);}
+
+/* ----- Layout Builder (Rev 17) ------------------------------------------ */
+/* Số cột tuỳ chỉnh (Bài viết mới) — chỉ dùng khi biên tập viên đổi khác mặc
+   định 3 desktop/1 mobile (mặc định tái dùng thẳng .grid-3 có sẵn). */
+.layout-grid-cols{grid-template-columns:repeat(var(--lb-cols-desktop,3),1fr);}
+@media (max-width:768px){
+  .layout-grid-cols{grid-template-columns:repeat(var(--lb-cols-mobile,1),1fr);}
+}
+.layout-custom-block{margin-top:var(--s-9);}
+/* "Chỉ Desktop"/"Chỉ Mobile" (Layout Builder): site tĩnh render CẢ 2 bản
+   lúc build, ẩn theo thiết bị bằng CSS thuần — không có JS/network nào phụ
+   thuộc, an toàn cho SEO (crawler vẫn thấy nội dung, không ẩn kiểu cloaking
+   vì đây là hiển thị theo responsive, không phải theo user-agent). */
+.layout-block--desktop-only,.layout-block--mobile-only{display:contents;}
+@media (max-width:768px){.layout-block--desktop-only{display:none;}}
+@media (min-width:769px){.layout-block--mobile-only{display:none;}}
 
 /* 4.5 Section heading */
 .section{margin-top:var(--s-9);}

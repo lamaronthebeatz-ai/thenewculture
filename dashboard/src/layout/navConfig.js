@@ -32,6 +32,18 @@ export const NAV_GROUPS = [
       { to: "/footer", label: "Footer Builder", icon: "▁" },
     ],
   },
+  // Rev 17 (Phase 5) — Layout Builder: theo đúng yêu cầu "Dashboard phải
+  // thuần tiếng Việt" cho riêng module này (các nhóm khác giữ nguyên nhãn
+  // tiếng Anh hiện có, không đổi ngoài phạm vi yêu cầu).
+  {
+    key: "layout",
+    label: "Bố cục Website",
+    items: [
+      { to: "/layout/homepage", label: "Bố cục Trang chủ", icon: "◧", permission: "layout.view" },
+      { to: "/layout/pages", label: "Bố cục Trang", icon: "◨", permission: "layout.view" },
+      { to: "/layout/registry", label: "Danh mục Khối", icon: "▤", permission: "layout.view" },
+    ],
+  },
   {
     key: "media",
     label: "Media",
