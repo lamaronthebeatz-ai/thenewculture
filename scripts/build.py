@@ -1820,7 +1820,7 @@ def masthead(active=None):
 <header class="masthead">
   <div class="masthead__util">
     <div class="container">
-      <span>{TODAY_VN} · Sài Gòn</span>
+      <span id="mastheadDate">{TODAY_VN} · Sài Gòn</span>
       <div class="u-links">
         {quick_links_html}
       </div>
@@ -2656,6 +2656,29 @@ if('serviceWorker' in navigator){
   });
   document.addEventListener('keydown',function(e){if(e.key==='Escape')closeOpen();});
 })();
+// Masthead date (real-time): #mastheadDate được server-render sẵn 1 giá trị
+// tĩnh tại thời điểm build (TODAY_VN, xem masthead()) — nếu site không được
+// build lại mỗi ngày, chuỗi này "đứng yên" theo ngày build cũ. Script này ghi
+// đè lại đúng ngày/thứ THẬT theo giờ Sài Gòn mỗi lần trang được mở (và làm
+// mới mỗi phút, phòng trường hợp mở tab qua nửa đêm) — không phụ thuộc build
+// lại site nữa. Bọc try/catch: nếu Intl.DateTimeFormat lỗi/không hỗ trợ
+// (trình duyệt rất cũ), giữ nguyên chuỗi server-render, không làm hỏng trang.
+(function(){
+  var el=document.getElementById('mastheadDate');
+  if(!el) return;
+  var THU={Sunday:'Chủ Nhật',Monday:'Thứ Hai',Tuesday:'Thứ Ba',Wednesday:'Thứ Tư',Thursday:'Thứ Năm',Friday:'Thứ Sáu',Saturday:'Thứ Bảy'};
+  function render(){
+    try{
+      var parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Ho_Chi_Minh',weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}).formatToParts(new Date());
+      var map={};
+      parts.forEach(function(p){map[p.type]=p.value;});
+      var thu=THU[map.weekday]||map.weekday;
+      el.textContent=thu+' · '+map.day+'.'+map.month+'.'+map.year+' · Sài Gòn';
+    }catch(e){/* giữ nguyên chuỗi server-render */}
+  }
+  render();
+  setInterval(render,60000);
+})();
 // Editor article filter (PR4): chỉ ẩn/hiện các hàng bài viết theo
 // data-series/data-year/data-categories đã render sẵn — không tính toán lại
 // bất kỳ số liệu biên tập nào (mọi số liệu vẫn do build.py sinh).
@@ -3041,11 +3064,33 @@ def render_index():
             return None
         return ARTICLES[i % len(ARTICLES)]
 
-    feat = _get(4); fs = SERIES_BY_SLUG[feat["series"]] if feat else None
-
     # Hero trang chủ: luôn đúng 3 bài, chọn theo hero_priority rồi mới nhất
     # (select_hero_articles — đã tự loại trùng, không cần lọc thêm ở đây).
     slide_articles = select_hero_articles(ARTICLES)
+
+    # Câu chuyện nổi bật (Cover Story): TRƯỚC ĐÂY cố định "feat = _get(4)"
+    # — luôn lấy đúng bài thứ 5 theo sort_order thủ công, không bao giờ đổi
+    # trừ khi biên tập viên tự sắp lại sort_order, kể cả khi có bài mới hoặc
+    # bài được đánh dấu "featured" — đây là lý do khối này "đứng yên" theo
+    # thời gian. Sửa: ưu tiên bài featured=true MỚI NHẤT (theo published_at
+    # thật, tái dùng _parse_vn_date — cùng cách "mới nhất trước" đã dùng cho
+    # select_hero_articles ở trên, không phát minh lại logic ngày tháng);
+    # nếu chưa bài nào được đánh dấu featured, dùng bài mới nhất nói chung.
+    # Loại trừ các bài đã dùng cho Hero slide để không lặp lại ngay bên dưới.
+    hero_slugs = {a["slug"] for a in slide_articles}
+    feat_pool = [a for a in ARTICLES if a["slug"] not in hero_slugs] or ARTICLES
+    featured_only = sorted(
+        (a for a in feat_pool if a.get("featured")),
+        key=lambda a: _parse_vn_date(a["date"]),
+        reverse=True,
+    )
+    if featured_only:
+        feat = featured_only[0]
+    elif feat_pool:
+        feat = max(feat_pool, key=lambda a: _parse_vn_date(a["date"]))
+    else:
+        feat = None
+    fs = SERIES_BY_SLUG[feat["series"]] if feat else None
 
     # Cột phải: 5 bài viết tiếp theo, không trùng với các bài đã dùng cho slide
     side = ""
@@ -3094,10 +3139,16 @@ def render_index():
         <p>{s['desc']}</p>
       </a>"""
 
-    # latest grid (6 bài, loại trừ bài đã dùng làm Cover Story để không trùng lặp)
+    # latest grid (6 bài, loại trừ bài đã dùng làm Cover Story để không trùng lặp).
+    # TRƯỚC ĐÂY duyệt thẳng ARTICLES (thứ tự sort_order thủ công) — "Mới đăng"
+    # vì vậy không thật sự hiển thị bài mới đăng nhất, chỉ đứng yên theo
+    # sort_order cho tới khi biên tập viên tự sắp lại. Sửa: sắp theo
+    # published_at thật (mới nhất trước, dùng _parse_vn_date) để khối này
+    # tự động đổi khi có bài mới, đúng tên gọi "Mới đăng".
+    latest_pool = sorted(ARTICLES, key=lambda a: _parse_vn_date(a["date"]), reverse=True)
     latest = ""
     latest_count = 0
-    for a in ARTICLES:
+    for a in latest_pool:
         if feat and a["slug"] == feat["slug"]:
             continue
         if latest_count >= 6:
