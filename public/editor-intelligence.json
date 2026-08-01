@@ -1,7 +1,7 @@
 {
   "Lamar": {
     "metrics": {
-      "article_count": 20,
+      "article_count": 21,
       "series_count": 8,
       "category_count": 43,
       "first_article": {
@@ -11,9 +11,9 @@
         "series": "tnc-origins"
       },
       "latest_article": {
-        "slug": "persona-la-gi-2",
-        "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 2)",
-        "date": "31 Tháng 7, 2026",
+        "slug": "persona-la-gi-3",
+        "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 3)",
+        "date": "1 Tháng 8, 2026",
         "series": "tnc-music-101"
       },
       "active_years": 1,
@@ -27,19 +27,25 @@
         "series": "tnc-music-101"
       },
       {
+        "slug": "persona-la-gi-3",
+        "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 3)",
+        "date": "1 Tháng 8, 2026",
+        "series": "tnc-music-101"
+      },
+      {
         "slug": "persona-la-gi",
         "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 1)",
         "date": "30 Tháng 7, 2026",
         "series": "tnc-music-101"
-      },
-      {
-        "slug": "dsk-khi-ua-con-cua-mat-troi-cat-tieng",
-        "title": "DSK: Khi \"đứa con của mặt trời\" cất tiếng",
-        "date": "19 Tháng 7, 2026",
-        "series": "tnc-origins"
       }
     ],
     "recent_articles": [
+      {
+        "slug": "persona-la-gi-3",
+        "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 3)",
+        "date": "1 Tháng 8, 2026",
+        "series": "tnc-music-101"
+      },
       {
         "slug": "persona-la-gi-2",
         "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 2)",
@@ -63,12 +69,6 @@
         "title": "GVR - Ký ức của một thế hệ rap Việt",
         "date": "19 Tháng 7, 2026",
         "series": "tnc-origins"
-      },
-      {
-        "slug": "amapiano-xu-huong-toan-cau-hay-chi-la-mot-con-song-ngan-tai-viet-nam",
-        "title": "Amapiano: Xu hướng toàn cầu hay chỉ là một cơn sóng ngắn tại Việt Nam?",
-        "date": "18 Tháng 7, 2026",
-        "series": "tnc-editorial"
       }
     ],
     "series": [
@@ -193,7 +193,7 @@
     "timeline": [
       {
         "year": 2026,
-        "count": 20,
+        "count": 21,
         "articles": [
           {
             "slug": "viet-dragon-vd-vi-vua-gangsta-rap-viet-nam-va-di-san-bat-diet-cua-viet-rap",
@@ -313,6 +313,12 @@
             "slug": "persona-la-gi-2",
             "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 2)",
             "date": "31 Tháng 7, 2026",
+            "series": "tnc-music-101"
+          },
+          {
+            "slug": "persona-la-gi-3",
+            "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 3)",
+            "date": "1 Tháng 8, 2026",
             "series": "tnc-music-101"
           }
         ]
