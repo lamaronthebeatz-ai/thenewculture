@@ -470,17 +470,6 @@ a:hover .media__zoom{transform:scale(1.04);box-shadow:inset 0 -120px 90px -50px 
   .hero-full__title{max-width:20ch;}
 }
 
-/* ----- Khối "Mới cập nhật" — 5 bài viết, tách riêng ngay dưới hero ------ */
-.hero-side-strip{margin-top:var(--s-8);}
-.hero-side-strip__grid{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--s-5);}
-.hero-side-strip__grid .side-item{display:flex;flex-direction:column;gap:var(--s-3);}
-.hero-side-strip__grid .side-item .media{aspect-ratio:4/3;}
-.hero-side-strip__grid .side-item .eyebrow{font-size:10px;}
-.hero-side-strip__grid .side-item h3{font-size:var(--t-sm);line-height:1.3;transition:color var(--dur) var(--ease);}
-.hero-side-strip__grid .side-item:hover h3{color:var(--c-red);}
-@media (max-width:1024px){.hero-side-strip__grid{grid-template-columns:repeat(3,1fr);}}
-@media (max-width:600px){.hero-side-strip__grid{grid-template-columns:repeat(2,1fr);}}
-
 /* ----- 7. TRENDING ------------------------------------------------------ */
 .trending{margin-top:var(--s-8);}
 .trending__grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0 var(--s-8);}
