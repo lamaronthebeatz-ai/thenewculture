@@ -1,7 +1,7 @@
 {
   "Lamar": {
     "metrics": {
-      "article_count": 22,
+      "article_count": 23,
       "series_count": 8,
       "category_count": 43,
       "first_article": {
@@ -33,16 +33,22 @@
         "series": "tnc-music-101"
       },
       {
-        "slug": "thuan-phong-my-tuc-mck",
-        "title": "Có hay không sự bóp nghẹt sáng tạo của nghệ sĩ thông qua “thuần phong mỹ tục”?",
+        "slug": "persona-la-gi-4",
+        "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 4)",
         "date": "1 Tháng 8, 2026",
-        "series": "tnc-radar"
+        "series": "tnc-music-101"
       }
     ],
     "recent_articles": [
       {
         "slug": "persona-la-gi-3",
         "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 3)",
+        "date": "1 Tháng 8, 2026",
+        "series": "tnc-music-101"
+      },
+      {
+        "slug": "persona-la-gi-4",
+        "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 4)",
         "date": "1 Tháng 8, 2026",
         "series": "tnc-music-101"
       },
@@ -63,12 +69,6 @@
         "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 1)",
         "date": "30 Tháng 7, 2026",
         "series": "tnc-music-101"
-      },
-      {
-        "slug": "dsk-khi-ua-con-cua-mat-troi-cat-tieng",
-        "title": "DSK: Khi \"đứa con của mặt trời\" cất tiếng",
-        "date": "19 Tháng 7, 2026",
-        "series": "tnc-origins"
       }
     ],
     "series": [
@@ -193,7 +193,7 @@
     "timeline": [
       {
         "year": 2026,
-        "count": 22,
+        "count": 23,
         "articles": [
           {
             "slug": "viet-dragon-vd-vi-vua-gangsta-rap-viet-nam-va-di-san-bat-diet-cua-viet-rap",
@@ -318,6 +318,12 @@
           {
             "slug": "persona-la-gi-3",
             "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 3)",
+            "date": "1 Tháng 8, 2026",
+            "series": "tnc-music-101"
+          },
+          {
+            "slug": "persona-la-gi-4",
+            "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 4)",
             "date": "1 Tháng 8, 2026",
             "series": "tnc-music-101"
           },
