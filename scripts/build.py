@@ -3058,18 +3058,12 @@ def select_hero_articles(articles, count=3):
     return hero
 
 def render_index():
-    def _get(i):
-        # lấy bài thứ i an toàn: nếu thiếu thì quay vòng, nếu rỗng trả None
-        if not ARTICLES:
-            return None
-        return ARTICLES[i % len(ARTICLES)]
-
     # Hero trang chủ: luôn đúng 3 bài, chọn theo hero_priority rồi mới nhất
     # (select_hero_articles — đã tự loại trùng, không cần lọc thêm ở đây).
     slide_articles = select_hero_articles(ARTICLES)
 
-    # Câu chuyện nổi bật (Cover Story): TRƯỚC ĐÂY cố định "feat = _get(4)"
-    # — luôn lấy đúng bài thứ 5 theo sort_order thủ công, không bao giờ đổi
+    # Câu chuyện nổi bật (Cover Story): TRƯỚC ĐÂY cố định lấy đúng bài thứ 5
+    # theo sort_order thủ công, không bao giờ đổi
     # trừ khi biên tập viên tự sắp lại sort_order, kể cả khi có bài mới hoặc
     # bài được đánh dấu "featured" — đây là lý do khối này "đứng yên" theo
     # thời gian. Sửa: ưu tiên bài featured=true MỚI NHẤT (theo published_at
@@ -3091,30 +3085,6 @@ def render_index():
     else:
         feat = None
     fs = SERIES_BY_SLUG[feat["series"]] if feat else None
-
-    # Cột phải: 5 bài viết tiếp theo, không trùng với các bài đã dùng cho slide
-    side = ""
-    seen = set(a["slug"] for a in slide_articles)
-    side_count = 0
-    i = 0
-    while side_count < 5 and i < len(ARTICLES) + 5:
-        a = _get(3 + i)  # bắt đầu từ vị trí sau các bài dùng cho slide
-        i += 1
-        if not a or a["slug"] in seen:
-            continue
-        seen.add(a["slug"])
-        side_count += 1
-        s = SERIES_BY_SLUG[a["series"]]
-        side += f"""
-        <a class="side-item" href="{article_url(a['slug'])}">
-          <div class="media media--1-1">{zoom(a)}</div>
-          <div>
-            <span class="eyebrow eyebrow{s['accent']}">{s['name']}</span>
-            <h3>{_esc(a['title'])}</h3>
-          </div>
-        </a>"""
-        if side_count >= len(ARTICLES) - len(slide_articles):
-            break  # đã liệt kê hết bài có thể dùng, tránh vòng lặp vô hạn khi kho bài ít
 
     # trending: 6 bài
     trending = ""
@@ -3184,12 +3154,6 @@ def render_index():
     </div>
   </section>
 {render_homepage_magazine_block()}
-  <section class="hero-side-strip container js-reveal">
-    <div class="section-head"><h2>Mới cập nhật</h2></div>
-    <div class="hero-side-strip__grid">{side}
-    </div>
-  </section>
-
   <section class="trending container js-reveal">
     <div class="section-head"><h2>Đang được quan tâm</h2></div>
     <div class="trending__grid">{trending}
@@ -3210,7 +3174,7 @@ def render_index():
   </section>
 {render_homepage_ad_block()}
   <section class="section container js-reveal">
-    <div class="section-head"><h2>Mới đăng</h2><a class="more" href="all-series.html">Xem thêm →</a></div>
+    <div class="section-head"><h2>Mới đăng</h2><a class="more" href="archive.html">Xem thêm →</a></div>
     <div class="grid grid-3">{latest}
     </div>
   </section>
