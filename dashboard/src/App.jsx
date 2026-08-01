@@ -28,6 +28,9 @@ const HeroManager = lazy(() => import("./pages/HeroManager"));
 const AdManager = lazy(() => import("./pages/AdManager"));
 const PromotionManager = lazy(() => import("./pages/PromotionManager"));
 const AnnouncementManager = lazy(() => import("./pages/AnnouncementManager"));
+const LayoutBuilder = lazy(() => import("./pages/LayoutBuilder"));
+const PageLayoutsList = lazy(() => import("./pages/PageLayoutsList"));
+const BlockRegistry = lazy(() => import("./pages/BlockRegistry"));
 const TncSelectsManager = lazy(() => import("./pages/TncSelectsManager"));
 const MagazineManager = lazy(() => import("./pages/MagazineManager"));
 const UsersList = lazy(() => import("./pages/UsersList"));
@@ -80,6 +83,11 @@ function DashboardRoutes() {
           <Route path="ads" element={<AdManager />} />
           <Route path="promotions" element={<PromotionManager />} />
           <Route path="announcements" element={<AnnouncementManager />} />
+
+          <Route path="layout/homepage" element={<LayoutBuilder fixedPageKey="homepage" />} />
+          <Route path="layout/pages" element={<PageLayoutsList />} />
+          <Route path="layout/pages/:pageKey" element={<LayoutBuilder />} />
+          <Route path="layout/registry" element={<BlockRegistry />} />
 
           <Route path="users" element={<UsersList />} />
           <Route path="users/new" element={<UserForm />} />

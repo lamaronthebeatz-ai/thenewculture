@@ -474,6 +474,77 @@ details summary {
   margin-bottom: 8px;
 }
 
+/* ---------- Layout Builder (Rev 17) ---------- */
+.empty-state {
+  padding: 32px;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+
+.layout-block-list {
+  list-style: none;
+  margin: 16px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.layout-block-row {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.layout-block-row.is-disabled {
+  opacity: 0.55;
+}
+
+.layout-block-row__main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  flex-wrap: wrap;
+}
+
+.layout-block-row__handle {
+  cursor: grab;
+  color: var(--text-muted);
+  font-size: 16px;
+  user-select: none;
+}
+
+.layout-block-row__info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 160px;
+}
+
+.layout-block-row__label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.layout-block-row__panel {
+  border-top: 1px solid var(--border);
+  padding: 16px;
+}
+
+.layout-block-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.dynamic-block-form {
+  gap: 12px;
+}
+
 /* ========================================================================
    Dashboard Home — Editorial Command Center
    ======================================================================== */

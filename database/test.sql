@@ -785,6 +785,110 @@ begin
   );
 end $$;
 
+-- Rev 17 — Layout Builder: 3 bảng (layout_block_types/page_layouts/
+-- layout_blocks) đều đã ENABLE RLS đúng policy, registry đã seed đủ 14
+-- block type, "homepage" đã có page_layout active + đủ 12 khối theo đúng
+-- thứ tự production cũ, permission catalog module "layout" đầy đủ.
+do $$
+declare
+  cnt int;
+  v_homepage_layout_id uuid;
+begin
+  select count(*) into cnt from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity = true
+      and c.relname in ('layout_block_types', 'page_layouts', 'layout_blocks');
+  perform public._tnc_test_assert(
+    cnt = 3, format('RLS: cả 3 bảng Layout Builder đều đã ENABLE ROW LEVEL SECURITY (đang có %s/3)', cnt)
+  );
+
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from pg_policies
+      where schemaname = 'public' and tablename = 'page_layouts' and policyname = 'Public read active page_layouts'
+        and cmd = 'SELECT' and qual ilike '%is_active%'
+    ),
+    'RLS: policy "Public read active page_layouts" tồn tại trên page_layouts, đúng điều kiện lọc theo is_active'
+  );
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from pg_policies
+      where schemaname = 'public' and tablename = 'layout_blocks' and policyname = 'Public read enabled layout_blocks'
+        and cmd = 'SELECT' and qual ilike '%is_enabled%'
+    ),
+    'RLS: policy "Public read enabled layout_blocks" tồn tại trên layout_blocks, đúng điều kiện lọc theo is_enabled + layout active'
+  );
+  perform public._tnc_test_assert(
+    not exists (
+      select 1 from pg_policies
+      where schemaname = 'public' and tablename = 'layout_block_types' and roles = '{public}'
+    ),
+    'RLS: layout_block_types KHÔNG có policy public (build.py không đọc bảng registry, chỉ Dashboard)'
+  );
+
+  perform public._tnc_test_assert(
+    (select count(*) from public.permissions where module = 'layout' and action in ('view', 'create', 'edit', 'delete')) = 4,
+    'Permissions: module "layout" có đủ 4 action (view/create/edit/delete)'
+  );
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from public.role_permissions rp
+      join public.roles r on r.id = rp.role_id
+      join public.permissions p on p.id = rp.permission_id
+      where r.key = 'managing_editor' and p.key = 'layout.delete'
+    ),
+    'Role_permissions: managing_editor đã được cấp "layout.delete"'
+  );
+
+  perform public._tnc_test_assert(
+    (select count(*) from public.layout_block_types) = 14,
+    'Registry: layout_block_types đã seed đủ 14 loại khối'
+  );
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from public.layout_block_types
+      where key = 'latest_articles' and jsonb_array_length(config_schema) = 12
+    ),
+    'Registry: "latest_articles" (Bài viết mới) có đủ 12 field cấu hình'
+  );
+
+  select id into v_homepage_layout_id from public.page_layouts where page_key = 'homepage' and deleted_at is null;
+  perform public._tnc_test_assert(
+    v_homepage_layout_id is not null,
+    'Seed: page_layouts đã có 1 hàng active cho page_key=''homepage'''
+  );
+  perform public._tnc_test_assert(
+    (select count(*) from public.layout_blocks where page_layout_id = v_homepage_layout_id) = 12,
+    'Seed: homepage layout đã có đủ 12 khối (đúng thứ tự production cũ)'
+  );
+  perform public._tnc_test_assert(
+    (
+      select array_agg(block_type_key order by sort_order)
+      from public.layout_blocks where page_layout_id = v_homepage_layout_id
+    ) = array['gif_hero','spotify','hero','featured_story','magazine','trending',
+              'ranking_spotlight','profiles_homepage','community_homepage',
+              'series_grid','homepage_ad','latest_articles'],
+    'Seed: thứ tự 12 khối homepage khớp ĐÚNG thứ tự render_index() cũ (không đổi hành vi khi chưa ai chỉnh Bố cục)'
+  );
+
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from information_schema.table_constraints
+      where table_schema = 'public' and table_name = 'layout_blocks'
+        and constraint_type = 'FOREIGN KEY' and constraint_name = 'layout_blocks_block_type_key_fkey'
+    ),
+    'Constraint: layout_blocks.block_type_key có FK tới layout_block_types.key (on delete restrict — không xoá được block type đang dùng)'
+  );
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from information_schema.table_constraints
+      where table_schema = 'public' and table_name = 'layout_blocks'
+        and constraint_type = 'CHECK' and constraint_name = 'layout_blocks_date_range_valid'
+    ),
+    'Constraint: layout_blocks_date_range_valid (starts_at <= ends_at) tồn tại'
+  );
+end $$;
+
 rollback to savepoint sp_part_c;
 
 -- Dọn hàm khẳng định dùng chung — không phải object tạm/session nên phải
