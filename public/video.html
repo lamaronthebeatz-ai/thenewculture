@@ -33,7 +33,7 @@
 <header class="masthead">
   <div class="masthead__util">
     <div class="container">
-      <span>Thứ Bảy · 01.08.2026 · Sài Gòn</span>
+      <span id="mastheadDate">Thứ Bảy · 01.08.2026 · Sài Gòn</span>
       <div class="u-links">
         <a href="all-series.html">Series</a>
         <a href="tnc-sessions.html">TNC Sessions</a>
@@ -764,6 +764,29 @@ if('serviceWorker' in navigator){
     closeOpen();
   });
   document.addEventListener('keydown',function(e){if(e.key==='Escape')closeOpen();});
+})();
+// Masthead date (real-time): #mastheadDate được server-render sẵn 1 giá trị
+// tĩnh tại thời điểm build (TODAY_VN, xem masthead()) — nếu site không được
+// build lại mỗi ngày, chuỗi này "đứng yên" theo ngày build cũ. Script này ghi
+// đè lại đúng ngày/thứ THẬT theo giờ Sài Gòn mỗi lần trang được mở (và làm
+// mới mỗi phút, phòng trường hợp mở tab qua nửa đêm) — không phụ thuộc build
+// lại site nữa. Bọc try/catch: nếu Intl.DateTimeFormat lỗi/không hỗ trợ
+// (trình duyệt rất cũ), giữ nguyên chuỗi server-render, không làm hỏng trang.
+(function(){
+  var el=document.getElementById('mastheadDate');
+  if(!el) return;
+  var THU={Sunday:'Chủ Nhật',Monday:'Thứ Hai',Tuesday:'Thứ Ba',Wednesday:'Thứ Tư',Thursday:'Thứ Năm',Friday:'Thứ Sáu',Saturday:'Thứ Bảy'};
+  function render(){
+    try{
+      var parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Ho_Chi_Minh',weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}).formatToParts(new Date());
+      var map={};
+      parts.forEach(function(p){map[p.type]=p.value;});
+      var thu=THU[map.weekday]||map.weekday;
+      el.textContent=thu+' · '+map.day+'.'+map.month+'.'+map.year+' · Sài Gòn';
+    }catch(e){/* giữ nguyên chuỗi server-render */}
+  }
+  render();
+  setInterval(render,60000);
 })();
 // Editor article filter (PR4): chỉ ẩn/hiện các hàng bài viết theo
 // data-series/data-year/data-categories đã render sẵn — không tính toán lại
