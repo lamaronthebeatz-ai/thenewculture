@@ -1,7 +1,7 @@
 {
   "Lamar": {
     "metrics": {
-      "article_count": 21,
+      "article_count": 22,
       "series_count": 8,
       "category_count": 43,
       "first_article": {
@@ -11,10 +11,10 @@
         "series": "tnc-origins"
       },
       "latest_article": {
-        "slug": "persona-la-gi-3",
-        "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 3)",
+        "slug": "thuan-phong-my-tuc-mck",
+        "title": "Có hay không sự bóp nghẹt sáng tạo của nghệ sĩ thông qua “thuần phong mỹ tục”?",
         "date": "1 Tháng 8, 2026",
-        "series": "tnc-music-101"
+        "series": "tnc-radar"
       },
       "active_years": 1,
       "published_since": 2026
@@ -33,10 +33,10 @@
         "series": "tnc-music-101"
       },
       {
-        "slug": "persona-la-gi",
-        "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 1)",
-        "date": "30 Tháng 7, 2026",
-        "series": "tnc-music-101"
+        "slug": "thuan-phong-my-tuc-mck",
+        "title": "Có hay không sự bóp nghẹt sáng tạo của nghệ sĩ thông qua “thuần phong mỹ tục”?",
+        "date": "1 Tháng 8, 2026",
+        "series": "tnc-radar"
       }
     ],
     "recent_articles": [
@@ -45,6 +45,12 @@
         "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 3)",
         "date": "1 Tháng 8, 2026",
         "series": "tnc-music-101"
+      },
+      {
+        "slug": "thuan-phong-my-tuc-mck",
+        "title": "Có hay không sự bóp nghẹt sáng tạo của nghệ sĩ thông qua “thuần phong mỹ tục”?",
+        "date": "1 Tháng 8, 2026",
+        "series": "tnc-radar"
       },
       {
         "slug": "persona-la-gi-2",
@@ -61,12 +67,6 @@
       {
         "slug": "dsk-khi-ua-con-cua-mat-troi-cat-tieng",
         "title": "DSK: Khi \"đứa con của mặt trời\" cất tiếng",
-        "date": "19 Tháng 7, 2026",
-        "series": "tnc-origins"
-      },
-      {
-        "slug": "gvr-ky-uc-cua-mot-the-he-rap-viet",
-        "title": "GVR - Ký ức của một thế hệ rap Việt",
         "date": "19 Tháng 7, 2026",
         "series": "tnc-origins"
       }
@@ -193,7 +193,7 @@
     "timeline": [
       {
         "year": 2026,
-        "count": 21,
+        "count": 22,
         "articles": [
           {
             "slug": "viet-dragon-vd-vi-vua-gangsta-rap-viet-nam-va-di-san-bat-diet-cua-viet-rap",
@@ -320,6 +320,12 @@
             "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 3)",
             "date": "1 Tháng 8, 2026",
             "series": "tnc-music-101"
+          },
+          {
+            "slug": "thuan-phong-my-tuc-mck",
+            "title": "Có hay không sự bóp nghẹt sáng tạo của nghệ sĩ thông qua “thuần phong mỹ tục”?",
+            "date": "1 Tháng 8, 2026",
+            "series": "tnc-radar"
           }
         ]
       }
