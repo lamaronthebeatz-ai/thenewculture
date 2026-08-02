@@ -431,7 +431,7 @@
     dot.style.left=e.clientX+'px';dot.style.top=e.clientY+'px';dot.classList.add('is-active');
   });
   document.addEventListener('mouseleave',function(){dot.classList.remove('is-active');});
-  document.querySelectorAll('a,button,.card,.profile-card,.poster-card').forEach(function(el){
+  document.querySelectorAll('a,button,.card,.profile-card,.poster-card,.premium-group,.premium-package,.premium-sitemap__node').forEach(function(el){
     el.addEventListener('mouseenter',function(){dot.classList.add('is-hover');});
     el.addEventListener('mouseleave',function(){dot.classList.remove('is-hover');});
   });
@@ -551,6 +551,30 @@
   if(slideshowRoot)slideshowRoot.addEventListener('heroslidechange',bindActiveSlide);
 })();
 
+// Parallax nhẹ cho nền TNC Premium Hero (glow + particle) — chỉ chạy trên
+// trang có .premium-hero, tốc độ dịch chuyển RẤT chậm so với cuộn (0.15x)
+// để tạo chiều sâu mà vẫn "nhẹ" đúng yêu cầu Luxury (không giật, không lấn
+// át nội dung). Cùng rAF-throttle + tôn trọng prefers-reduced-motion như
+// mọi scroll listener khác trong file này.
+(function(){
+  var bg=document.querySelector('.premium-hero__bg');
+  if(!bg||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var RATE=0.15;
+  var ticking=false;
+  function update(){
+    ticking=false;
+    var y=window.scrollY;
+    if(y>window.innerHeight)return;
+    bg.style.transform='translateY('+(y*RATE)+'px)';
+  }
+  function onScroll(){
+    if(ticking)return;
+    ticking=true;
+    requestAnimationFrame(update);
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+})();
+
 // PWA: đăng ký service worker
 if('serviceWorker' in navigator){
   window.addEventListener('load',function(){
@@ -632,7 +656,7 @@ if('serviceWorker' in navigator){
   if(!window.matchMedia('(hover:hover)').matches)return;
   if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   var STRENGTH=0.25;
-  document.querySelectorAll('.btn--solid, .hero-full__cta').forEach(function(el){
+  document.querySelectorAll('.btn--solid, .hero-full__cta, .premium-btn').forEach(function(el){
     el.classList.add('magnetic');
     el.addEventListener('mousemove',function(e){
       var r=el.getBoundingClientRect();
