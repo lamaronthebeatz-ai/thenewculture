@@ -1602,6 +1602,9 @@ NAV_ITEMS = [
     ("tnc-culture","TNC Culture"),
     ("inside-the-culture","Inside The Culture"),
     ("tnc-radar","TNC Radar"),
+    # Rev 18 — TNC Premium: series chính thức, xuất hiện cùng các series khác
+    # trên thanh điều hướng chính (yêu cầu riêng của series này).
+    ("tnc-premium","TNC Premium"),
 ]
 
 def _is_video_file(path):
@@ -1859,7 +1862,7 @@ def masthead(active=None):
   </div>
   <div class="container menu-overlay__body">
     <div class="menu-col menu-col--series">
-      <h4>16 Series</h4>
+      <h4>{len(SERIES)} Series</h4>
       <div class="menu-series">{menu_series}</div>
     </div>
     {mega_columns_html}
@@ -3174,7 +3177,7 @@ def _render_hardcoded_homepage_body(ctx):
     <div class="container">
       <div class="section-head">
         <h2>Series</h2>
-        <a class="more" href="all-series.html">16 tuyến nội dung — bản đồ tri thức TNC</a>
+        <a class="more" href="all-series.html">{len(SERIES)} tuyến nội dung — bản đồ tri thức TNC</a>
       </div>
       <div class="series-grid">{cells}
       </div>
@@ -3300,7 +3303,7 @@ def _render_block_series_grid(block, ctx):
     <div class="container">
       <div class="section-head">
         <h2>Series</h2>
-        <a class="more" href="all-series.html">16 tuyến nội dung — bản đồ tri thức TNC</a>
+        <a class="more" href="all-series.html">{len(SERIES)} tuyến nội dung — bản đồ tri thức TNC</a>
       </div>
       <div class="series-grid">{cells}
       </div>
@@ -3735,7 +3738,7 @@ def render_profiles_series_page(s):
       <a href="index.html">Trang chủ</a> / <a href="all-series.html">Series</a> / {s['name']}
     </nav>
     <div style="border-bottom:2px solid var(--c-line-strong);padding-bottom:var(--s-6);margin-bottom:var(--s-6);">
-      <span class="eyebrow eyebrow{s['accent']}" style="font-size:var(--t-sm);">{s['code']} · Series {s['num']} / 16</span>
+      <span class="eyebrow eyebrow{s['accent']}" style="font-size:var(--t-sm);">{s['code']} · Series {s['num']} / {len(SERIES)}</span>
       <h1 style="font-size:var(--t-3xl);margin:var(--s-3) 0;max-width:18ch;">{s['name']}</h1>
       <p style="font-size:var(--t-md);color:var(--c-ink-2);max-width:56ch;">{s['desc']}</p>
       <div class="byline" style="margin-top:var(--s-4);display:flex;gap:var(--s-5);flex-wrap:wrap;">
@@ -3947,7 +3950,7 @@ def render_community_series_page(s):
       <a href="index.html">Trang chủ</a> / <a href="all-series.html">Series</a> / {s['name']}
     </nav>
     <div style="border-bottom:2px solid var(--c-line-strong);padding-bottom:var(--s-6);margin-bottom:var(--s-7);">
-      <span class="eyebrow eyebrow{s['accent']}" style="font-size:var(--t-sm);">{s['code']} · Series {s['num']} / 16</span>
+      <span class="eyebrow eyebrow{s['accent']}" style="font-size:var(--t-sm);">{s['code']} · Series {s['num']} / {len(SERIES)}</span>
       <h1 style="font-size:var(--t-3xl);margin:var(--s-3) 0;max-width:18ch;">{s['name']}</h1>
       <p style="font-size:var(--t-md);color:var(--c-ink-2);max-width:56ch;">{s['desc']}</p>
       <div class="byline" style="margin-top:var(--s-4);display:flex;gap:var(--s-5);flex-wrap:wrap;">
@@ -3966,6 +3969,148 @@ def render_community_series_page(s):
       <div class="series-grid">{others}
       </div>
     </div>
+  </section>
+</main>
+"""
+    html += footer()
+    return html
+
+def render_premium_landing_page(s):
+    """TNC Premium (Rev 18) — landing page bán dịch vụ, thay cho trang series
+    mặc định. Được gọi thay cho render_series_page() khi phát hiện đúng slug
+    'tnc-premium' — CÙNG PATTERN đã có sẵn cho tnc-profiles/tnc-community,
+    không phát minh cơ chế mới. Toàn bộ nội dung tĩnh (không đọc bảng nào
+    khác ngoài chính series 'tnc-premium' cho title/meta) — đây là 1 trang
+    bán hàng, không có CRUD/Dashboard/CSDL riêng theo đúng yêu cầu."""
+    placements = [
+        ("Hero", "Vị trí banner đầu trang chủ — điểm chạm đầu tiên của mọi độc giả."),
+        ("Sidebar", "Đồng hành cùng nội dung biên tập xuyên suốt các trang bài viết."),
+        ("Promotion", "Banner chiến dịch theo lịch, hiển thị đúng khung thời gian chiến dịch cần."),
+        ("Announcement", "Thanh thông báo đầu trang, ưu tiên hiển thị cao nhất trên toàn site."),
+        ("Homepage Feature", "Vị trí nổi bật ngay trên trang chủ, cạnh nội dung biên tập được chọn lọc."),
+        ("Sponsored Block", "Khối nội dung được gắn nhãn rõ ràng, vẫn giữ đúng chuẩn biên tập của TNC."),
+    ]
+    placements_html = "".join(f"""
+      <div class="premium-placement" tabindex="0">
+        <span class="premium-placement__label">{label}</span>
+        <span class="premium-placement__desc">{desc}</span>
+      </div>""" for label, desc in placements)
+
+    packages = [
+        ("Launch", "Ra mắt sản phẩm âm nhạc mới — giới thiệu đến đúng cộng đồng ngay từ ngày đầu."),
+        ("Promotion", "Chiến dịch quảng bá ngắn hạn, tối ưu độ phủ trong khung thời gian trọng điểm."),
+        ("Campaign", "Chiến dịch dài hạn, kết hợp nhiều định dạng nội dung và vị trí hiển thị."),
+        ("Enterprise", "Giải pháp riêng cho label và thương hiệu cần đồng hành lâu dài trên nhiều mặt trận."),
+    ]
+    packages_html = "".join(f"""
+      <div class="premium-package">
+        <h3>{name}</h3>
+        <p>{desc}</p>
+        <a href="lien-he.html" class="premium-btn premium-btn--ghost premium-btn--sm">Liên hệ để nhận báo giá</a>
+      </div>""" for name, desc in packages)
+
+    workflow = [
+        ("01", "Trao đổi", "Lắng nghe mục tiêu và bối cảnh dự án của bạn."),
+        ("02", "Đề xuất", "Xây dựng đề xuất nội dung và vị trí phù hợp nhất."),
+        ("03", "Triển khai", "Sản xuất nội dung, chuẩn bị tài sản theo đúng tiêu chuẩn biên tập."),
+        ("04", "Xuất bản", "Đăng tải đúng lịch, đúng vị trí đã thống nhất."),
+        ("05", "Báo cáo", "Tổng kết hiệu quả và đề xuất bước tiếp theo."),
+    ]
+    workflow_html = "".join(f"""
+      <div class="premium-step">
+        <span class="premium-step__num">{num}</span>
+        <h3>{label}</h3>
+        <p>{desc}</p>
+      </div>""" for num, label, desc in workflow)
+
+    html = head(
+        "TNC Premium — Premium Media Solutions for the Music Industry",
+        s["desc"] or "Giải pháp truyền thông cao cấp dành cho ngành công nghiệp âm nhạc.",
+        path=series_url("tnc-premium"),
+    ) + masthead(active="tnc-premium")
+
+    html += f"""
+<main class="premium-page">
+  <section class="premium-hero">
+    <div class="premium-hero__bg" aria-hidden="true">
+      <span class="premium-particle p1"></span>
+      <span class="premium-particle p2"></span>
+      <span class="premium-particle p3"></span>
+      <span class="premium-particle p4"></span>
+      <span class="premium-particle p5"></span>
+    </div>
+    <div class="container premium-hero__inner">
+      <span class="premium-eyebrow js-reveal">The New Culture</span>
+      <h1 class="premium-hero__title js-reveal">TNC Premium</h1>
+      <p class="premium-hero__subtitle js-reveal">Premium Media Solutions for the Music Industry</p>
+      <div class="premium-hero__actions js-reveal">
+        <a href="#dich-vu" class="premium-btn premium-btn--solid">Khám phá dịch vụ</a>
+        <a href="lien-he.html" class="premium-btn premium-btn--ghost">Liên hệ</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="premium-section container js-reveal">
+    <p class="premium-kicker">Giới thiệu</p>
+    <h2>Uy tín biên tập, trở thành lợi thế chiến lược</h2>
+    <p class="premium-lead">Trong hơn một thập kỷ, The New Culture xây dựng niềm tin với độc giả bằng sự chính xác, độc lập và chiều sâu biên tập. TNC Premium là nơi niềm tin đó trở thành một nguồn lực chiến lược cho nghệ sĩ, label và thương hiệu đang tìm kiếm đúng khán giả, đúng bối cảnh và đúng thời điểm.</p>
+    <p class="premium-lead">Chúng tôi không bán vị trí quảng cáo. Chúng tôi đồng hành cùng bạn kể một câu chuyện xứng đáng với sự chú ý của cộng đồng underground Việt Nam.</p>
+  </section>
+
+  <section id="dich-vu" class="premium-section container js-reveal">
+    <p class="premium-kicker">Dịch vụ</p>
+    <h2>Bốn nhóm giải pháp</h2>
+    <div class="premium-groups">
+      <div class="premium-group">
+        <span class="premium-group__index">01</span>
+        <h3>Quảng cáo</h3>
+        <ul><li>Hero</li><li>Promotion</li><li>Announcement</li><li>Sidebar</li><li>Homepage Feature</li><li>Sponsored Block</li></ul>
+      </div>
+      <div class="premium-group">
+        <span class="premium-group__index">02</span>
+        <h3>Nội dung quảng bá</h3>
+        <ul><li>Press Release</li><li>Advertorial</li><li>Artist Feature</li><li>Interview</li><li>Album Review</li></ul>
+      </div>
+      <div class="premium-group">
+        <span class="premium-group__index">03</span>
+        <h3>Bán vé</h3>
+        <ul><li>Landing Page</li><li>Ticketing</li><li>Commission</li></ul>
+      </div>
+      <div class="premium-group">
+        <span class="premium-group__index">04</span>
+        <h3>Premium Combo</h3>
+        <ul><li>Album Launch</li><li>Campaign</li><li>Event Promotion</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="premium-section container js-reveal">
+    <p class="premium-kicker">Sơ đồ hiển thị</p>
+    <h2>Advertising Placement</h2>
+    <p class="premium-lead">Di chuột hoặc chạm vào từng vị trí để xem mô tả.</p>
+    <div class="premium-placements">{placements_html}
+    </div>
+  </section>
+
+  <section class="premium-section container js-reveal">
+    <p class="premium-kicker">Gói dịch vụ</p>
+    <h2>Premium Packages</h2>
+    <div class="premium-packages">{packages_html}
+    </div>
+  </section>
+
+  <section class="premium-section container js-reveal">
+    <p class="premium-kicker">Quy trình</p>
+    <h2>Workflow</h2>
+    <div class="premium-workflow">{workflow_html}
+    </div>
+  </section>
+
+  <section class="premium-cta container js-reveal">
+    <h2>Ready to launch your next campaign?</h2>
+    <p>Liên hệ với TNC Premium để bắt đầu.</p>
+    <a href="lien-he.html" class="premium-btn premium-btn--solid">Liên hệ với TNC Premium</a>
+    <p class="premium-cta__email">hoặc gửi email tới <a href="mailto:thenewculture.universe@gmail.com">thenewculture.universe@gmail.com</a></p>
   </section>
 </main>
 """
@@ -4012,7 +4157,7 @@ def render_series_page(s):
       <a href="index.html">Trang chủ</a> / <a href="all-series.html">Series</a> / {s['name']}
     </nav>
     <div style="border-bottom:2px solid var(--c-line-strong);padding-bottom:var(--s-6);margin-bottom:var(--s-7);">
-      <span class="eyebrow eyebrow{s['accent']}" style="font-size:var(--t-sm);">{s['code']} · Series {s['num']} / 16</span>
+      <span class="eyebrow eyebrow{s['accent']}" style="font-size:var(--t-sm);">{s['code']} · Series {s['num']} / {len(SERIES)}</span>
       <h1 style="font-size:var(--t-3xl);margin:var(--s-3) 0;max-width:18ch;">{s['name']}</h1>
       <p style="font-size:var(--t-md);color:var(--c-ink-2);max-width:56ch;">{s['desc']}</p>
       <div class="byline" style="margin-top:var(--s-4);display:flex;gap:var(--s-5);flex-wrap:wrap;">
@@ -4999,7 +5144,7 @@ def render_all_series():
   <section class="container">
     <div class="page-hero">
       <span class="eyebrow">Bản đồ tri thức — TNCOS</span>
-      <h1>16 Series của The New Culture</h1>
+      <h1>{len(SERIES)} Series của The New Culture</h1>
       <p>Toàn bộ hệ thống tuyến nội dung của TNC. Mỗi series là một vùng tích lũy tri thức và lưu trữ riêng biệt về văn hóa hip-hop underground Việt Nam.</p>
     </div>
   </section>
@@ -5010,7 +5155,7 @@ def render_all_series():
     </div>
   </section>
 """
-    return page_wrap("Tất cả Series", "16 tuyến nội dung của The New Culture", inner)
+    return page_wrap("Tất cả Series", f"{len(SERIES)} tuyến nội dung của The New Culture", inner)
 
 def render_archive_page():
     """Trang hub 'Toàn bộ bài viết' — danh sách phẳng mọi bài viết, không lọc
@@ -5102,7 +5247,7 @@ def render_events_page():
     return page_wrap("Sự kiện", "Lịch sự kiện cộng đồng underground", inner)
 
 def render_about_page():
-    inner = """
+    inner = f"""
   <section class="container">
     <div class="page-hero">
       <span class="eyebrow">Về chúng tôi</span>
@@ -5113,13 +5258,13 @@ def render_about_page():
       <p>The New Culture (TNC) ra đời từ một niềm tin đơn giản: văn hóa underground Việt Nam đang vận động mỗi ngày, nhưng phần lớn giá trị của nó không được ghi lại một cách có hệ thống. Khi những nhân chứng và tác phẩm của một thời kỳ biến mất, cả một thế hệ sau phải bắt đầu lại từ đầu.</p>
       <p>TNC tồn tại để giải quyết khoảng trống đó — không chỉ đưa tin, mà xây dựng một kho lưu trữ sống (Archive) về con người, tác phẩm, cột mốc và tư tưởng đã và đang định hình scene.</p>
       <h2>Cách chúng tôi làm việc</h2>
-      <p>Toàn bộ nội dung được tổ chức theo 16 tuyến series, mỗi tuyến là một vùng tri thức chuyên biệt — từ hồ sơ nghệ sĩ, phân tích tác phẩm, đến ghi chép văn hóa và phỏng vấn chuyên sâu. Đây là cách chúng tôi biến thông tin rời rạc thành tài sản tri thức có cấu trúc.</p>
+      <p>Toàn bộ nội dung được tổ chức theo {len(SERIES)} tuyến series, mỗi tuyến là một vùng tri thức chuyên biệt — từ hồ sơ nghệ sĩ, phân tích tác phẩm, đến ghi chép văn hóa và phỏng vấn chuyên sâu. Đây là cách chúng tôi biến thông tin rời rạc thành tài sản tri thức có cấu trúc.</p>
       <h2>Nguyên tắc biên tập</h2>
       <p>Chính xác, độc lập và tôn trọng đối tượng được phản ánh. Chúng tôi ưu tiên chiều sâu hơn tốc độ, và bối cảnh hơn giật gân.</p>
     </div>
     <div class="info-cards">
       <div class="info-card"><div class="k">Định dạng</div><h3>Đa nền tảng</h3><p>Facebook, Instagram, YouTube và TikTok — mỗi nền tảng một vai trò riêng.</p></div>
-      <div class="info-card"><div class="k">Nội dung</div><h3>16 Series</h3><p>Hệ thống tuyến nội dung bao phủ toàn bộ hệ sinh thái underground.</p></div>
+      <div class="info-card"><div class="k">Nội dung</div><h3>{len(SERIES)} Series</h3><p>Hệ thống tuyến nội dung bao phủ toàn bộ hệ sinh thái underground.</p></div>
       <div class="info-card"><div class="k">Sứ mệnh</div><h3>Archive</h3><p>Lưu giữ giá trị văn hóa để không thế hệ nào phải bắt đầu lại từ đầu.</p></div>
     </div>
   </section>
@@ -5650,6 +5795,8 @@ self.addEventListener('fetch',e=>{
                 f.write(render_profiles_series_page(s))
             elif s["slug"] == "tnc-community":
                 f.write(render_community_series_page(s))
+            elif s["slug"] == "tnc-premium":
+                f.write(render_premium_landing_page(s))
             else:
                 f.write(render_series_page(s))
     for a in ARTICLES:
