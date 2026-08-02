@@ -83,8 +83,11 @@ begin
   select count(*) into cnt from public.categories where deleted_at is null;
   perform public._tnc_test_assert(cnt = 8, format('seed: đủ 8 categories (đang có %s)', cnt));
 
+  -- >= 16 (không phải = 16): Rev 18 thêm series "tnc-premium" chính thức
+  -- ngoài 16 series nội dung gốc — tổng số series được phép tăng thêm về
+  -- sau (landing page/series đặc biệt khác), miễn không THIẾU 16 series gốc.
   select count(*) into cnt from public.series where deleted_at is null;
-  perform public._tnc_test_assert(cnt = 16, format('seed: đủ 16 series (đang có %s)', cnt));
+  perform public._tnc_test_assert(cnt >= 16, format('seed: đủ ít nhất 16 series (đang có %s)', cnt));
 
   select count(*) into cnt from public.tags where deleted_at is null;
   perform public._tnc_test_assert(cnt >= 15, format('seed: có nhiều tag (đang có %s)', cnt));
@@ -886,6 +889,26 @@ begin
         and constraint_type = 'CHECK' and constraint_name = 'layout_blocks_date_range_valid'
     ),
     'Constraint: layout_blocks_date_range_valid (starts_at <= ends_at) tồn tại'
+  );
+end $$;
+
+-- Rev 18 — TNC Premium: series mới, sort_order cao nhất (đứng cuối, không
+-- làm lệch accent/vị trí 16 series hiện có).
+do $$
+declare
+  v_max_other_sort int;
+  v_premium_sort int;
+begin
+  perform public._tnc_test_assert(
+    exists (select 1 from public.series where slug = 'tnc-premium' and deleted_at is null),
+    'Seed: series "tnc-premium" tồn tại (chưa xoá)'
+  );
+
+  select sort_order into v_premium_sort from public.series where slug = 'tnc-premium' and deleted_at is null;
+  select max(sort_order) into v_max_other_sort from public.series where slug <> 'tnc-premium' and deleted_at is null;
+  perform public._tnc_test_assert(
+    v_premium_sort is not null and v_max_other_sort is not null and v_premium_sort > v_max_other_sort,
+    'Seed: sort_order của "tnc-premium" cao hơn mọi series khác (luôn đứng cuối, không lệch accent series cũ)'
   );
 end $$;
 
