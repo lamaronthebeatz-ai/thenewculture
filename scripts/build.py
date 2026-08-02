@@ -2350,7 +2350,7 @@ def footer():
     dot.style.left=e.clientX+'px';dot.style.top=e.clientY+'px';dot.classList.add('is-active');
   });
   document.addEventListener('mouseleave',function(){dot.classList.remove('is-active');});
-  document.querySelectorAll('a,button,.card,.profile-card,.poster-card').forEach(function(el){
+  document.querySelectorAll('a,button,.card,.profile-card,.poster-card,.premium-group,.premium-package,.premium-sitemap__node').forEach(function(el){
     el.addEventListener('mouseenter',function(){dot.classList.add('is-hover');});
     el.addEventListener('mouseleave',function(){dot.classList.remove('is-hover');});
   });
@@ -2470,6 +2470,30 @@ def footer():
   if(slideshowRoot)slideshowRoot.addEventListener('heroslidechange',bindActiveSlide);
 })();
 
+// Parallax nhẹ cho nền TNC Premium Hero (glow + particle) — chỉ chạy trên
+// trang có .premium-hero, tốc độ dịch chuyển RẤT chậm so với cuộn (0.15x)
+// để tạo chiều sâu mà vẫn "nhẹ" đúng yêu cầu Luxury (không giật, không lấn
+// át nội dung). Cùng rAF-throttle + tôn trọng prefers-reduced-motion như
+// mọi scroll listener khác trong file này.
+(function(){
+  var bg=document.querySelector('.premium-hero__bg');
+  if(!bg||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var RATE=0.15;
+  var ticking=false;
+  function update(){
+    ticking=false;
+    var y=window.scrollY;
+    if(y>window.innerHeight)return;
+    bg.style.transform='translateY('+(y*RATE)+'px)';
+  }
+  function onScroll(){
+    if(ticking)return;
+    ticking=true;
+    requestAnimationFrame(update);
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+})();
+
 // PWA: đăng ký service worker
 if('serviceWorker' in navigator){
   window.addEventListener('load',function(){
@@ -2551,7 +2575,7 @@ if('serviceWorker' in navigator){
   if(!window.matchMedia('(hover:hover)').matches)return;
   if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   var STRENGTH=0.25;
-  document.querySelectorAll('.btn--solid, .hero-full__cta').forEach(function(el){
+  document.querySelectorAll('.btn--solid, .hero-full__cta, .premium-btn').forEach(function(el){
     el.classList.add('magnetic');
     el.addEventListener('mousemove',function(e){
       var r=el.getBoundingClientRect();
@@ -3976,25 +4000,59 @@ def render_community_series_page(s):
     return html
 
 def render_premium_landing_page(s):
-    """TNC Premium (Rev 18) — landing page bán dịch vụ, thay cho trang series
-    mặc định. Được gọi thay cho render_series_page() khi phát hiện đúng slug
-    'tnc-premium' — CÙNG PATTERN đã có sẵn cho tnc-profiles/tnc-community,
-    không phát minh cơ chế mới. Toàn bộ nội dung tĩnh (không đọc bảng nào
-    khác ngoài chính series 'tnc-premium' cho title/meta) — đây là 1 trang
-    bán hàng, không có CRUD/Dashboard/CSDL riêng theo đúng yêu cầu."""
+    """TNC Premium (Rev 18, nâng cấp "Luxury Brand Experience" V1) — landing
+    page bán dịch vụ, thay cho trang series mặc định. Được gọi thay cho
+    render_series_page() khi phát hiện đúng slug 'tnc-premium' — CÙNG PATTERN
+    đã có sẵn cho tnc-profiles/tnc-community, không phát minh cơ chế mới.
+    Toàn bộ nội dung tĩnh (không đọc bảng nào khác ngoài chính series
+    'tnc-premium' cho title/meta) — đây là 1 trang bán hàng, không có CRUD/
+    Dashboard/CSDL riêng theo đúng yêu cầu.
+
+    Định vị "Luxury Editorial House" (không phải agency/booking): song ngữ có
+    chủ đích — tiếng Việt là ngôn ngữ chính của toàn bộ site, tiếng Anh dùng
+    như một lớp "chất liệu" biên tập cao cấp ở đúng những chỗ spec quy định
+    rõ chữ tiếng Anh (Hero subtitle, Workflow, CTA, tag của 4 nhóm giải pháp)
+    thay vì dịch song song toàn bộ đoạn văn — cách này tạo cảm giác "quiet
+    luxury" đúng tinh thần Aman/Hermès hơn là 2 khối văn bản trùng lặp.
+    Không dùng chữ "Dịch vụ"/"Service" ở bất kỳ đâu trên trang (yêu cầu
+    riêng của spec) — dùng "Giải pháp"/"Solutions"/"Gói Premium" thay thế.
+    """
+    def mask(text, tag="span", cls=""):
+        """Bọc 1 dòng chữ trong wrapper overflow:hidden + inner dịch chuyển
+        theo trục Y khi .is-visible (Mask Reveal / Text Reveal) — tái dùng
+        NGUYÊN cơ chế IntersectionObserver có sẵn của .js-reveal/.is-visible
+        (xem footer() JS "1. Scroll-reveal"), không thêm JS mới. Override có
+        chủ đích cho riêng .premium-mask (đúng tiền lệ .author-hero__avatar.
+        js-reveal/.author-hero__quote.js-reveal trong style.css) để tránh
+        đụng transition/transform sẵn có của phần tử cha (heading không có
+        hover-transition nào khác nên an toàn để mask trực tiếp)."""
+        extra = f" {cls}" if cls else ""
+        return (f'<{tag} class="premium-mask js-reveal{extra}">'
+                f'<span class="premium-mask__inner">{text}</span></{tag}>')
+
     placements = [
-        ("Hero", "Vị trí banner đầu trang chủ — điểm chạm đầu tiên của mọi độc giả."),
-        ("Sidebar", "Đồng hành cùng nội dung biên tập xuyên suốt các trang bài viết."),
-        ("Promotion", "Banner chiến dịch theo lịch, hiển thị đúng khung thời gian chiến dịch cần."),
-        ("Announcement", "Thanh thông báo đầu trang, ưu tiên hiển thị cao nhất trên toàn site."),
-        ("Homepage Feature", "Vị trí nổi bật ngay trên trang chủ, cạnh nội dung biên tập được chọn lọc."),
-        ("Sponsored Block", "Khối nội dung được gắn nhãn rõ ràng, vẫn giữ đúng chuẩn biên tập của TNC."),
+        ("Hero", "Vị trí banner đầu trang chủ — điểm chạm đầu tiên của mọi độc giả.",
+         "Banner full-width ngay đầu trang chủ, xuất hiện trước mọi nội dung biên tập."),
+        ("Promotion", "Banner chiến dịch theo lịch, hiển thị đúng khung thời gian chiến dịch cần.",
+         "Banner ra mắt album, tự động hiển thị đúng 2 tuần trước ngày phát hành."),
+        ("Announcement", "Thanh thông báo đầu trang, ưu tiên hiển thị cao nhất trên toàn site.",
+         "Thanh thông báo sự kiện, đứng trên cùng ở mọi trang trong suốt thời gian diễn ra."),
+        ("Sidebar", "Đồng hành cùng nội dung biên tập xuyên suốt các trang bài viết.",
+         "Khối cố định bên cạnh bài viết, đồng hành suốt quá trình đọc."),
+        ("Homepage Feature", "Vị trí nổi bật ngay trên trang chủ, cạnh nội dung biên tập được chọn lọc.",
+         "Khối giới thiệu nghệ sĩ hoặc sản phẩm, đặt cạnh các bài viết nổi bật trên trang chủ."),
+        ("Sponsored Block", "Khối nội dung được gắn nhãn rõ ràng, vẫn giữ đúng chuẩn biên tập của TNC.",
+         "Bài Advertorial gắn nhãn \"Sponsored\" minh bạch, vẫn giữ đúng giọng biên tập TNC."),
     ]
-    placements_html = "".join(f"""
-      <div class="premium-placement" tabindex="0">
-        <span class="premium-placement__label">{label}</span>
-        <span class="premium-placement__desc">{desc}</span>
-      </div>""" for label, desc in placements)
+    sitemap_nodes_html = "".join(f"""
+      <div class="premium-sitemap__node" tabindex="0">
+        <span class="premium-sitemap__node-connector" aria-hidden="true"></span>
+        <span class="premium-sitemap__node-label">{label}</span>
+        <span class="premium-sitemap__node-desc">
+          <strong>Mô tả</strong>{desc}
+          <em>Ví dụ</em>{example}
+        </span>
+      </div>""" for label, desc, example in placements)
 
     packages = [
         ("Launch", "Ra mắt sản phẩm âm nhạc mới — giới thiệu đến đúng cộng đồng ngay từ ngày đầu."),
@@ -4006,22 +4064,23 @@ def render_premium_landing_page(s):
       <div class="premium-package">
         <h3>{name}</h3>
         <p>{desc}</p>
-        <a href="lien-he.html" class="premium-btn premium-btn--ghost premium-btn--sm">Liên hệ để nhận báo giá</a>
+        <a href="lien-he.html" class="premium-btn premium-btn--ghost premium-btn--sm">Liên hệ để nhận đề xuất phù hợp</a>
       </div>""" for name, desc in packages)
 
     workflow = [
-        ("01", "Trao đổi", "Lắng nghe mục tiêu và bối cảnh dự án của bạn."),
-        ("02", "Đề xuất", "Xây dựng đề xuất nội dung và vị trí phù hợp nhất."),
-        ("03", "Triển khai", "Sản xuất nội dung, chuẩn bị tài sản theo đúng tiêu chuẩn biên tập."),
-        ("04", "Xuất bản", "Đăng tải đúng lịch, đúng vị trí đã thống nhất."),
-        ("05", "Báo cáo", "Tổng kết hiệu quả và đề xuất bước tiếp theo."),
+        ("01", "Discover", "Khảo sát", "Lắng nghe mục tiêu, bối cảnh và câu chuyện bạn muốn kể."),
+        ("02", "Consult", "Tư vấn", "Đề xuất định hướng nội dung và vị trí phù hợp nhất."),
+        ("03", "Plan", "Lập kế hoạch", "Lên kế hoạch chi tiết về nội dung, tài sản và lịch trình."),
+        ("04", "Launch", "Triển khai", "Sản xuất và đăng tải đúng chuẩn biên tập, đúng lịch đã thống nhất."),
+        ("05", "Report", "Báo cáo", "Tổng kết hiệu quả và đề xuất bước tiếp theo."),
     ]
     workflow_html = "".join(f"""
       <div class="premium-step">
         <span class="premium-step__num">{num}</span>
-        <h3>{label}</h3>
+        <h3>{en}</h3>
+        <span class="premium-step__vn">{vn}</span>
         <p>{desc}</p>
-      </div>""" for num, label, desc in workflow)
+      </div>""" for num, en, vn, desc in workflow)
 
     html = head(
         "TNC Premium — Premium Media Solutions for the Music Industry",
@@ -4033,6 +4092,8 @@ def render_premium_landing_page(s):
 <main class="premium-page">
   <section class="premium-hero">
     <div class="premium-hero__bg" aria-hidden="true">
+      <span class="premium-glow g1"></span>
+      <span class="premium-glow g2"></span>
       <span class="premium-particle p1"></span>
       <span class="premium-particle p2"></span>
       <span class="premium-particle p3"></span>
@@ -4041,10 +4102,14 @@ def render_premium_landing_page(s):
     </div>
     <div class="container premium-hero__inner">
       <span class="premium-eyebrow js-reveal">The New Culture</span>
-      <h1 class="premium-hero__title js-reveal">TNC Premium</h1>
-      <p class="premium-hero__subtitle js-reveal">Premium Media Solutions for the Music Industry</p>
+      {mask("TNC Premium", tag="h1", cls="premium-hero__title")}
+      <p class="premium-hero__tagline js-reveal">Premium Solutions · Giải pháp Truyền thông Cao cấp</p>
+      <p class="premium-hero__subtitle js-reveal">
+        <span class="premium-hero__subtitle-en">Premium Media Solutions for Artists, Brands &amp; Music Industry.</span>
+        <span class="premium-hero__subtitle-vn">Giải pháp truyền thông cao cấp dành cho nghệ sĩ, thương hiệu và ngành công nghiệp âm nhạc.</span>
+      </p>
       <div class="premium-hero__actions js-reveal">
-        <a href="#dich-vu" class="premium-btn premium-btn--solid">Khám phá dịch vụ</a>
+        <a href="#giai-phap" class="premium-btn premium-btn--solid">Khám phá</a>
         <a href="lien-he.html" class="premium-btn premium-btn--ghost">Liên hệ</a>
       </div>
     </div>
@@ -4052,33 +4117,34 @@ def render_premium_landing_page(s):
 
   <section class="premium-section container js-reveal">
     <p class="premium-kicker">Giới thiệu</p>
-    <h2>Uy tín biên tập, trở thành lợi thế chiến lược</h2>
-    <p class="premium-lead">Trong hơn một thập kỷ, The New Culture xây dựng niềm tin với độc giả bằng sự chính xác, độc lập và chiều sâu biên tập. TNC Premium là nơi niềm tin đó trở thành một nguồn lực chiến lược cho nghệ sĩ, label và thương hiệu đang tìm kiếm đúng khán giả, đúng bối cảnh và đúng thời điểm.</p>
-    <p class="premium-lead">Chúng tôi không bán vị trí quảng cáo. Chúng tôi đồng hành cùng bạn kể một câu chuyện xứng đáng với sự chú ý của cộng đồng underground Việt Nam.</p>
+    {mask("Không phải agency. Là một ngôi nhà biên tập cao cấp.", tag="h2")}
+    <p class="premium-lead">The New Culture xây dựng uy tín trong âm nhạc underground Việt Nam bằng sự chính xác, độc lập và chiều sâu biên tập — trong hơn một thập kỷ. TNC Premium là nơi uy tín đó trở thành một nguồn lực chiến lược cho nghệ sĩ, thương hiệu và những đơn vị đang tìm đúng khán giả, đúng bối cảnh, đúng thời điểm.</p>
+    <p class="premium-lead">Không phải một nền tảng đặt quảng cáo. Đây là một không gian biên tập chọn lọc, nơi câu chuyện của bạn được kể đúng cách.</p>
+    <p class="premium-lead premium-lead--accent">A private media lounge for those who value context over noise.</p>
   </section>
 
-  <section id="dich-vu" class="premium-section container js-reveal">
-    <p class="premium-kicker">Dịch vụ</p>
-    <h2>Bốn nhóm giải pháp</h2>
+  <section id="giai-phap" class="premium-section container js-reveal">
+    <p class="premium-kicker">Premium Solutions</p>
+    {mask("Bốn nhóm giải pháp", tag="h2")}
     <div class="premium-groups">
       <div class="premium-group">
         <span class="premium-group__index">01</span>
-        <h3>Quảng cáo</h3>
+        <h3>Quảng cáo<span class="premium-group__tag">Advertising</span></h3>
         <ul><li>Hero</li><li>Promotion</li><li>Announcement</li><li>Sidebar</li><li>Homepage Feature</li><li>Sponsored Block</li></ul>
       </div>
       <div class="premium-group">
         <span class="premium-group__index">02</span>
-        <h3>Nội dung quảng bá</h3>
+        <h3>Nội dung quảng bá<span class="premium-group__tag">Editorial Promotion</span></h3>
         <ul><li>Press Release</li><li>Advertorial</li><li>Artist Feature</li><li>Interview</li><li>Album Review</li></ul>
       </div>
       <div class="premium-group">
         <span class="premium-group__index">03</span>
-        <h3>Bán vé</h3>
-        <ul><li>Landing Page</li><li>Ticketing</li><li>Commission</li></ul>
+        <h3>Bán vé<span class="premium-group__tag">Ticketing</span></h3>
+        <ul><li>Landing Page</li><li>Ticket Sales</li><li>Commission</li></ul>
       </div>
       <div class="premium-group">
         <span class="premium-group__index">04</span>
-        <h3>Premium Combo</h3>
+        <h3>Premium Combo<span class="premium-group__tag">Campaign Packages</span></h3>
         <ul><li>Album Launch</li><li>Campaign</li><li>Event Promotion</li></ul>
       </div>
     </div>
@@ -4086,30 +4152,34 @@ def render_premium_landing_page(s):
 
   <section class="premium-section container js-reveal">
     <p class="premium-kicker">Sơ đồ hiển thị</p>
-    <h2>Advertising Placement</h2>
-    <p class="premium-lead">Di chuột hoặc chạm vào từng vị trí để xem mô tả.</p>
-    <div class="premium-placements">{placements_html}
+    {mask("Advertising Placement", tag="h2")}
+    <p class="premium-lead">Di chuột hoặc chạm vào từng vị trí để xem mô tả và ví dụ.</p>
+    <div class="premium-sitemap">
+      <div class="premium-sitemap__hub">thenewculture.vn</div>
+      <div class="premium-sitemap__trunk" aria-hidden="true"></div>
+      <div class="premium-sitemap__nodes">{sitemap_nodes_html}
+      </div>
     </div>
   </section>
 
   <section class="premium-section container js-reveal">
-    <p class="premium-kicker">Gói dịch vụ</p>
-    <h2>Premium Packages</h2>
+    <p class="premium-kicker">Gói Premium</p>
+    {mask("Premium Packages", tag="h2")}
     <div class="premium-packages">{packages_html}
     </div>
   </section>
 
   <section class="premium-section container js-reveal">
     <p class="premium-kicker">Quy trình</p>
-    <h2>Workflow</h2>
+    {mask("Workflow", tag="h2")}
     <div class="premium-workflow">{workflow_html}
     </div>
   </section>
 
   <section class="premium-cta container js-reveal">
-    <h2>Ready to launch your next campaign?</h2>
-    <p>Liên hệ với TNC Premium để bắt đầu.</p>
-    <a href="lien-he.html" class="premium-btn premium-btn--solid">Liên hệ với TNC Premium</a>
+    {mask("Ready to elevate your next campaign?", tag="h2")}
+    <p class="premium-cta__vn">Sẵn sàng cho chiến dịch tiếp theo?</p>
+    <a href="lien-he.html" class="premium-btn premium-btn--solid">Liên hệ TNC Premium</a>
     <p class="premium-cta__email">hoặc gửi email tới <a href="mailto:thenewculture.universe@gmail.com">thenewculture.universe@gmail.com</a></p>
   </section>
 </main>
