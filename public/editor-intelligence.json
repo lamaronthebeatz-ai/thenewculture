@@ -1,7 +1,7 @@
 {
   "Lamar": {
     "metrics": {
-      "article_count": 23,
+      "article_count": 24,
       "series_count": 8,
       "category_count": 43,
       "first_article": {
@@ -11,10 +11,10 @@
         "series": "tnc-origins"
       },
       "latest_article": {
-        "slug": "thuan-phong-my-tuc-mck",
-        "title": "Có hay không sự bóp nghẹt sáng tạo của nghệ sĩ thông qua “thuần phong mỹ tục”?",
-        "date": "1 Tháng 8, 2026",
-        "series": "tnc-radar"
+        "slug": "Sliding-off-the-beat",
+        "title": "Sliding Off the Beat (Lazy Tails): Nghệ thuật \"đi sau nhịp\" trong rap và vì sao West Coast biến nó thành bản sắc",
+        "date": "3 Tháng 8, 2026",
+        "series": "tnc-music-101"
       },
       "active_years": 1,
       "published_since": 2026
@@ -27,19 +27,25 @@
         "series": "tnc-music-101"
       },
       {
-        "slug": "persona-la-gi-3",
-        "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 3)",
-        "date": "1 Tháng 8, 2026",
+        "slug": "Sliding-off-the-beat",
+        "title": "Sliding Off the Beat (Lazy Tails): Nghệ thuật \"đi sau nhịp\" trong rap và vì sao West Coast biến nó thành bản sắc",
+        "date": "3 Tháng 8, 2026",
         "series": "tnc-music-101"
       },
       {
-        "slug": "persona-la-gi-4",
-        "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 4)",
+        "slug": "persona-la-gi-3",
+        "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 3)",
         "date": "1 Tháng 8, 2026",
         "series": "tnc-music-101"
       }
     ],
     "recent_articles": [
+      {
+        "slug": "Sliding-off-the-beat",
+        "title": "Sliding Off the Beat (Lazy Tails): Nghệ thuật \"đi sau nhịp\" trong rap và vì sao West Coast biến nó thành bản sắc",
+        "date": "3 Tháng 8, 2026",
+        "series": "tnc-music-101"
+      },
       {
         "slug": "persona-la-gi-3",
         "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 3)",
@@ -62,12 +68,6 @@
         "slug": "persona-la-gi-2",
         "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 2)",
         "date": "31 Tháng 7, 2026",
-        "series": "tnc-music-101"
-      },
-      {
-        "slug": "persona-la-gi",
-        "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 1)",
-        "date": "30 Tháng 7, 2026",
         "series": "tnc-music-101"
       }
     ],
@@ -193,7 +193,7 @@
     "timeline": [
       {
         "year": 2026,
-        "count": 23,
+        "count": 24,
         "articles": [
           {
             "slug": "viet-dragon-vd-vi-vua-gangsta-rap-viet-nam-va-di-san-bat-diet-cua-viet-rap",
@@ -332,6 +332,12 @@
             "title": "Có hay không sự bóp nghẹt sáng tạo của nghệ sĩ thông qua “thuần phong mỹ tục”?",
             "date": "1 Tháng 8, 2026",
             "series": "tnc-radar"
+          },
+          {
+            "slug": "Sliding-off-the-beat",
+            "title": "Sliding Off the Beat (Lazy Tails): Nghệ thuật \"đi sau nhịp\" trong rap và vì sao West Coast biến nó thành bản sắc",
+            "date": "3 Tháng 8, 2026",
+            "series": "tnc-music-101"
           }
         ]
       }
