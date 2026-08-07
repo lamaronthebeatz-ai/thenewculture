@@ -33,6 +33,15 @@ const PageLayoutsList = lazy(() => import("./pages/PageLayoutsList"));
 const BlockRegistry = lazy(() => import("./pages/BlockRegistry"));
 const TncSelectsManager = lazy(() => import("./pages/TncSelectsManager"));
 const MagazineManager = lazy(() => import("./pages/MagazineManager"));
+const AssetOverview = lazy(() => import("./pages/assets/AssetOverview"));
+const AssetCategories = lazy(() => import("./pages/assets/AssetCategories"));
+const AssetTypes = lazy(() => import("./pages/assets/AssetTypes"));
+const AssetRules = lazy(() => import("./pages/assets/AssetRules"));
+const AssetFormulas = lazy(() => import("./pages/assets/AssetFormulas"));
+const AssetLedgerPage = lazy(() => import("./pages/assets/AssetLedgerPage"));
+const AssetAnalysis = lazy(() => import("./pages/assets/AssetAnalysis"));
+const AssetKpi = lazy(() => import("./pages/assets/AssetKpi"));
+const AssetReports = lazy(() => import("./pages/assets/AssetReports"));
 const UsersList = lazy(() => import("./pages/UsersList"));
 const UserForm = lazy(() => import("./pages/UserForm"));
 const RolesManager = lazy(() => import("./pages/RolesManager"));
@@ -88,6 +97,16 @@ function DashboardRoutes() {
           <Route path="layout/pages" element={<PageLayoutsList />} />
           <Route path="layout/pages/:pageKey" element={<LayoutBuilder />} />
           <Route path="layout/registry" element={<BlockRegistry />} />
+
+          <Route path="tai-san" element={<AssetOverview />} />
+          <Route path="tai-san/danh-muc" element={<AssetCategories />} />
+          <Route path="tai-san/loai" element={<AssetTypes />} />
+          <Route path="tai-san/quy-tac-dinh-gia" element={<AssetRules />} />
+          <Route path="tai-san/cong-thuc" element={<AssetFormulas />} />
+          <Route path="tai-san/so-tai-san" element={<AssetLedgerPage />} />
+          <Route path="tai-san/phan-tich" element={<AssetAnalysis />} />
+          <Route path="tai-san/kpi" element={<AssetKpi />} />
+          <Route path="tai-san/bao-cao" element={<AssetReports />} />
 
           <Route path="users" element={<UsersList />} />
           <Route path="users/new" element={<UserForm />} />

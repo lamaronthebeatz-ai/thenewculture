@@ -44,6 +44,24 @@ export const NAV_GROUPS = [
       { to: "/layout/registry", label: "Danh mục Khối", icon: "▤", permission: "layout.view" },
     ],
   },
+  // Rev 19 (Phase M6) — Hệ thống Quản trị Tài sản số: route THUẦN TIẾNG
+  // VIỆT (yêu cầu riêng của module này, đúng tinh thần "Bố cục Website" ở
+  // Rev 17 — không đổi nhãn tiếng Anh của các nhóm khác).
+  {
+    key: "assets",
+    label: "Tài sản",
+    items: [
+      { to: "/tai-san", label: "Tổng quan tài sản", icon: "◆", permission: "assets.view" },
+      { to: "/tai-san/danh-muc", label: "Danh mục tài sản", icon: "▢", permission: "assets.view" },
+      { to: "/tai-san/loai", label: "Loại tài sản", icon: "▥", permission: "assets.view" },
+      { to: "/tai-san/quy-tac-dinh-gia", label: "Quy tắc định giá", icon: "◈", permission: "assets.view" },
+      { to: "/tai-san/cong-thuc", label: "Công thức tính", icon: "∑", permission: "assets.view" },
+      { to: "/tai-san/so-tai-san", label: "Sổ tài sản", icon: "▦", permission: "assets.view" },
+      { to: "/tai-san/phan-tich", label: "Phân tích tài sản", icon: "◔", permission: "assets.view" },
+      { to: "/tai-san/kpi", label: "KPI", icon: "◎", permission: "assets.view" },
+      { to: "/tai-san/bao-cao", label: "Báo cáo", icon: "▤", permission: "assets.view" },
+    ],
+  },
   {
     key: "media",
     label: "Media",

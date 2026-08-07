@@ -912,6 +912,157 @@ begin
   );
 end $$;
 
+-- Rev 19 — TNCOS Phase M6: Hệ thống Quản trị Tài sản số. RLS/permission
+-- catalog/seed danh mục+loại + kiểm thử HÀNH VI THẬT của Valuation Engine
+-- (khác các khối trên chỉ kiểm tra cấu hình) — dùng dữ liệu "zz-test-" ngay
+-- trong savepoint sp_part_c, tự động rollback cùng phần còn lại, không để
+-- lại dấu vết.
+do $$
+declare
+  cnt int;
+  v_cat_id uuid;
+  v_type_id uuid;
+  v_item_id uuid;
+  v_computed numeric;
+  v_effective numeric;
+begin
+  select count(*) into cnt from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity = true
+      and c.relname in ('asset_categories', 'asset_types', 'valuation_rules', 'valuation_formulas',
+                         'valuation_formula_terms', 'asset_items', 'asset_ledger', 'asset_kpi', 'asset_reports');
+  perform public._tnc_test_assert(
+    cnt = 9, format('RLS: cả 9 bảng Hệ thống Tài sản đều đã ENABLE ROW LEVEL SECURITY (đang có %s/9)', cnt)
+  );
+
+  perform public._tnc_test_assert(
+    not exists (
+      select 1 from pg_policies
+      where schemaname = 'public'
+        and tablename in ('asset_categories', 'asset_types', 'valuation_rules', 'valuation_formulas',
+                           'valuation_formula_terms', 'asset_items', 'asset_ledger', 'asset_kpi', 'asset_reports')
+        and roles = '{public}'
+    ),
+    'RLS: KHÔNG bảng Tài sản nào có policy public (dữ liệu quản trị nội bộ, build.py/website không đọc)'
+  );
+  perform public._tnc_test_assert(
+    not exists (
+      select 1 from pg_policies
+      where schemaname = 'public' and tablename = 'asset_ledger' and cmd in ('UPDATE', 'DELETE')
+    ),
+    'RLS: asset_ledger KHÔNG có policy UPDATE/DELETE cho authenticated (append-only, chỉ trigger security definer được ghi)'
+  );
+
+  perform public._tnc_test_assert(
+    (select count(*) from public.permissions where module = 'assets' and action in ('view', 'create', 'edit', 'delete')) = 4,
+    'Permissions: module "assets" có đủ 4 action (view/create/edit/delete)'
+  );
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from public.role_permissions rp
+      join public.roles r on r.id = rp.role_id
+      join public.permissions p on p.id = rp.permission_id
+      where r.key = 'managing_editor' and p.key = 'assets.view'
+    ) and not exists (
+      select 1 from public.role_permissions rp
+      join public.roles r on r.id = rp.role_id
+      join public.permissions p on p.id = rp.permission_id
+      where r.key = 'managing_editor' and p.key = 'assets.delete'
+    ),
+    'Role_permissions: managing_editor CHỈ có assets.view, không có assets.delete (module tài chính nội bộ, phạm vi hẹp hơn Layout Builder)'
+  );
+  perform public._tnc_test_assert(
+    not exists (
+      select 1 from public.role_permissions rp
+      join public.roles r on r.id = rp.role_id
+      join public.permissions p on p.id = rp.permission_id
+      where r.key = 'editor' and p.module = 'assets'
+    ),
+    'Role_permissions: role "editor" (biên tập nội dung) KHÔNG có quyền nào trên module "assets"'
+  );
+
+  perform public._tnc_test_assert(
+    (select count(*) from public.asset_categories where deleted_at is null) >= 10,
+    'Seed: đủ ít nhất 10 asset_categories mặc định'
+  );
+  perform public._tnc_test_assert(
+    (select count(*) from public.asset_types where deleted_at is null) >= 15,
+    'Seed: đủ ít nhất 15 asset_types mặc định'
+  );
+  perform public._tnc_test_assert(
+    exists (select 1 from public.asset_types t join public.asset_categories c on c.id = t.category_id
+            where t.slug = 'bai-viet' and c.slug = 'noi-dung'),
+    'Seed: loại tài sản "Bài viết" thuộc đúng danh mục "Nội dung"'
+  );
+
+  perform public._tnc_test_assert(
+    exists (
+      select 1 from information_schema.table_constraints
+      where table_schema = 'public' and table_name = 'asset_kpi'
+        and constraint_type = 'CHECK' and constraint_name = 'asset_kpi_target_consistent'
+    ),
+    'Constraint: asset_kpi_target_consistent (count_by_type/count_by_category bắt buộc có target tương ứng) tồn tại'
+  );
+
+  -- ---- Kiểm thử HÀNH VI THẬT của Valuation Engine (không chỉ cấu hình) ----
+
+  insert into public.asset_categories (name, slug) values ('zz-test category', 'zz-test-cat') returning id into v_cat_id;
+  insert into public.asset_types (category_id, name, slug) values (v_cat_id, 'zz-test type', 'zz-test-type') returning id into v_type_id;
+  insert into public.valuation_rules (asset_type_id, name, default_value, valuation_method)
+    values (v_type_id, 'zz-test rule', 100, 'fixed');
+
+  insert into public.asset_items (type_id, name, base_value) values (v_type_id, 'zz-test item', 0) returning id into v_item_id;
+  select computed_value, effective_value into v_computed, v_effective from public.asset_items where id = v_item_id;
+  perform public._tnc_test_assert(
+    v_computed = 100 and v_effective = 100,
+    format('Engine: valuation_method=''fixed'' tự tính computed_value=EEV mặc định NGAY khi insert, không cần nhập tay (đang có %s)', v_computed)
+  );
+  perform public._tnc_test_assert(
+    exists (select 1 from public.asset_ledger where asset_item_id = v_item_id and reason = 'created' and new_value = 100),
+    'Engine: asset_ledger tự ghi 1 dòng "created" khi tạo tài sản mới, KHÔNG cần insert tay'
+  );
+
+  update public.asset_items set override_value = 999 where id = v_item_id;
+  perform public._tnc_test_assert(
+    (select effective_value from public.asset_items where id = v_item_id) = 999,
+    'Engine: override_value (Ghi đè) có hiệu lực CAO HƠN computed_value trên effective_value'
+  );
+  perform public._tnc_test_assert(
+    exists (select 1 from public.asset_ledger where asset_item_id = v_item_id and reason = 'manual_override' and old_value = 100 and new_value = 999),
+    'Engine: asset_ledger ghi nhận đúng lý do "manual_override" khi Ghi đè, giữ cả giá trị cũ/mới'
+  );
+
+  -- Đổi công thức (không đụng tới chính asset_item) -> Engine tự tính lại
+  -- NGAY LẬP TỨC cho mọi tài sản thuộc type đó, đúng yêu cầu "không cần
+  -- Build, không cần Refresh".
+  update public.valuation_rules set default_value = 500 where asset_type_id = v_type_id and is_active = true;
+  perform public._tnc_test_assert(
+    (select computed_value from public.asset_items where id = v_item_id) = 500,
+    'Engine: sửa Quy tắc định giá (default_value) TỰ ĐỘNG tính lại computed_value của mọi tài sản thuộc type đó, không cần thao tác gì trên chính asset_item'
+  );
+  perform public._tnc_test_assert(
+    (select effective_value from public.asset_items where id = v_item_id) = 999,
+    'Engine: effective_value vẫn ưu tiên override_value (999) dù computed_value phía sau đã đổi thành 500'
+  );
+
+  -- Unique partial index: chỉ 1 valuation_rules active tại 1 thời điểm/type.
+  begin
+    insert into public.valuation_rules (asset_type_id, name, default_value, valuation_method)
+      values (v_type_id, 'zz-test rule 2', 1, 'fixed');
+    perform public._tnc_test_assert(false, 'UNIQUE: 2 valuation_rules cùng active cho 1 asset_type phải bị từ chối');
+  exception when unique_violation then
+    perform public._tnc_test_assert(true, 'UNIQUE: valuation_rules_active_per_type từ chối đúng khi thêm rule active thứ 2 cho cùng 1 type');
+  end;
+
+  -- CHECK: asset_kpi_target_consistent.
+  begin
+    insert into public.asset_kpi (name, metric_type, target_value) values ('zz-test kpi bad', 'count_by_type', 1);
+    perform public._tnc_test_assert(false, 'CHECK: KPI count_by_type thiếu target_type_id phải bị từ chối');
+  exception when check_violation then
+    perform public._tnc_test_assert(true, 'CHECK: asset_kpi_target_consistent từ chối đúng KPI count_by_type thiếu target_type_id');
+  end;
+end $$;
+
 rollback to savepoint sp_part_c;
 
 -- Dọn hàm khẳng định dùng chung — không phải object tạm/session nên phải
