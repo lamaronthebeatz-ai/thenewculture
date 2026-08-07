@@ -1,0 +1,254 @@
+/* ============================================================================
+   TNCOS Phase M6 — Hệ thống Quản trị Tài sản số. Toàn bộ tái dùng token sẵn
+   có (tokens.css: --brand, --success, --danger, --surface, --border,
+   --text-xxx, --space-xxx, --radius-xxx) — không thêm màu/token Design
+   System mới, đúng yêu cầu spec PHẦN XVII "Không thêm Design System mới".
+   ============================================================================ */
+
+.asset-stat-delta {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+.asset-stat-delta--up { color: var(--success); }
+.asset-stat-delta--down { color: var(--danger); }
+.asset-stat-delta--flat { color: var(--text-muted); }
+
+/* ---------- Growth chart (line/area, 1 hue) ---------- */
+.asset-chart {
+  position: relative;
+  margin-top: var(--space-2);
+}
+.asset-chart__svg {
+  width: 100%;
+  height: 220px;
+  display: block;
+}
+.asset-chart__axis {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.asset-chart__area {
+  fill: var(--brand);
+  opacity: 0.08;
+  stroke: none;
+}
+.asset-chart__line {
+  fill: none;
+  stroke: var(--brand);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.asset-chart__crosshair {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.asset-chart__dot {
+  fill: var(--brand);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+.asset-chart__legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  color: var(--text-subtle);
+  margin-top: 4px;
+}
+.asset-chart__tooltip {
+  position: absolute;
+  top: 4px;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: var(--surface);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+}
+
+/* ---------- Distribution bars (magnitude by length, 1 hue) ---------- */
+.asset-dist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+.asset-dist__row {
+  display: grid;
+  grid-template-columns: 160px 1fr 120px;
+  align-items: center;
+  gap: var(--space-3);
+}
+.asset-dist__label {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--text-sm);
+}
+.asset-dist__track {
+  background: var(--bg);
+  border-radius: var(--radius-full);
+  height: 10px;
+  overflow: hidden;
+}
+.asset-dist__bar {
+  background: var(--brand);
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width var(--duration-slow) var(--ease-standard);
+}
+.asset-dist__value {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .asset-dist__row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .asset-dist__value { text-align: left; }
+}
+
+/* ---------- Top lists (Tổng quan) ---------- */
+.asset-top-list {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.asset-top-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: var(--text-sm);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.asset-top-list li:last-child { border-bottom: none; }
+.asset-top-list .value {
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Phân tích tài sản: insight cards ---------- */
+.asset-insights {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+.asset-insight-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+.asset-insight-card__label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+.asset-insight-card__detail {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  margin-bottom: 2px;
+}
+.asset-insight-card__value {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Công thức tính: các dòng term ---------- */
+.asset-formula-terms {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+}
+.asset-formula-term {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1.4fr 0.8fr auto;
+  gap: var(--space-2);
+  align-items: center;
+}
+@media (max-width: 900px) {
+  .asset-formula-term {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- KPI: mục tiêu + thanh tiến trình (Progress) ---------- */
+.asset-kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+.asset-kpi-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--space-2);
+}
+.asset-kpi-card__progress-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.tncos-progress__track {
+  background: var(--bg);
+  border-radius: var(--radius-full);
+  height: 8px;
+  overflow: hidden;
+}
+.tncos-progress__bar {
+  background: var(--brand);
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width var(--duration-slow) var(--ease-standard);
+}
+
+/* ---------- Sổ tài sản: giá trị hiệu lực + badge ghi đè ---------- */
+.asset-value-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.asset-value-cell .muted { font-size: var(--text-xs); }
+
+/* ---------- Báo cáo: bản xem trước + in/Xuất PDF (window.print, không
+   thêm thư viện) ---------- */
+.asset-report-preview {
+  margin-top: var(--space-4);
+  max-height: 480px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+@media print {
+  body * { visibility: hidden; }
+  .asset-report-preview,
+  .asset-report-preview * { visibility: visible; }
+  .asset-report-preview {
+    position: absolute;
+    inset: 0;
+    max-height: none;
+    overflow: visible;
+    border: none;
+  }
+}

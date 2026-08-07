@@ -2,6 +2,7 @@
 @import "./motion.css";
 @import "./ui.css";
 @import "./shell.css";
+@import "./assets.css";
 
 * {
   box-sizing: border-box;
