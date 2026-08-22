@@ -1,9 +1,9 @@
 {
   "Lamar": {
     "metrics": {
-      "article_count": 24,
-      "series_count": 8,
-      "category_count": 43,
+      "article_count": 25,
+      "series_count": 9,
+      "category_count": 44,
       "first_article": {
         "slug": "viet-dragon-vd-vi-vua-gangsta-rap-viet-nam-va-di-san-bat-diet-cua-viet-rap",
         "title": "Viet Dragon: \"VD là Ví Dụ của Rap Việt\"",
@@ -11,10 +11,10 @@
         "series": "tnc-origins"
       },
       "latest_article": {
-        "slug": "Sliding-off-the-beat",
-        "title": "Sliding Off the Beat (Lazy Tails): Nghệ thuật \"đi sau nhịp\" trong rap và vì sao West Coast biến nó thành bản sắc",
-        "date": "3 Tháng 8, 2026",
-        "series": "tnc-music-101"
+        "slug": "Tieu-diem-tuong-wala",
+        "title": "TIÊU ĐIỂM TƯỚNG: Wala",
+        "date": "22 Tháng 8, 2026",
+        "series": "tnc-discovery"
       },
       "active_years": 1,
       "published_since": 2026
@@ -27,19 +27,25 @@
         "series": "tnc-music-101"
       },
       {
+        "slug": "Tieu-diem-tuong-wala",
+        "title": "TIÊU ĐIỂM TƯỚNG: Wala",
+        "date": "22 Tháng 8, 2026",
+        "series": "tnc-discovery"
+      },
+      {
         "slug": "Sliding-off-the-beat",
         "title": "Sliding Off the Beat (Lazy Tails): Nghệ thuật \"đi sau nhịp\" trong rap và vì sao West Coast biến nó thành bản sắc",
         "date": "3 Tháng 8, 2026",
         "series": "tnc-music-101"
-      },
-      {
-        "slug": "persona-la-gi-3",
-        "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 3)",
-        "date": "1 Tháng 8, 2026",
-        "series": "tnc-music-101"
       }
     ],
     "recent_articles": [
+      {
+        "slug": "Tieu-diem-tuong-wala",
+        "title": "TIÊU ĐIỂM TƯỚNG: Wala",
+        "date": "22 Tháng 8, 2026",
+        "series": "tnc-discovery"
+      },
       {
         "slug": "Sliding-off-the-beat",
         "title": "Sliding Off the Beat (Lazy Tails): Nghệ thuật \"đi sau nhịp\" trong rap và vì sao West Coast biến nó thành bản sắc",
@@ -63,12 +69,6 @@
         "title": "Có hay không sự bóp nghẹt sáng tạo của nghệ sĩ thông qua “thuần phong mỹ tục”?",
         "date": "1 Tháng 8, 2026",
         "series": "tnc-radar"
-      },
-      {
-        "slug": "persona-la-gi-2",
-        "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 2)",
-        "date": "31 Tháng 7, 2026",
-        "series": "tnc-music-101"
       }
     ],
     "series": [
@@ -136,6 +136,15 @@
         "accent": "--blue"
       },
       {
+        "slug": "tnc-discovery",
+        "num": "13",
+        "name": "TNC Discovery",
+        "desc": "Giới thiệu những nghệ sĩ, producer, nhóm nhạc, label và dự án mới đầy tiềm năng.",
+        "tag_color": "red",
+        "code": "TNC·TNC",
+        "accent": "--green"
+      },
+      {
         "slug": "tnc-music-101",
         "num": "14",
         "name": "TNC Music 101",
@@ -163,6 +172,7 @@
       "#Gaplai",
       "#Gfamily",
       "#HanhOr",
+      "#HipHop",
       "#Justatee",
       "#KTS2026",
       "#Kewtiie",
@@ -193,7 +203,7 @@
     "timeline": [
       {
         "year": 2026,
-        "count": 24,
+        "count": 25,
         "articles": [
           {
             "slug": "viet-dragon-vd-vi-vua-gangsta-rap-viet-nam-va-di-san-bat-diet-cua-viet-rap",
@@ -338,6 +348,12 @@
             "title": "Sliding Off the Beat (Lazy Tails): Nghệ thuật \"đi sau nhịp\" trong rap và vì sao West Coast biến nó thành bản sắc",
             "date": "3 Tháng 8, 2026",
             "series": "tnc-music-101"
+          },
+          {
+            "slug": "Tieu-diem-tuong-wala",
+            "title": "TIÊU ĐIỂM TƯỚNG: Wala",
+            "date": "22 Tháng 8, 2026",
+            "series": "tnc-discovery"
           }
         ]
       }
