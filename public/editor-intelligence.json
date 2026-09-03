@@ -1,7 +1,7 @@
 {
   "Lamar": {
     "metrics": {
-      "article_count": 26,
+      "article_count": 27,
       "series_count": 9,
       "category_count": 44,
       "first_article": {
@@ -11,15 +11,21 @@
         "series": "tnc-origins"
       },
       "latest_article": {
-        "slug": "hoc-duoc-gi-tu-dj-khaled",
-        "title": "Học được gì từ DJ Khaled trong việc kinh doanh và quảng bá âm nhạc?",
-        "date": "24 Tháng 8, 2026",
-        "series": "tnc-breakdown"
+        "slug": "marketing-trong-am-nhac",
+        "title": "MARKETING TRONG ÂM NHẠC: LÀM ĐÚNG HƯỚNG MÀ KHÔNG CẦN ĐỐT QUÁ NHIỀU TIỀN",
+        "date": "3 Tháng 9, 2026",
+        "series": "tnc-music-101"
       },
       "active_years": 1,
       "published_since": 2026
     },
     "featured_articles": [
+      {
+        "slug": "marketing-trong-am-nhac",
+        "title": "MARKETING TRONG ÂM NHẠC: LÀM ĐÚNG HƯỚNG MÀ KHÔNG CẦN ĐỐT QUÁ NHIỀU TIỀN",
+        "date": "3 Tháng 9, 2026",
+        "series": "tnc-music-101"
+      },
       {
         "slug": "persona-la-gi-2",
         "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 2)",
@@ -31,15 +37,15 @@
         "title": "Học được gì từ DJ Khaled trong việc kinh doanh và quảng bá âm nhạc?",
         "date": "24 Tháng 8, 2026",
         "series": "tnc-breakdown"
-      },
-      {
-        "slug": "Tieu-diem-tuong-wala",
-        "title": "TIÊU ĐIỂM TƯỚNG: Wala",
-        "date": "22 Tháng 8, 2026",
-        "series": "tnc-discovery"
       }
     ],
     "recent_articles": [
+      {
+        "slug": "marketing-trong-am-nhac",
+        "title": "MARKETING TRONG ÂM NHẠC: LÀM ĐÚNG HƯỚNG MÀ KHÔNG CẦN ĐỐT QUÁ NHIỀU TIỀN",
+        "date": "3 Tháng 9, 2026",
+        "series": "tnc-music-101"
+      },
       {
         "slug": "hoc-duoc-gi-tu-dj-khaled",
         "title": "Học được gì từ DJ Khaled trong việc kinh doanh và quảng bá âm nhạc?",
@@ -61,12 +67,6 @@
       {
         "slug": "persona-la-gi-3",
         "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 3)",
-        "date": "1 Tháng 8, 2026",
-        "series": "tnc-music-101"
-      },
-      {
-        "slug": "persona-la-gi-4",
-        "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 4)",
         "date": "1 Tháng 8, 2026",
         "series": "tnc-music-101"
       }
@@ -203,7 +203,7 @@
     "timeline": [
       {
         "year": 2026,
-        "count": 26,
+        "count": 27,
         "articles": [
           {
             "slug": "viet-dragon-vd-vi-vua-gangsta-rap-viet-nam-va-di-san-bat-diet-cua-viet-rap",
@@ -360,6 +360,12 @@
             "title": "Học được gì từ DJ Khaled trong việc kinh doanh và quảng bá âm nhạc?",
             "date": "24 Tháng 8, 2026",
             "series": "tnc-breakdown"
+          },
+          {
+            "slug": "marketing-trong-am-nhac",
+            "title": "MARKETING TRONG ÂM NHẠC: LÀM ĐÚNG HƯỚNG MÀ KHÔNG CẦN ĐỐT QUÁ NHIỀU TIỀN",
+            "date": "3 Tháng 9, 2026",
+            "series": "tnc-music-101"
           }
         ]
       }
