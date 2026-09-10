@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import ImageUploader from "../components/ImageUploader";
+import MarkdownEditor from "../components/MarkdownEditor";
 
 const STATUS_OPTIONS = [
   { value: "draft", label: "Nháp" },
@@ -283,7 +284,7 @@ export default function ArticleForm() {
 
         <label>
           Nội dung (Markdown)
-          <textarea rows={14} value={form.body} onChange={(e) => update("body", e.target.value)} />
+          <MarkdownEditor value={form.body} onChange={(v) => update("body", v)} rows={14} />
         </label>
 
         <div className="form-grid">
