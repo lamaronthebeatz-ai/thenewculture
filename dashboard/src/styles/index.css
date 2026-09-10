@@ -3,6 +3,7 @@
 @import "./ui.css";
 @import "./shell.css";
 @import "./assets.css";
+@import "./markdownEditor.css";
 
 * {
   box-sizing: border-box;
