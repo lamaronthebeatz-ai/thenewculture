@@ -1,7 +1,7 @@
 {
   "Lamar": {
     "metrics": {
-      "article_count": 27,
+      "article_count": 28,
       "series_count": 9,
       "category_count": 44,
       "first_article": {
@@ -11,15 +11,21 @@
         "series": "tnc-origins"
       },
       "latest_article": {
-        "slug": "marketing-trong-am-nhac",
-        "title": "Marketing trong âm nhạc: Làm đúng hướng nhưng không cần đốt quá nhiều tiền",
-        "date": "3 Tháng 9, 2026",
-        "series": "tnc-music-101"
+        "slug": "Luxuria",
+        "title": "LUXURIA: TRẦN BẢO VÀ YOUNG TRÊN MÁ EM BƯỚC VÀO THẾ GIỚI CỦA DỤC VỌNG VÀ CÁM DỖ",
+        "date": "20 Tháng 10, 2026",
+        "series": "tnc-discovery"
       },
       "active_years": 1,
       "published_since": 2026
     },
     "featured_articles": [
+      {
+        "slug": "Luxuria",
+        "title": "LUXURIA: TRẦN BẢO VÀ YOUNG TRÊN MÁ EM BƯỚC VÀO THẾ GIỚI CỦA DỤC VỌNG VÀ CÁM DỖ",
+        "date": "20 Tháng 10, 2026",
+        "series": "tnc-discovery"
+      },
       {
         "slug": "marketing-trong-am-nhac",
         "title": "Marketing trong âm nhạc: Làm đúng hướng nhưng không cần đốt quá nhiều tiền",
@@ -31,15 +37,15 @@
         "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 2)",
         "date": "31 Tháng 7, 2026",
         "series": "tnc-music-101"
-      },
-      {
-        "slug": "hoc-duoc-gi-tu-dj-khaled",
-        "title": "Học được gì từ DJ Khaled trong việc kinh doanh và quảng bá âm nhạc?",
-        "date": "24 Tháng 8, 2026",
-        "series": "tnc-breakdown"
       }
     ],
     "recent_articles": [
+      {
+        "slug": "Luxuria",
+        "title": "LUXURIA: TRẦN BẢO VÀ YOUNG TRÊN MÁ EM BƯỚC VÀO THẾ GIỚI CỦA DỤC VỌNG VÀ CÁM DỖ",
+        "date": "20 Tháng 10, 2026",
+        "series": "tnc-discovery"
+      },
       {
         "slug": "marketing-trong-am-nhac",
         "title": "Marketing trong âm nhạc: Làm đúng hướng nhưng không cần đốt quá nhiều tiền",
@@ -62,12 +68,6 @@
         "slug": "Sliding-off-the-beat",
         "title": "Sliding Off the Beat (Lazy Tails): Nghệ thuật \"đi sau nhịp\" trong rap và vì sao West Coast biến nó thành bản sắc",
         "date": "3 Tháng 8, 2026",
-        "series": "tnc-music-101"
-      },
-      {
-        "slug": "persona-la-gi-3",
-        "title": "Persona là gì? Điều đầu tiên mọi nghệ sĩ nên hiểu trước khi nghĩ đến việc xây dựng thương hiệu (Phần 3)",
-        "date": "1 Tháng 8, 2026",
         "series": "tnc-music-101"
       }
     ],
@@ -203,7 +203,7 @@
     "timeline": [
       {
         "year": 2026,
-        "count": 27,
+        "count": 28,
         "articles": [
           {
             "slug": "viet-dragon-vd-vi-vua-gangsta-rap-viet-nam-va-di-san-bat-diet-cua-viet-rap",
@@ -366,6 +366,12 @@
             "title": "Marketing trong âm nhạc: Làm đúng hướng nhưng không cần đốt quá nhiều tiền",
             "date": "3 Tháng 9, 2026",
             "series": "tnc-music-101"
+          },
+          {
+            "slug": "Luxuria",
+            "title": "LUXURIA: TRẦN BẢO VÀ YOUNG TRÊN MÁ EM BƯỚC VÀO THẾ GIỚI CỦA DỤC VỌNG VÀ CÁM DỖ",
+            "date": "20 Tháng 10, 2026",
+            "series": "tnc-discovery"
           }
         ]
       }
